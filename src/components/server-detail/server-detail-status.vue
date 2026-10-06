@@ -24,17 +24,13 @@
           <div class="resource-body">
             <div class="resource-main">
               <div class="resource-value">
-                <span class="resource-percent">{{ item.valPercent }}</span>
+                <span class="resource-main-value">{{ item.valText || item.valPercent }}</span>
                 <span class="resource-label">{{ item.label }}</span>
               </div>
               <div
                 class="resource-capacity"
                 :title="item.valText ? `${item.valText} / ${item.content?.default}` : item.content?.default"
               >
-                <template v-if="item.valText">
-                  <span class="resource-used">{{ item.valText }}</span>
-                  <span class="resource-separator">/</span>
-                </template>
                 <span class="resource-total resource-total--desktop">{{ item.content?.default }}</span>
                 <span class="resource-total resource-total--mobile">{{ item.content?.mobile || item.content?.default }}</span>
               </div>
@@ -246,7 +242,7 @@ function progressStyle(item) {
   gap: 5px;
   line-height: 1;
 
-  .resource-percent {
+  .resource-main-value {
     font-size: 16px;
     font-weight: 700;
     font-family: var(--font-mono);
@@ -270,15 +266,6 @@ function progressStyle(item) {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-
-  .resource-used {
-    font-weight: 600;
-    color: var(--text-primary);
-  }
-
-  .resource-separator {
-    color: var(--text-muted);
-  }
 
   .resource-total {
     color: var(--text-muted);
@@ -366,7 +353,7 @@ function progressStyle(item) {
   }
 
   .resource-value {
-    .resource-percent {
+    .resource-main-value {
       font-size: 15px;
     }
 

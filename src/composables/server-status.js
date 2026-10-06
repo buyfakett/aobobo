@@ -158,7 +158,6 @@ export default (params) => {
             total: totalColor,
           },
           valText,
-          valPercent: `${useMemAndTotalMem.value.usePercent.toFixed(1) * 1}%`,
           label: '内存',
           content: {
             default: `运行内存${contentVal}`,
@@ -192,7 +191,6 @@ export default (params) => {
             total: totalColor,
           },
           valText,
-          valPercent: `${useSwapAndTotalSwap.value.usePercent.toFixed(1) * 1}%`,
           label: '交换',
           content: {
             default: `交换内存${contentVal}`,
@@ -223,7 +221,6 @@ export default (params) => {
             total: totalColor,
           },
           valText,
-          valPercent: `${useDiskAndTotalDisk.value.usePercent.toFixed(1) * 1}%`,
           label: '磁盘',
           content: {
             default: `磁盘容量${contentValue}`,

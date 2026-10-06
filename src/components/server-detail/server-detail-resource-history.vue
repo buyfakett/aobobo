@@ -220,14 +220,19 @@ let requestSerial = 0;
 
 const historyCards = computed(() => {
   const hasSwap = props.info?.Host?.SwapTotal > 0;
+  const memTotalBytes = Number(props.info?.Host?.MemTotal);
+  const swapTotalBytes = Number(props.info?.Host?.SwapTotal);
+  const diskTotalBytes = Number(props.info?.Host?.DiskTotal);
   const memSwapSeries = buildAlignedSeries([{
     metric: 'memory',
     name: '内存',
     color: SERIES_COLORS.memory,
+    totalBytes: memTotalBytes,
   }, {
     metric: 'swap',
     name: '交换',
     color: SERIES_COLORS.swap,
+    totalBytes: swapTotalBytes,
   }]);
   const netSpeedSeries = buildAlignedSeries([{
     metric: 'net_in_speed',
@@ -256,6 +261,7 @@ const historyCards = computed(() => {
     metric: 'disk',
     name: '磁盘',
     color: SERIES_COLORS.disk,
+    totalBytes: diskTotalBytes,
   }]);
   const processSeries = buildAlignedSeries([{
     metric: 'process_count',
@@ -264,20 +270,6 @@ const historyCards = computed(() => {
   }]);
 
   const currentCpu = firstFinite(props.info?.State?.CPU, latestMetricValue('cpu'));
-  const currentMemPercent = firstFinite(
-    calcPercent(props.info?.State?.MemUsed, props.info?.Host?.MemTotal),
-    latestMetricValue('memory'),
-  );
-  const currentSwapPercent = hasSwap
-    ? firstFinite(
-      calcPercent(props.info?.State?.SwapUsed, props.info?.Host?.SwapTotal),
-      latestMetricValue('swap'),
-    )
-    : null;
-  const currentDiskPercent = firstFinite(
-    calcPercent(props.info?.State?.DiskUsed, props.info?.Host?.DiskTotal),
-    latestMetricValue('disk'),
-  );
   const currentProcessCount = firstFinite(
     props.info?.State?.ProcessCount,
     latestMetricValue('process_count'),
@@ -312,30 +304,33 @@ const historyCards = computed(() => {
       createMetricRow({
         key: 'memory',
         label: '内存',
-        value: formatPercent(currentMemPercent),
-        detail: formatBinaryRatio(props.info?.State?.MemUsed, props.info?.Host?.MemTotal),
+        value: formatBinaryText(props.info?.State?.MemUsed),
+        detail: formatTotalDetail(memTotalBytes),
         color: SERIES_COLORS.memory,
       }),
       createMetricRow({
         key: 'swap',
         label: '交换',
-        value: hasSwap ? formatPercent(currentSwapPercent) : NO_SWAP_TEXT,
-        detail: hasSwap
-          ? formatBinaryRatio(props.info?.State?.SwapUsed, props.info?.Host?.SwapTotal)
-          : '',
+        value: hasSwap ? formatBinaryText(props.info?.State?.SwapUsed) : NO_SWAP_TEXT,
+        detail: hasSwap ? formatTotalDetail(swapTotalBytes) : '',
         color: SERIES_COLORS.swap,
         muted: !hasSwap,
       }),
     ],
     series: memSwapSeries,
-    chartConfig: getPercentChartConfig(),
+    chartConfig: getUsageChartConfig({
+      memory: memTotalBytes,
+      swap: swapTotalBytes,
+    }),
   }), createSummaryCard({
     key: 'disk',
     title: '磁盘',
-    summaryValue: formatPercent(currentDiskPercent),
-    summaryDetail: formatBinaryRatio(props.info?.State?.DiskUsed, props.info?.Host?.DiskTotal),
+    summaryValue: formatBinaryText(props.info?.State?.DiskUsed),
+    summaryDetail: formatTotalDetail(diskTotalBytes),
     series: diskSeries,
-    chartConfig: getPercentChartConfig(),
+    chartConfig: getUsageChartConfig({
+      disk: diskTotalBytes,
+    }),
   }), createSummaryCard({
     key: 'process_count',
     title: '进程数',
@@ -631,6 +626,18 @@ function normalizeUsageValue(value, total) {
   return calcPercent(value, total);
 }
 
+// 历史指标以百分比存储，展示时按总容量换算回字节数；无总容量时保持原值
+function scaleUsageValue(value, totalBytes) {
+  if (value == null) {
+    return null;
+  }
+  const total = Number(totalBytes);
+  if (!Number.isFinite(total) || total <= 0) {
+    return value;
+  }
+  return (value / 100) * total;
+}
+
 function buildAlignedSeries(seriesDefs) {
   const timestampSet = new Set();
   const metricMaps = {};
@@ -650,9 +657,12 @@ function buildAlignedSeries(seriesDefs) {
     name: seriesDef.name,
     data: dateList.map((timestamp) => [
       timestamp,
-      metricMaps[seriesDef.metric].has(timestamp)
-        ? metricMaps[seriesDef.metric].get(timestamp)
-        : null,
+      scaleUsageValue(
+        metricMaps[seriesDef.metric].has(timestamp)
+          ? metricMaps[seriesDef.metric].get(timestamp)
+          : null,
+        seriesDef.totalBytes,
+      ),
     ]),
     itemStyle: {
       color: seriesDef.color,
@@ -793,13 +803,9 @@ function formatSpeedText(bytes) {
   return formatBinaryText(bytes, { perSecond: true });
 }
 
-function formatBinaryRatio(usedBytes, totalBytes) {
-  const usedText = formatBinaryText(usedBytes);
+function formatTotalDetail(totalBytes) {
   const totalText = formatBinaryText(totalBytes);
-  if (usedText === '-' && totalText === '-') {
-    return '-';
-  }
-  return `${usedText} / ${totalText}`;
+  return totalText === '-' ? '' : `/ ${totalText}`;
 }
 
 function formatBinaryParts(bytes, options = {}) {
@@ -861,6 +867,64 @@ function getPercentChartConfig() {
       areaAlpha: 0.08,
     },
   };
+}
+
+// 内存/交换/磁盘图表：数据已按各自总容量换算为字节，坐标轴与悬浮提示都用容量展示
+function getUsageChartConfig(seriesTotals = {}) {
+  const totalsById = {};
+  let maxTotal = 0;
+  Object.entries(seriesTotals).forEach(([seriesId, total]) => {
+    const numericTotal = Number(total);
+    if (Number.isFinite(numericTotal) && numericTotal > 0) {
+      totalsById[seriesId] = numericTotal;
+      maxTotal = Math.max(maxTotal, numericTotal);
+    }
+  });
+  const hasUsageScale = maxTotal > 0;
+  const usageAxis = hasUsageScale ? (() => {
+    const interval = chooseBytesAxisInterval(maxTotal);
+    return {
+      min: 0,
+      max: Math.ceil(maxTotal / interval) * interval,
+      interval,
+      formatter: (value) => formatBinaryText(value),
+    };
+  })() : {
+    min: 0,
+    max: 100,
+    formatter: (value) => `${value}%`,
+  };
+  return {
+    showDataZoom: false,
+    grid: {
+      top: 10,
+      left: 2,
+      right: 6,
+      bottom: 20,
+    },
+    yAxis: usageAxis,
+    tooltip: {
+      valueFormatter: (value, param) => (
+        Number.isFinite(totalsById[param?.seriesId])
+          ? formatBinaryText(value)
+          : formatPercent(value)
+      ),
+    },
+    series: {
+      lineWidth: 1.6,
+      areaOpacity: 1,
+      areaAlpha: 0.08,
+    },
+  };
+}
+
+// 用 2 的幂作为刻度间隔，保证轴标签是整数容量（如 0 / 2GiB / 4GiB / 6GiB / 8GiB）
+function chooseBytesAxisInterval(maxBytes) {
+  let interval = 1024 * 1024;
+  while (Math.ceil(maxBytes / interval) > 6) {
+    interval *= 2;
+  }
+  return interval;
 }
 
 function getCountChartConfig() {
