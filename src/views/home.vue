@@ -26,6 +26,15 @@
             </span>
           </template>
         </div>
+        <button
+          type="button"
+          class="all-hosts-entry-btn"
+          aria-label="查看全部主机总览"
+          title="全部主机总览"
+          @click="openAllHostsModal"
+        >
+          <span class="all-hosts-entry-btn__text">全部主机</span>
+        </button>
       </div>
 
       <div class="status-actions">
@@ -264,6 +273,14 @@
       @close="closeStatsModal"
     />
 
+    <all-hosts-modal
+      :visible="allHostsModalVisible"
+      :cycle-transfer-map="cycleTransferMap"
+      :escape-disabled="detailDrawerOpen"
+      @close="closeAllHostsModal"
+      @select-server="handleServerSelect"
+    />
+
     <app-footer class="app-footer--absolute" />
 
     <transition name="drawer-fade">
@@ -358,6 +375,7 @@ import IconLoading from '@/components/icons/icon-loading.vue';
 import IconInbox from '@/components/icons/icon-inbox.vue';
 import IconEarth from '@/components/icons/icon-earth.vue';
 import StatsDetailModal from '@/components/stats-detail-modal.vue';
+import AllHostsModal from '@/components/all-hosts-modal.vue';
 import ServerDetailHeader from '@/components/server-detail/server-detail-header.vue';
 import ServerDetailStatus from '@/components/server-detail/server-detail-status.vue';
 import ServerDetailResourceHistory from '@/components/server-detail/server-detail-resource-history.vue';
@@ -413,6 +431,7 @@ const exchangeRateState = ref({
   error: '',
 });
 const statsModalVisible = ref(false);
+const allHostsModalVisible = ref(false);
 const globeStatsFloatingRef = ref(null);
 const currentTimePanelWidth = ref(undefined);
 const panelRef = ref(null);
@@ -546,6 +565,14 @@ function openStatsModal() {
 
 function closeStatsModal() {
   statsModalVisible.value = false;
+}
+
+function openAllHostsModal() {
+  allHostsModalVisible.value = true;
+}
+
+function closeAllHostsModal() {
+  allHostsModalVisible.value = false;
 }
 
 function syncCurrentTimePanelWidth() {
@@ -1508,6 +1535,46 @@ onUnmounted(() => {
   .status-actions {
     margin-left: auto;
     justify-content: flex-end;
+  }
+
+  .all-hosts-entry-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 24px;
+    padding: 0 9px;
+    border-radius: 8px;
+    border: 1px solid var(--button-subtle-border);
+    background: var(--button-subtle-bg);
+    color: var(--text-secondary);
+    font-size: 10.5px;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+      color var(--transition-fast),
+      background var(--transition-fast),
+      border-color var(--transition-fast),
+      box-shadow var(--transition-fast);
+
+    i {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1em;
+      height: 1em;
+      font-size: 11px;
+      line-height: 1;
+    }
+
+    @media (hover: hover) {
+      &:hover {
+        color: var(--text-on-accent);
+        background: var(--button-active-bg);
+        border-color: var(--button-active-border);
+        box-shadow: var(--button-active-shadow);
+      }
+    }
   }
 
   .status-summary {
@@ -2539,6 +2606,12 @@ onUnmounted(() => {
 
   :deep(.server-table-wrap) {
     padding-bottom: 24px;
+  }
+}
+
+@media screen and (max-width: 640px) {
+  .status-bar .all-hosts-entry-btn {
+    padding: 0 7px;
   }
 }
 
