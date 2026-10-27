@@ -52,7 +52,7 @@
         </div>
 
         <div
-          v-if="regionLabel || systemOSLabel || cpuAndMemAndDisk"
+          v-if="hasMetaTags"
           class="meta-tag-row"
         >
           <span
@@ -70,11 +70,100 @@
             {{ systemOSLabel }}
           </span>
           <span
-            v-if="cpuAndMemAndDisk"
-            class="meta-tag meta-tag--spec"
+            v-if="cpuLabel"
+            class="meta-tag meta-tag--cpu"
+            :title="cpuLabel"
           >
             <i class="ri-cpu-line" />
-            {{ cpuAndMemAndDisk }}
+            {{ cpuLabel }}
+          </span>
+          <span
+            v-if="gpuLabel"
+            class="meta-tag meta-tag--gpu"
+            :title="gpuLabel"
+          >
+            <i class="ri-gamepad-line" />
+            {{ gpuLabel }}
+          </span>
+          <span
+            v-if="memoryDiskLabel"
+            class="meta-tag meta-tag--storage"
+          >
+            <i class="ri-ram-line" />
+            {{ memoryDiskLabel }}
+          </span>
+          <span
+            v-if="systemVersionLabel"
+            class="meta-tag meta-tag--version"
+          >
+            <i class="ri-information-line" />
+            {{ systemVersionLabel }}
+          </span>
+          <span
+            v-if="billingLabel"
+            class="meta-tag meta-tag--billing"
+          >
+            <i class="ri-wallet-3-line" />
+            {{ billingLabel }}
+          </span>
+          <span
+            v-if="remainingTimeLabel"
+            class="meta-tag meta-tag--remaining"
+          >
+            <i class="ri-calendar-check-line" />
+            {{ remainingTimeLabel }}
+          </span>
+          <span
+            v-if="bandwidthLabel"
+            class="meta-tag meta-tag--bandwidth"
+          >
+            <i class="ri-speed-up-line" />
+            {{ bandwidthLabel }}
+          </span>
+          <span
+            v-if="planTrafficLabel"
+            class="meta-tag meta-tag--traffic"
+          >
+            <i class="ri-bar-chart-box-line" />
+            {{ planTrafficLabel }}
+          </span>
+          <span
+            v-if="loadLabel"
+            class="meta-tag meta-tag--load"
+          >
+            <i class="ri-pulse-line" />
+            负载 {{ loadLabel }}
+          </span>
+          <span
+            v-if="transferLabel"
+            class="meta-tag meta-tag--transfer"
+          >
+            <i class="ri-arrow-up-down-line" />
+            {{ transferLabel }}
+          </span>
+          <span
+            v-if="bootTimeLabel"
+            class="meta-tag meta-tag--boot"
+            :title="`启动时间：${bootTimeLabel}`"
+          >
+            <i class="ri-restart-line" />
+            {{ bootTimeLabel }}
+          </span>
+          <span
+            v-if="lastActiveLabel"
+            class="meta-tag meta-tag--active"
+            :title="`最后活跃：${lastActiveLabel}`"
+          >
+            <i class="ri-time-line" />
+            {{ lastActiveLabel }}
+          </span>
+          <span
+            v-for="tag in tagList"
+            :key="tag"
+            class="meta-tag meta-tag--tag"
+          >
+            <i class="ri-price-tag-3-line" />
+            {{ tag }}
           </span>
         </div>
       </div>
@@ -108,12 +197,14 @@ import {
   defineAsyncComponent,
   h,
 } from 'vue';
+import dayjs from 'dayjs';
 import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import * as hostUtils from '@/utils/host';
 import { resolveServerLocation } from '@/utils/world-map';
 import truncateDecimal from '@/utils/number';
 import useServerInfo from '@/composables/server-info';
+import useServerBillAndPlan from '@/composables/server-bill-and-plan';
 import ServerFlag from '@/components/server-flag.vue';
 import config from '@/config';
 
@@ -138,9 +229,98 @@ const router = useRouter();
 const store = useStore();
 
 const { cpuAndMemAndDisk } = useServerInfo({ props });
+const { billAndPlan } = useServerBillAndPlan({ props });
 
 const slogan = computed(() => props.info?.PublicNote?.customData?.slogan);
 const cpuInfo = computed(() => hostUtils.getCPUInfo(props.info?.Host?.CPU?.[0]));
+const cpuLabel = computed(() => {
+  const source = props.info?.Host?.CPU?.[0] || '';
+  if (source) {
+    return source;
+  }
+  return [cpuInfo.value?.company, cpuInfo.value?.model, cpuInfo.value?.modelNum]
+    .filter(Boolean)
+    .join(' ');
+});
+const gpuLabel = computed(() => (props.info?.Host?.GPU || [])
+  .filter((item) => String(item).trim())
+  .join(' / '));
+const memoryDiskLabel = computed(() => {
+  const spec = String(cpuAndMemAndDisk.value || '').trim();
+  const match = spec.match(/^\d+C(?:\d+(?:\.\d+)?[GTM])+(.*)$/i);
+  return match ? match[1].replace(/^[\s,/]+/, '') : '';
+});
+const systemVersionLabel = computed(() => props.info?.Host?.PlatformVersion || '');
+const loadLabel = computed(() => {
+  const state = props.info?.State;
+  const values = [state?.Load1, state?.Load5, state?.Load15].filter((item) => item !== undefined);
+  return values.length ? values.map((item) => Number(item).toFixed(2)).join(' / ') : '';
+});
+const transferLabel = computed(() => {
+  const inValue = Number(props.info?.State?.NetInTransfer) || 0;
+  const outValue = Number(props.info?.State?.NetOutTransfer) || 0;
+  if (!inValue && !outValue) {
+    return '';
+  }
+  const inTransfer = hostUtils.calcTransfer(inValue);
+  const outTransfer = hostUtils.calcTransfer(outValue);
+  return `入 ${inTransfer.value}${inTransfer.unit} · 出 ${outTransfer.value}${outTransfer.unit}`;
+});
+const bootTimeLabel = computed(() => (
+  props.info?.Host?.BootTime
+    ? dayjs(props.info.Host.BootTime * 1000).format('MM-DD HH:mm')
+    : ''
+));
+const lastActiveLabel = computed(() => (
+  props.info?.LastActive
+    ? dayjs(props.info.LastActive).format('MM-DD HH:mm')
+    : ''
+));
+const tagList = computed(() => {
+  const values = [];
+  const { networkRoute, extra, IPv4, IPv6 } = props.info?.PublicNote?.planDataMod || {};
+  if (networkRoute) {
+    values.push(...String(networkRoute).split(','));
+  }
+  if (extra) {
+    values.push(...String(extra).split(','));
+  }
+  if (IPv4 === '1' && IPv6 === '1') {
+    values.push('双栈IP');
+  } else if (IPv4 === '1') {
+    values.push('仅IPv4');
+  } else if (IPv6 === '1') {
+    values.push('仅IPv6');
+  }
+  return [...new Set(values.map((item) => item.trim()).filter(Boolean))];
+});
+function billLabel(item, separator = ' ') {
+  if (!item?.value) {
+    return '';
+  }
+  return item.label ? `${item.label}${separator}${item.value}` : String(item.value);
+}
+const billingLabel = computed(() => billLabel(billAndPlan.value?.billing));
+const remainingTimeLabel = computed(() => billLabel(billAndPlan.value?.remainingTime));
+const bandwidthLabel = computed(() => billLabel(billAndPlan.value?.bandwidth));
+const planTrafficLabel = computed(() => billLabel(billAndPlan.value?.traffic));
+const hasMetaTags = computed(() => Boolean(
+  regionLabel.value
+  || systemOSLabel.value
+  || cpuLabel.value
+  || gpuLabel.value
+  || memoryDiskLabel.value
+  || systemVersionLabel.value
+  || billingLabel.value
+  || remainingTimeLabel.value
+  || bandwidthLabel.value
+  || planTrafficLabel.value
+  || loadLabel.value
+  || transferLabel.value
+  || bootTimeLabel.value
+  || lastActiveLabel.value
+  || tagList.value.length,
+));
 const systemOSLabel = computed(() => {
   if (props.info?.Host?.Platform) {
     return hostUtils.getSystemOSLabel(props.info.Host.Platform);
@@ -504,23 +684,42 @@ function viewOnGlobe() {
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    height: 22px;
+    min-height: 22px;
+    height: auto;
     padding: 0 7px;
     border-radius: 5px;
     font-size: 11px;
     font-weight: 500;
-    line-height: 1;
+    line-height: 1.5;
     color: var(--text-secondary);
     background: var(--panel-stat-bg);
     border: 1px solid var(--panel-stat-border);
+    max-width: 100%;
+    overflow-wrap: anywhere;
 
     i {
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
       font-size: 12px;
       line-height: 1;
       color: var(--accent-primary);
+    }
+
+    &--cpu {
+      flex: 0 1 auto;
+    }
+
+    &--gpu {
+      flex-basis: 100%;
+    }
+
+    &--cpu,
+    &--gpu,
+    &--storage,
+    &--version {
+      color: var(--text-primary);
     }
   }
 }
@@ -586,10 +785,15 @@ function viewOnGlobe() {
       font-size: 14px;
     }
 
-    .server-status-badge,
-    .meta-tag {
+    .server-status-badge {
       height: 20px;
       padding: 0 6px;
+      font-size: 10px;
+    }
+
+    .meta-tag {
+      min-height: 20px;
+      padding: 1px 6px;
       font-size: 10px;
     }
 

@@ -25,11 +25,34 @@
 
       <div class="detail-stack">
         <server-detail-header :info="info" class="stack-item stack-item--header" />
-        <server-detail-status :info="info" class="stack-item stack-item--status" />
-        <server-detail-resource-history :info="info" class="stack-item stack-item--resource-history" />
-        <server-detail-cycle-transfer :info="info" class="stack-item stack-item--cycle" />
-        <server-detail-info :info="info" class="stack-item stack-item--info" />
-        <server-detail-monitor :info="info" class="stack-item stack-item--monitor" />
+        <div class="detail-view-switch" role="tablist" aria-label="服务器详情视图">
+          <button
+            v-for="tab in detailTabs"
+            :key="tab.value"
+            type="button"
+            role="tab"
+            class="detail-view-switch__item"
+            :class="{ active: currentTab === tab.value }"
+            :aria-selected="currentTab === tab.value"
+            @click="selectTab(tab.value)"
+          >
+            <i :class="tab.icon" />
+            <span>{{ tab.label }}</span>
+          </button>
+        </div>
+        <template v-if="currentTab === 'overview'">
+          <server-detail-status :info="info" class="stack-item stack-item--status" />
+          <server-detail-resource-history :info="info" class="stack-item stack-item--resource-history" />
+          <server-detail-cycle-transfer :info="info" class="stack-item stack-item--cycle" />
+          <server-detail-info :info="info" class="stack-item stack-item--info" />
+          <server-detail-monitor :info="info" class="stack-item stack-item--monitor" />
+        </template>
+        <server-online-history
+          v-else
+          :key="`online-history-${serverId}`"
+          :info="info"
+          class="stack-item stack-item--online-history"
+        />
       </div>
 
       <app-footer class="detail-footer" />
@@ -44,6 +67,7 @@ import {
   provide,
   onMounted,
   onUnmounted,
+  ref,
 } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useStore } from 'vuex';
@@ -57,6 +81,7 @@ import ServerDetailResourceHistory from '@/components/server-detail/server-detai
 import ServerDetailCycleTransfer from '@/components/server-detail/server-detail-cycle-transfer.vue';
 import ServerDetailInfo from '@/components/server-detail/server-detail-info.vue';
 import ServerDetailMonitor from '@/components/server-detail/server-detail-monitor.vue';
+import ServerOnlineHistory from '@/components/server-detail/server-online-history.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -67,10 +92,20 @@ const info = computed(() => store.state.serverList
   .find((s) => String(s.ID) === String(serverId.value)));
 const dataInit = computed(() => store.state.init);
 
+const detailTabs = [
+  { value: 'overview', label: '概览', icon: 'ri-dashboard-3-line' },
+  { value: 'online', label: '在线历史', icon: 'ri-history-line' },
+];
+const currentTab = ref('overview');
+
 const currentTime = computed(() => store.state.serverTime || Date.now());
 provide('currentTime', currentTime);
 
 let availabilityTimer = null;
+
+function selectTab(tab) {
+  currentTab.value = tab;
+}
 
 function stopAvailabilityTimer() {
   if (availabilityTimer) {
@@ -99,6 +134,10 @@ function refreshAvailabilityOnce() {
   }
   store.dispatch('refreshAvailability');
 }
+
+watch(serverId, () => {
+  currentTab.value = 'overview';
+}, { immediate: true });
 
 watch(info, (val) => {
   if (val?.Name) {
@@ -280,6 +319,60 @@ onUnmounted(() => {
   padding-bottom: 2px;
 }
 
+.detail-view-switch {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+  max-width: 100%;
+  padding: 3px;
+  border: 1px solid var(--panel-chip-border);
+  border-radius: 999px;
+  background: var(--panel-chip-bg);
+  backdrop-filter: blur(18px) saturate(145%);
+  box-shadow: inset 0 1px 0 var(--surface-highlight);
+}
+
+.detail-view-switch__item {
+  display: inline-flex;
+  flex: 1;
+  min-width: 84px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+
+  i {
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  &:hover:not(.active) {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+  }
+
+  &.active {
+    color: var(--text-on-accent);
+    background: var(--button-active-bg);
+    border-color: var(--button-active-border);
+    box-shadow: var(--button-active-shadow);
+  }
+}
+
 .stack-item {
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
@@ -342,6 +435,14 @@ onUnmounted(() => {
     width: calc(100% - 24px);
     margin: 0 12px;
     padding-bottom: 24px;
+  }
+
+  .detail-view-switch {
+    width: 100%;
+
+    .detail-view-switch__item {
+      min-width: 0;
+    }
   }
 
   .stack-item {
