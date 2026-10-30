@@ -22,7 +22,7 @@ function normalizeClip(clip) {
 
 /**
  * Snapshot globe camera/matrices once per frame. Call this once, then project
- * many points with projectLatLngWithFrame — avoid camera.update() per particle.
+ * many points with projectLatLngWithFrame to avoid repeated camera updates.
  * @param {object} chart
  * @param {{ width: number, height: number }} containerRect
  * @returns {object | null}

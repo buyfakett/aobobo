@@ -26,10 +26,8 @@ window.$$aoboboConfig = {
   // 是否隐藏详情页头部微缩 3D 地球
   // hideDetailServerGlobe: false,
 
-  // 首页地球节点连接汇入 / 流量射线特效（默认开启）
+  // 首页地球服务器地点连线特效（默认开启，不依赖在线状态或流量数据）
   // globeActivityEffects: true,
-  // 连接数粒子方向：in = 从外向内聚拢（默认）；out = 从内向外发散
-  // globeConnParticleDirection: 'in',
 
   // GPU 名称中包含以下关键字时过滤掉
   // filterGPUKeywords: ['Virtual Display'],

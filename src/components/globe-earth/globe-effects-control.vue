@@ -7,38 +7,20 @@
     <button
       type="button"
       class="effect-toggle"
-      :class="{ 'is-active': modelConnParticles }"
-      :aria-pressed="modelConnParticles ? 'true' : 'false'"
-      :title="modelConnParticles ? '隐藏连接数粒子' : '显示连接数粒子'"
-      :aria-label="modelConnParticles ? '隐藏连接数粒子' : '显示连接数粒子'"
-      @click="modelConnParticles = !modelConnParticles"
+      :class="{ 'is-active': modelServerConnections }"
+      :aria-pressed="modelServerConnections ? 'true' : 'false'"
+      :title="modelServerConnections ? '隐藏服务器连线' : '显示服务器连线'"
+      :aria-label="modelServerConnections ? '隐藏服务器连线' : '显示服务器连线'"
+      @click="modelServerConnections = !modelServerConnections"
     >
-      <i class="ri-sparkling-2-line" aria-hidden="true" />
-      <span>粒子</span>
-    </button>
-
-    <button
-      type="button"
-      class="effect-toggle"
-      :class="{ 'is-active': modelNetRays }"
-      :aria-pressed="modelNetRays ? 'true' : 'false'"
-      :title="modelNetRays ? '隐藏网速射线' : '显示网速射线'"
-      :aria-label="modelNetRays ? '隐藏网速射线' : '显示网速射线'"
-      @click="modelNetRays = !modelNetRays"
-    >
-      <i class="ri-flashlight-line" aria-hidden="true" />
-      <span>射线</span>
+      <i class="ri-node-tree" aria-hidden="true" />
+      <span>连线</span>
     </button>
   </div>
 </template>
 
 <script setup>
-const modelConnParticles = defineModel('connParticles', {
-  type: Boolean,
-  default: true,
-});
-
-const modelNetRays = defineModel('netRays', {
+const modelServerConnections = defineModel('serverConnections', {
   type: Boolean,
   default: true,
 });

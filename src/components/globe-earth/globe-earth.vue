@@ -20,11 +20,6 @@
         transition: 'opacity 0.25s ease',
       }"
     />
-    <canvas
-      ref="particleCanvas"
-      class="globe-particle-layer"
-      aria-hidden="true"
-    />
     <div ref="markerLayer" class="marker-layer" />
 
     <div
@@ -137,13 +132,9 @@ import {
 } from '@/utils/globe-gl';
 import {
   buildActivitySeriesOptions,
-  planConnectionParticleGroups,
-  reconcileConnectionParticlePool,
+  buildServerConnectionSignature,
   createAltitudeAnchorSeries,
-  getConnectionParticleVisual,
   isGlobeActivitySeriesId,
-  stepConnectionParticles,
-  buildConnectionParticleCountSignature,
   GLOBE_ACTIVITY_SERIES_IDS,
 } from '@/utils/globe-activity-effects';
 import config from '@/config';
@@ -158,7 +149,7 @@ const INITIAL_POINT_OF_VIEW = {
 };
 
 const GLOBE_RADIUS = 100;
-// Headroom above the earth mesh so traffic rays can use real altitude.
+// Headroom above the earth mesh so connection arcs can use real altitude.
 const GLOBE_OUTER_RADIUS = 118;
 const CAMERA_FOV = 50;
 const DEFAULT_FILL_RATIO = 0.92;
@@ -203,9 +194,7 @@ const READY_FRAME_BUFFER = 4;
 const GLOBE_REVEAL_DELAY = 260;
 const COMPACT_GLOBE_WIDTH = 560;
 const ACTIVITY_EFFECT_UPDATE_MS = 1000;
-// Fade speeds for the activity layers: connection-particle cloud (canvas) and
-// traffic rays (lines3D opacity). Both ease instead of popping in/out.
-const PARTICLE_CLOUD_FADE_SECONDS = 0.5;
+// Fade connections in and out instead of popping the lines3D layer.
 const RAY_FADE_SECONDS = 0.48;
 // Min interval between setOption calls while ray fades are running.
 const RAY_FADE_APPLY_MS = 34;
@@ -223,11 +212,7 @@ const props = defineProps({
     type: Number,
     default: 0.5,
   },
-  showConnParticles: {
-    type: Boolean,
-    default: true,
-  },
-  showNetRays: {
+  showServerConnections: {
     type: Boolean,
     default: true,
   },
@@ -245,7 +230,6 @@ const emit = defineEmits(['marker-click', 'select-server']);
 
 const rootRef = ref(null);
 const chartContainer = ref(null);
-const particleCanvas = ref(null);
 const markerLayer = ref(null);
 const popupWrapper = ref(null);
 const tooltipWrapper = ref(null);
@@ -303,22 +287,12 @@ let revealTimer = null;
 let activityEffectTimer = null;
 let activityEffectsPaused = false;
 let lastActivitySignature = '';
-let lastConnectionParticleSignature = '';
-let connectionParticles = [];
-let particleRafId = null;
-let particleLastTs = 0;
-// Whole-cloud opacity for the connection particles (canvas layer), eased
-// toward particleCloudTarget so the layer never pops in/out on toggles.
-let particleCloudAlpha = 1;
-let particleCloudTarget = 1;
-// Per traffic-ray series fade state: alpha eases toward target; outgoing rays
-// are kept on screen (lastData) until the fade-out completes.
+// Per connection-series fade state: alpha eases toward target; outgoing lines
+// stay on screen until the fade-out completes.
 const raySeriesFadeState = {};
 let rayFadeRafId = null;
 let rayFadeLastTs = 0;
 let rayFadeLastApply = 0;
-// Soft-glow sprite cache for particle rendering, keyed by color.
-const particleSpriteCache = {};
 
 // --- Globe view persistence ---
 // Whether the current camera state should be written back to localStorage.
@@ -366,10 +340,7 @@ function getThemePalette(theme) {
       markerOffline: readThemeToken('--globe-marker-muted', '#9aa3af'),
       markerOfflineSoft: readThemeToken('--globe-marker-muted-soft', 'rgba(154, 163, 175, 0.2)'),
       onlineRing: readThemeToken('--globe-ring-rgb', '255, 200, 83'),
-      effectTcp: readThemeToken('--globe-effect-tcp', '#e08e00'),
-      effectUdp: readThemeToken('--globe-effect-udp', '#ffc44d'),
-      effectNetIn: readThemeToken('--globe-effect-net-in', '#f0a07a'),
-      effectNetOut: readThemeToken('--globe-effect-net-out', '#8fa2f5'),
+      connection: readThemeToken('--globe-connection-color', '#5278d7'),
     };
   }
 
@@ -381,10 +352,7 @@ function getThemePalette(theme) {
     markerOffline: readThemeToken('--globe-marker-muted', '#6d7888'),
     markerOfflineSoft: readThemeToken('--globe-marker-muted-soft', 'rgba(109, 120, 136, 0.22)'),
     onlineRing: readThemeToken('--globe-ring-rgb', '46, 207, 255'),
-    effectTcp: readThemeToken('--globe-effect-tcp', '#5eead4'),
-    effectUdp: readThemeToken('--globe-effect-udp', '#f0abfc'),
-    effectNetIn: readThemeToken('--globe-effect-net-in', '#f5b199'),
-    effectNetOut: readThemeToken('--globe-effect-net-out', '#89c3eb'),
+    connection: readThemeToken('--globe-connection-color', '#89c3eb'),
   };
 }
 
@@ -734,10 +702,7 @@ function getCoastlineSeriesOptions() {
 function getActivityEffectColors() {
   const palette = getThemePalette(props.theme);
   return {
-    tcp: palette.effectTcp,
-    udp: palette.effectUdp,
-    netIn: palette.effectNetIn,
-    netOut: palette.effectNetOut,
+    connection: palette.connection,
   };
 }
 
@@ -765,7 +730,7 @@ function getRayFadeState(id) {
 // outgoing rays on screen while they fade, and scale opacities by the current
 // alpha so a setOption never changes brightness abruptly.
 function applyRayFadeToSeriesOptions(seriesOptions) {
-  const raysEnabled = isNetRaysEnabled();
+  const connectionsEnabled = isServerConnectionsEnabled();
   return seriesOptions.map((series) => {
     const state = getRayFadeState(series.id);
     state.baseLine = series.lineStyle.opacity;
@@ -773,10 +738,10 @@ function applyRayFadeToSeriesOptions(seriesOptions) {
 
     if (series.data.length > 0) {
       state.lastData = series.data;
-      state.target = raysEnabled ? 1 : 0;
-      state.clearAtZero = !raysEnabled;
+      state.target = connectionsEnabled ? 1 : 0;
+      state.clearAtZero = !connectionsEnabled;
     } else if (state.lastData.length > 0 && state.alpha > 0.01) {
-      // Rays just dropped to zero: keep the previous set on screen while it
+      // Connections just dropped to zero: keep the previous set on screen while it
       // fades out instead of vanishing mid-flight.
       series.data = state.lastData;
       series.effect.show = true;
@@ -920,42 +885,7 @@ function buildActivitySignature() {
   if (!isGlobeActivityEffectsEnabled()) {
     return 'disabled';
   }
-
-  return (props.locations || []).map((location) => {
-    const servers = location?.servers || [];
-    let tcp = 0;
-    let udp = 0;
-    let netIn = 0;
-    let netOut = 0;
-    let online = 0;
-    servers.forEach((server) => {
-      if (server?.online !== 1) {
-        return;
-      }
-      online += 1;
-      const state = server.State || {};
-      tcp += Number(state.TcpConnCount) || 0;
-      udp += Number(state.UdpConnCount) || 0;
-      netIn += Number(state.NetInSpeed) || 0;
-      netOut += Number(state.NetOutSpeed) || 0;
-    });
-    return [
-      location?.key || location?.code || '',
-      online,
-      tcp,
-      udp,
-      Math.round(netIn / 1000),
-      Math.round(netOut / 1000),
-    ].join(':');
-  }).join('|');
-}
-
-function buildConnectionParticleSignature() {
-  if (!isGlobeActivityEffectsEnabled()) {
-    return 'disabled';
-  }
-  // Use mapped particle counts so raw conn jitter does not wipe in-flight particles.
-  return buildConnectionParticleCountSignature(props.locations || [], isMobile.value);
+  return buildServerConnectionSignature(props.locations || []);
 }
 
 function clearActivityEffectTimer() {
@@ -965,274 +895,8 @@ function clearActivityEffectTimer() {
   }
 }
 
-function syncParticleCanvasSize() {
-  const canvas = particleCanvas.value;
-  const container = chartContainer.value;
-  if (!canvas || !container) {
-    return null;
-  }
-
-  // Reuse the marker/camera-synced rect; avoid layout reads every frame.
-  if (!cachedContainerRect) {
-    cachedContainerRect = container.getBoundingClientRect();
-  }
-  const rect = cachedContainerRect;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const width = Math.max(1, Math.round(rect.width));
-  const height = Math.max(1, Math.round(rect.height));
-  const pixelWidth = Math.round(width * dpr);
-  const pixelHeight = Math.round(height * dpr);
-
-  if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
-    canvas.width = pixelWidth;
-    canvas.height = pixelHeight;
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
-  }
-
-  return {
-    ctx: canvas.getContext('2d'),
-    rect,
-    dpr,
-    width,
-    height,
-  };
-}
-
-function clearParticleCanvas() {
-  const canvas = particleCanvas.value;
-  if (!canvas) {
-    return;
-  }
-  const ctx = canvas.getContext('2d');
-  if (ctx) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-  }
-}
-
-function isConnParticlesEnabled() {
-  return isGlobeActivityEffectsEnabled() && props.showConnParticles;
-}
-
-// 'in' = 从外向内聚拢（默认）；'out' = 从内向外发散。
-function getConnParticleDirection() {
-  return config.aobobo.globeConnParticleDirection === 'out' ? 'out' : 'in';
-}
-
-function isNetRaysEnabled() {
-  return isGlobeActivityEffectsEnabled() && props.showNetRays;
-}
-
-function hexToRgbChannels(color) {
-  const hex = String(color || '').trim().replace('#', '');
-  if (!/^[0-9a-fA-F]{6}$/.test(hex) && !/^[0-9a-fA-F]{3}$/.test(hex)) {
-    return '255, 255, 255';
-  }
-  const full = hex.length === 3
-    ? hex.split('').map((char) => char + char).join('')
-    : hex;
-  const numeric = parseInt(full, 16);
-  const red = Math.floor(numeric / 65536) % 256;
-  const green = Math.floor(numeric / 256) % 256;
-  const blue = numeric % 256;
-  return `${red}, ${green}, ${blue}`;
-}
-
-// Pre-rendered radial-gradient sprite: a soft halo that fades to transparent.
-// One drawImage per particle is far cheaper than shadowBlur and looks smoother
-// than a hard-edged circle.
-function getParticleSprite(color) {
-  if (particleSpriteCache[color]) {
-    return particleSpriteCache[color];
-  }
-
-  const size = 64;
-  const center = size / 2;
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  const rgb = hexToRgbChannels(color);
-  const gradient = ctx.createRadialGradient(center, center, 0, center, center, center);
-  gradient.addColorStop(0, `rgba(${rgb}, 0.9)`);
-  gradient.addColorStop(0.3, `rgba(${rgb}, 0.42)`);
-  gradient.addColorStop(0.65, `rgba(${rgb}, 0.12)`);
-  gradient.addColorStop(1, `rgba(${rgb}, 0)`);
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, size, size);
-  particleSpriteCache[color] = canvas;
-  return canvas;
-}
-
-function paintConnectionParticles() {
-  if (!chart || connectionParticles.length === 0 || particleCloudAlpha <= 0) {
-    clearParticleCanvas();
-    return;
-  }
-
-  const surface = syncParticleCanvasSize();
-  if (!surface?.ctx) {
-    return;
-  }
-
-  const frame = createGlobeProjectionFrame(chart, surface.rect);
-  if (!frame) {
-    return;
-  }
-
-  const {
-    ctx,
-    dpr,
-  } = surface;
-  const colors = getActivityEffectColors();
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, surface.width, surface.height);
-
-  connectionParticles.forEach((particle) => {
-    const position = projectLatLngWithFrame(
-      frame,
-      particle.lng,
-      particle.lat,
-      0,
-    );
-    if (!position?.visible) {
-      return;
-    }
-
-    // Silky lifecycle curve (fade-in near spawn, fade-out + shrink at the
-    // node, pool-build ramp) scaled by the whole-cloud toggle fade.
-    const visual = getConnectionParticleVisual(particle);
-    const alpha = visual.alpha * particleCloudAlpha;
-    if (alpha <= 0.01) {
-      return;
-    }
-
-    const color = particle.protocol === 'udp' ? colors.udp : colors.tcp;
-    const coreRadius = Math.max(0.4, particle.size * 0.62 * visual.scale);
-    const glowRadius = Math.max(coreRadius * 2, particle.size * 2.5 * visual.scale);
-
-    ctx.globalAlpha = Math.min(1, alpha);
-    ctx.drawImage(
-      getParticleSprite(color),
-      position.x - glowRadius,
-      position.y - glowRadius,
-      glowRadius * 2,
-      glowRadius * 2,
-    );
-
-    ctx.beginPath();
-    ctx.fillStyle = color;
-    ctx.arc(position.x, position.y, coreRadius, 0, Math.PI * 2);
-    ctx.fill();
-  });
-
-  ctx.globalAlpha = 1;
-}
-
-function stopConnectionParticleLoop() {
-  if (particleRafId) {
-    cancelAnimationFrame(particleRafId);
-    particleRafId = null;
-  }
-  particleLastTs = 0;
-}
-
-function runConnectionParticleFrame(timestamp) {
-  particleRafId = null;
-  if (!chart || connectionParticles.length === 0) {
-    clearParticleCanvas();
-    return;
-  }
-
-  if (document.hidden) {
-    // Pause the loop while backgrounded; visibilitychange restarts it.
-    particleLastTs = 0;
-    return;
-  }
-
-  if (!particleLastTs) {
-    particleLastTs = timestamp;
-  }
-  const dt = Math.min((timestamp - particleLastTs) / 1000, 0.05);
-  particleLastTs = timestamp;
-
-  if (particleCloudAlpha !== particleCloudTarget) {
-    const direction = Math.sign(particleCloudTarget - particleCloudAlpha);
-    particleCloudAlpha = Math.min(1, Math.max(
-      0,
-      particleCloudAlpha + (direction * dt) / PARTICLE_CLOUD_FADE_SECONDS,
-    ));
-    if ((direction > 0 && particleCloudAlpha > particleCloudTarget)
-      || (direction < 0 && particleCloudAlpha < particleCloudTarget)) {
-      particleCloudAlpha = particleCloudTarget;
-    }
-    // Fully faded out: park the loop until the cloud is wanted again.
-    if (particleCloudAlpha === 0 && particleCloudTarget === 0) {
-      clearParticleCanvas();
-      particleLastTs = 0;
-      return;
-    }
-  }
-
-  if (!activityEffectsPaused) {
-    stepConnectionParticles(connectionParticles, dt, isMobile.value, getConnParticleDirection());
-    // All particles retired (locations went offline): park the loop.
-    if (connectionParticles.length === 0) {
-      clearParticleCanvas();
-      particleLastTs = 0;
-      return;
-    }
-  }
-
-  paintConnectionParticles();
-  particleRafId = requestAnimationFrame(runConnectionParticleFrame);
-}
-
-function startConnectionParticleLoop() {
-  if (particleRafId || typeof window === 'undefined' || document.hidden) {
-    return;
-  }
-  particleLastTs = 0;
-  particleRafId = requestAnimationFrame(runConnectionParticleFrame);
-}
-
-function rebuildConnectionParticles(force = false) {
-  const signature = `${buildConnectionParticleSignature()}#${props.theme}#${isMobile.value ? 1 : 0}#${getConnParticleDirection()}`;
-  if (!force && signature === lastConnectionParticleSignature) {
-    return;
-  }
-  lastConnectionParticleSignature = signature;
-
-  particleCloudTarget = isConnParticlesEnabled() ? 1 : 0;
-
-  if (!isGlobeActivityEffectsEnabled()) {
-    connectionParticles = [];
-  } else {
-    // Diff-based reconcile: in-flight particles keep flying to their node;
-    // only count deltas spawn (fade in) or retire (finish their trip), so the
-    // cloud never restarts mid-journey when conn counts fluctuate.
-    connectionParticles = reconcileConnectionParticlePool(
-      connectionParticles,
-      planConnectionParticleGroups({
-        locations: props.locations,
-        isMobile: isMobile.value,
-        enabled: true,
-      }),
-      isMobile.value,
-      getConnParticleDirection(),
-    );
-  }
-
-  if (connectionParticles.length === 0) {
-    clearParticleCanvas();
-    stopConnectionParticleLoop();
-    return;
-  }
-
-  if (particleCloudTarget > 0 || particleCloudAlpha > 0) {
-    startConnectionParticleLoop();
-  }
-  paintConnectionParticles();
+function isServerConnectionsEnabled() {
+  return isGlobeActivityEffectsEnabled() && props.showServerConnections;
 }
 
 function setActivityEffectsPaused(paused) {
@@ -1260,10 +924,6 @@ function setActivityEffectsPaused(paused) {
     });
   } catch {
     // Internal APIs may change; ignore if unavailable.
-  }
-
-  if (!paused && connectionParticles.length > 0) {
-    startConnectionParticleLoop();
   }
 }
 
@@ -1302,7 +962,6 @@ function applyActivitySeries(force = false) {
 
   const signature = `${buildActivitySignature()}#${props.theme}#${isMobile.value ? 1 : 0}`;
   if (!force && signature === lastActivitySignature) {
-    rebuildConnectionParticles(false);
     return;
   }
   lastActivitySignature = signature;
@@ -1311,7 +970,6 @@ function applyActivitySeries(force = false) {
     series: getActivitySeriesOptions(),
   });
   startRayFadeLoop();
-  rebuildConnectionParticles(force);
 
   if (activityEffectsPaused) {
     setActivityEffectsPaused(true);
@@ -1444,7 +1102,7 @@ function syncCoastlineDepth() {
     // z-fighting, while lines3D coastlines are generated at full radius.
     // Scale the coastline series just a hair above the mesh surface so they
     // are clearly in front without visibly floating. Activity effect series
-    // keep unit scale so altitude rays remain visually correct.
+    // keep unit scale so raised connection arcs remain visually correct.
     const seriesModels = chart.getModel().getSeriesByType('lines3D');
     seriesModels.forEach((seriesModel) => {
       const id = seriesModel?.get?.('id');
@@ -1756,7 +1414,6 @@ function attachMarkerUpdateListener() {
     // the user actually sees instead of a stale value.
     syncCameraStateToRefs();
     updateMarkerPositions();
-    paintConnectionParticles();
     // Persist the user's last manual view after they stop interacting.
     schedulePersistGlobeView();
   };
@@ -2114,12 +1771,8 @@ function teardownChartInstance() {
   clearRevealTimer();
   clearInteractionSettleTimer();
   clearActivityEffectTimer();
-  stopConnectionParticleLoop();
   stopRayFadeLoop();
-  clearParticleCanvas();
-  connectionParticles = [];
   lastActivitySignature = '';
-  lastConnectionParticleSignature = '';
   activityEffectsPaused = false;
 
   if (markerUpdateHandler && orbitControl) {
@@ -2464,9 +2117,6 @@ function handleVisibilityChange() {
     scheduleHandleResize();
     applyThemeToGlobe();
     renderMarkers();
-    if (connectionParticles.length > 0 && !activityEffectsPaused) {
-      startConnectionParticleLoop();
-    }
   });
 }
 
@@ -2555,8 +2205,7 @@ function initChart() {
     // Guard against the mobile-only WebGL context-loss case: listen for loss on
     // the offscreen GL canvas and poll its health on an interval.
     attachContextLossListeners();
-    rebuildConnectionParticles(true);
-    // Rays start at alpha 0 in the freshly built option; ease them in.
+    // Connections start at alpha 0 in the freshly built option; ease them in.
     startRayFadeLoop();
   } catch (error) {
     console.error('Globe initialization failed:', error);
@@ -2609,30 +2258,10 @@ watch(() => config.aobobo.globeActivityEffects, () => {
   scheduleActivitySeriesUpdate(true);
 });
 
-watch(() => config.aobobo.globeConnParticleDirection, () => {
+watch(() => props.showServerConnections, () => {
   if (!chart) {
     return;
   }
-  // In-flight particles finish their current journey and respawn in the new
-  // direction; reconcile only picks up the signature change.
-  rebuildConnectionParticles(true);
-});
-
-watch(() => props.showConnParticles, () => {
-  if (!chart) {
-    return;
-  }
-  // The pool survives while hidden; this only syncs the cloud-alpha target so
-  // re-showing eases the existing cloud back in instead of rebuilding it.
-  rebuildConnectionParticles(true);
-});
-
-watch(() => props.showNetRays, () => {
-  if (!chart) {
-    return;
-  }
-  // Slim path (not applyActivitySeries): only the ray fade targets change, so
-  // the connection-particle pool must not be rebuilt alongside.
   setOptionPreservingView({
     series: getActivitySeriesOptions(),
   });
@@ -2749,7 +2378,6 @@ onActivated(() => {
       renderMarkers();
       updatePopupPosition();
       updateFocusBubblePosition();
-      rebuildConnectionParticles(true);
     }
     scheduleHealthCheck();
   });
@@ -2762,7 +2390,6 @@ onDeactivated(() => {
   clearInteractionSettleTimer();
   clearRevealTimer();
   clearActivityEffectTimer();
-  stopConnectionParticleLoop();
   stopRayFadeLoop();
   clearFocusBubble();
 });
@@ -2778,9 +2405,6 @@ onUnmounted(() => {
   stopLocalTimeTicker();
   detachLifecycleListeners();
   clearActivityEffectTimer();
-  stopConnectionParticleLoop();
-  clearParticleCanvas();
-  connectionParticles = [];
 
   if (pendingResizeRaf) {
     cancelAnimationFrame(pendingResizeRaf);
@@ -2828,15 +2452,6 @@ onUnmounted(() => {
   inset: 0;
   z-index: 0;
   background: var(--globe-stage-bg);
-  pointer-events: none;
-}
-
-.globe-particle-layer {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  width: 100%;
-  height: 100%;
   pointer-events: none;
 }
 

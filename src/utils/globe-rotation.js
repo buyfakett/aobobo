@@ -1,7 +1,7 @@
-// Persists homepage globe auto-rotate preference (on/off + speed).
+// Persists homepage globe rotation and connection-display preferences.
 
 export const GLOBE_ROTATION_STORAGE_KEY = 'aobobo_globe_rotation';
-export const GLOBE_ROTATION_STORAGE_VERSION = 1;
+export const GLOBE_ROTATION_STORAGE_VERSION = 2;
 
 export const DEFAULT_AUTO_ROTATE = true;
 export const DEFAULT_ROTATE_SPEED = 0.5;
@@ -18,56 +18,45 @@ function clampSpeed(value) {
   return Math.round(clamped / ROTATE_SPEED_STEP) * ROTATE_SPEED_STEP;
 }
 
+function getDefaults() {
+  return {
+    autoRotate: DEFAULT_AUTO_ROTATE,
+    rotateSpeed: DEFAULT_ROTATE_SPEED,
+    showServerConnections: true,
+  };
+}
+
 /**
- * @returns {{ autoRotate: boolean, rotateSpeed: number, showConnParticles: boolean, showNetRays: boolean }}
+ * @returns {{ autoRotate: boolean, rotateSpeed: number, showServerConnections: boolean }}
  */
 export function loadGlobeRotation() {
   if (typeof window === 'undefined') {
-    return {
-      autoRotate: DEFAULT_AUTO_ROTATE,
-      rotateSpeed: DEFAULT_ROTATE_SPEED,
-      showConnParticles: true,
-      showNetRays: true,
-    };
+    return getDefaults();
   }
 
   try {
     const raw = window.localStorage.getItem(GLOBE_ROTATION_STORAGE_KEY);
     if (!raw) {
-      return {
-        autoRotate: DEFAULT_AUTO_ROTATE,
-        rotateSpeed: DEFAULT_ROTATE_SPEED,
-        showConnParticles: true,
-        showNetRays: true,
-      };
+      return getDefaults();
     }
     const parsed = JSON.parse(raw);
-    if (!parsed || parsed.v !== GLOBE_ROTATION_STORAGE_VERSION) {
-      return {
-        autoRotate: DEFAULT_AUTO_ROTATE,
-        rotateSpeed: DEFAULT_ROTATE_SPEED,
-        showConnParticles: true,
-        showNetRays: true,
-      };
+    if (!parsed || (parsed.v !== 1 && parsed.v !== GLOBE_ROTATION_STORAGE_VERSION)) {
+      return getDefaults();
     }
     return {
       autoRotate: parsed.autoRotate !== false,
       rotateSpeed: clampSpeed(parsed.rotateSpeed),
-      showConnParticles: parsed.showConnParticles !== false,
-      showNetRays: parsed.showNetRays !== false,
+      showServerConnections: parsed.v === 1
+        ? parsed.showNetRays !== false
+        : parsed.showServerConnections !== false,
     };
   } catch {
-    return {
-      autoRotate: DEFAULT_AUTO_ROTATE,
-      rotateSpeed: DEFAULT_ROTATE_SPEED,
-      showConnParticles: true,
-      showNetRays: true,
-    };
+    return getDefaults();
   }
 }
 
 /**
- * @param {{ autoRotate?: boolean, rotateSpeed?: number, showConnParticles?: boolean, showNetRays?: boolean }} prefs
+ * @param {{ autoRotate?: boolean, rotateSpeed?: number, showServerConnections?: boolean }} prefs
  */
 export function persistGlobeRotation(prefs) {
   if (typeof window === 'undefined' || !prefs) {
@@ -81,8 +70,7 @@ export function persistGlobeRotation(prefs) {
         v: GLOBE_ROTATION_STORAGE_VERSION,
         autoRotate: prefs.autoRotate !== false,
         rotateSpeed: clampSpeed(prefs.rotateSpeed),
-        showConnParticles: prefs.showConnParticles !== false,
-        showNetRays: prefs.showNetRays !== false,
+        showServerConnections: prefs.showServerConnections !== false,
       }),
     );
   } catch {
