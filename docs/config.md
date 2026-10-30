@@ -23,8 +23,7 @@ AoBoBo 通过 `config.js` 注入运行时常量，部署时只需替换该文件
 | `hideDetailCycleTransfer` | `boolean` | `false` | 是否隐藏服务器详情页的周期流量卡片。 |
 | `detailCycleTransferRefreshTime` | `number` | `60` | 详情页周期流量刷新间隔（秒）。 |
 | `hideDetailServerGlobe` | `boolean` | `false` | 是否隐藏服务器详情页头部的微缩 3D 地球。 |
-| `globeActivityEffects` | `boolean` | `true` | 是否启用地图首页地球节点的连接汇入点与流量射线特效。设为 `false` 可关闭。 |
-| `globeConnParticleDirection` | `'in' / 'out'` | `'in'` | 连接数粒子的运动方向。`in` 为从外向内聚拢，`out` 为从内向外发散。 |
+| `globeActivityEffects` | `boolean` | `true` | 是否启用地图首页服务器地点之间的连线特效。默认直接连线，不依赖在线状态、网速或流量数据；设为 `false` 可关闭。 |
 
 ## 成本与汇率
 
@@ -103,7 +102,6 @@ window.$$aoboboConfig = {
   detailCycleTransferRefreshTime: 60,
   hideDetailServerGlobe: false,
   globeActivityEffects: true,
-  globeConnParticleDirection: 'in',
 
   statsCostCurrency: 'USD',
   defaultCostCurrency: 'CNY',

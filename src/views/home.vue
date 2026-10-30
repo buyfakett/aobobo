@@ -58,8 +58,7 @@
         :cycle-transfer-map="cycleTransferMap"
         :auto-rotate="globeAutoRotate"
         :rotate-speed="globeRotateSpeed"
-        :show-conn-particles="globeShowConnParticles"
-        :show-net-rays="globeShowNetRays"
+        :show-server-connections="globeShowServerConnections"
         @select-server="handleServerSelect"
       />
       <div
@@ -130,8 +129,7 @@
           />
           <globe-effects-control
             v-if="config.aobobo.globeActivityEffects !== false"
-            v-model:conn-particles="globeShowConnParticles"
-            v-model:net-rays="globeShowNetRays"
+            v-model:server-connections="globeShowServerConnections"
           />
         </div>
       </div>
@@ -443,8 +441,7 @@ const globeKey = ref(0);
 const savedGlobeRotation = loadGlobeRotation();
 const globeAutoRotate = ref(savedGlobeRotation.autoRotate);
 const globeRotateSpeed = ref(savedGlobeRotation.rotateSpeed);
-const globeShowConnParticles = ref(savedGlobeRotation.showConnParticles);
-const globeShowNetRays = ref(savedGlobeRotation.showNetRays);
+const globeShowServerConnections = ref(savedGlobeRotation.showServerConnections);
 const cycleTransferMap = ref({});
 const cycleTransferLoading = ref(false);
 const exchangeRateState = ref({
@@ -1354,13 +1351,12 @@ watch(
 );
 
 watch(
-  [globeAutoRotate, globeRotateSpeed, globeShowConnParticles, globeShowNetRays],
-  ([autoRotate, rotateSpeed, showConnParticles, showNetRays]) => {
+  [globeAutoRotate, globeRotateSpeed, globeShowServerConnections],
+  ([autoRotate, rotateSpeed, showServerConnections]) => {
     persistGlobeRotation({
       autoRotate,
       rotateSpeed,
-      showConnParticles,
-      showNetRays,
+      showServerConnections,
     });
   },
 );

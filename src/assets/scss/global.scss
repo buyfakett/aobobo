@@ -187,10 +187,7 @@ html[data-theme='dark'] {
   --net-speed-out-color: #89c3eb;
   --conn-tcp-color: #89c3eb;
   --conn-udp-color: var(--accent-primary);
-  --globe-effect-tcp: #5eead4;
-  --globe-effect-udp: #f0abfc;
-  --globe-effect-net-in: var(--net-speed-in-color);
-  --globe-effect-net-out: var(--net-speed-out-color);
+  --globe-connection-color: #89c3eb;
   --load-color: #90f2ff;
   --process-color: #f5b199;
   --server-status-value-color: #a1eafb;
@@ -372,12 +369,7 @@ html[data-theme='light'] {
   --net-speed-out-color: #4383ff;
   --conn-tcp-color: #4383ff;
   --conn-udp-color: var(--accent-primary);
-  /* Amber / gold particles — same family as the online marker (#ffae00) but
-     deliberately off its exact tone; rays keep their peach/periwinkle hues. */
-  --globe-effect-tcp: #e08e00;
-  --globe-effect-udp: #ffc44d;
-  --globe-effect-net-in: #f0a07a;
-  --globe-effect-net-out: #8fa2f5;
+  --globe-connection-color: #5278d7;
   --load-color: #2a9fd6;
   --process-color: #d97757;
   --server-status-value-color: var(--accent-primary);
