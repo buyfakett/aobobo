@@ -6,9 +6,6 @@ import {
   loadSetting as loadNezhaV1Setting,
   loadProfile as loadNezhaV1Profile,
 } from '@/utils/load-nezha-v1-config';
-import loadNezhaV0Config, {
-  loadServerGroup as loadNezhaV0ServerGroup,
-} from '@/utils/load-nezha-v0-config';
 import loadStzBootstrap, { loadStzServers } from '@/utils/load-stz-config';
 import loadAvailability from '@/utils/load-availability';
 import { msg } from '@/ws';
@@ -74,6 +71,25 @@ function applyStzSiteMeta(commit, bootstrap, route) {
       document.title = bootstrap.brand;
     }
   }
+}
+
+function groupServersByTag(servers) {
+  const groups = new Map();
+  servers.forEach((server) => {
+    if (!server.Tag) {
+      return;
+    }
+    if (!groups.has(server.Tag)) {
+      groups.set(server.Tag, []);
+    }
+    groups.get(server.Tag).push(server);
+  });
+  return [...groups.entries()].map(([tag, members]) => ({
+    name: tag,
+    count: members.length,
+    servers: members.map((server) => server.ID),
+    group: { name: tag },
+  }));
 }
 
 function handleServerCount(servers) {
@@ -248,7 +264,7 @@ const store = createStore({
           }));
           firstSetServers = false;
           commit('SET_SERVERS', mapped);
-          const group = loadNezhaV0ServerGroup(mapped);
+          const group = groupServersByTag(mapped);
           if (group) commit('SET_SERVER_GROUP', group);
           dispatch('refreshAvailability');
         }
@@ -276,19 +292,6 @@ const store = createStore({
         });
         return { needsPassword: false };
       }
-      const serverResult = await loadNezhaV0Config();
-      if (!serverResult) {
-        console.error('load server config failed');
-        return { needsPassword: false };
-      }
-      const servers = serverResult.servers?.map?.((i) => ({
-        ...i,
-        online: isOnline(i.LastActive, serverResult.now),
-      })) || [];
-      const res = loadNezhaV0ServerGroup(servers);
-      if (res) commit('SET_SERVER_GROUP', res);
-      firstSetServers = false;
-      commit('SET_SERVERS', servers);
       return { needsPassword: false };
     },
     async refreshAvailability({ commit, state }) {
@@ -317,8 +320,8 @@ const store = createStore({
           if (firstSetServers) {
             firstSetServers = false;
             commit('SET_SERVERS', servers);
-            if (config.aobobo.nezhaVersion !== 'v1') {
-              const group = loadNezhaV0ServerGroup(servers);
+            if (config.aobobo.nezhaVersion === 'santaizi') {
+              const group = groupServersByTag(servers);
               if (group) commit('SET_SERVER_GROUP', group);
             }
           } else {

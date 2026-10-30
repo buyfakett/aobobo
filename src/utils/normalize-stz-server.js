@@ -1,8 +1,8 @@
 import validate from '@/utils/validate';
 
 /**
- * santaizi v2 公开 API 服务器对象 → aobobo 内部 v0 结构
- * v2 的 host/state 内部字段本身即为 v0 PascalCase 结构，原样透传；
+ * 将 santaizi v2 公开 API 服务器对象转换为 aobobo 内部结构。
+ * v2 的 host/state 字段已经是内部使用的 PascalCase 结构，原样透传；
  * 仅需映射顶层 snake_case 字段。public_note 在 v2 中已是解析后的对象，无需 JSON.parse。
  */
 export default function (stzData) {

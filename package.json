@@ -5,9 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:v0": "cross-env VITE_NEZHA_VERSION=v0 vite build",
     "build:v1": "cross-env VITE_NEZHA_VERSION=v1 vite build",
-    "build:aobobo": "cross-env VITE_BASE_PATH=/aobobo/ VITE_NEZHA_VERSION=v0 vite build",
     "preview": "vite preview",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"

@@ -39,6 +39,11 @@ export default defineConfig({
     vue(),
     eslintPlugin({
       include: ['src/**/*.js', 'src/**/*.vue', 'src/*.js', 'src/*.vue'],
+      overrideConfig: process.platform === 'win32' ? {
+        rules: {
+          'linebreak-style': 'off',
+        },
+      } : undefined,
     }),
   ],
   build: {

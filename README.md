@@ -3,13 +3,15 @@
 AoBoBo 是一个为 [哪吒监控](https://nezha.wiki/) 设计的纯前端 3D 可视化主题，基于 **Vue 3 + Vite + echarts-gl** 构建，在全球 3D 地球上直观展示各地 VPS 的实时运行状态。
 
 > AoBoBo 仅包含前端展示，不包含哪吒 Dashboard 或 Agent。
+>
+> 本仓库基于原作者的项目 [hi2shark/aobobo](https://github.com/hi2shark/aobobo) 修改；我在其基础上加入了一些便于自己使用的调整。
 
 ## 特性
 
 - **3D 地球可视化** — 使用 echarts-gl 渲染地球，自定义海洋/陆地纹理与大气轮廓光晕；VPS 位置以脉冲光点、聚合簇、离线灰点等样式标注。
 - **原生 HTML 标点叠加** — 通过自定义投影将标记点精确叠加在 3D 地球表面，保留原有脉冲、聚合、离线等视觉风格。
 - **深浅双主题** — 支持浅色 / 深色主题切换，运行时通过 `config.js` 或主题切换按钮切换。
-- **多后端兼容** — 支持哪吒 v0（页面抓取 + WS）、v1（REST API + WS）与三太子 santaizi（公开 API `/api/v2/public/*`），构建时可通过环境变量指定默认版本，运行时也允许通过 `config.js` 切换。
+- **多后端兼容** — 支持哪吒 v1（REST API + WS）与三太子 santaizi（公开 API `/api/v2/public/*`），构建时可通过环境变量指定默认版本，运行时也允许通过 `config.js` 切换。
 - **实时状态更新** — WebSocket 推送，数据秒级同步。
 - **服务器列表** — 展示状态 / 名称 / 地区 / 系统 / 规格 / 在线时长 / 网速 / 流量 / 连接 / 负载 / CPU / 内存 / 硬盘。
 - **服务器详情页** — 支持进度条 / 文本两种状态展示，支持监控图表与周期流量卡片。
@@ -20,10 +22,8 @@ AoBoBo 是一个为 [哪吒监控](https://nezha.wiki/) 设计的纯前端 3D �
 ## 使用前须知
 
 - AoBoBo 只是前端主题，不包含哪吒 Dashboard 或 Agent。
-- v0 部署通常需要代理 `/nezha/`、`/ws`、`/api/v1/monitor/{id}`。
 - v1 部署通常需要代理 `/api` 与 `/api/v1/ws/server`。
 - santaizi 部署通常需要代理 `/api/v2/public/*` 与 `/ws/v2/public/runtime`。站点若启用查看密码，前端会走 `/view-password`。
-- 如需启用周期流量展示，v0 还需保证服务页可通过 `nezhaPath/service` 访问。
 - H5 路由模式需要 Web 服务将普通页面路径回退到 `index.html`，但静态资源路径应保留真实 404。
 
 ## 快速开始
@@ -74,7 +74,7 @@ docker build -t aobobo:latest .
 ```js
 window.$$aoboboConfig = {
   title: 'AoBoBo',              // 网站标题
-  nezhaVersion: 'v1',           // 强制指定后端版本：v0 | v1 | santaizi；不填则自动探测
+  nezhaVersion: 'v1',           // 强制指定后端版本：v1 | santaizi；不填则自动探测
   monitorChartType: 'multi',    // 监控图表类型：single | multi
   monitorChartTypeToggle: true, // 是否允许切换监控图表类型
   monitorRefreshTime: 30,       // 监控刷新间隔（秒），0 为不刷新
@@ -89,17 +89,17 @@ window.$$aoboboConfig = {
 
 ## 数据来源
 
-| 数据类型 | v0 | v1 | santaizi |
-| --- | --- | --- | --- |
-| 全量配置 | 从 `/nezha/` 页面解析服务器列表与 `PublicNote` | `/api/v1/setting` 等 REST API | `/api/v2/public/bootstrap` + `/api/v2/public/servers` |
-| 实时数据 | `/ws` | `/api/v1/ws/server` | `/ws/v2/public/runtime` |
-| 监控数据 | `/api/v1/monitor/{id}` | `/api/v1/server/{id}/service`（兼容 `/api/v1/service/{id}`） | `/api/v2/public/network/{id}` |
-| 资源历史 | 不支持 | `/api/v1/server/{id}/metrics` | `/api/v2/public/metrics/{id}` |
-| 可用性数据 | `/api/v1/server/availability`（可选扩展接口） | `/api/v1/server/availability`（可选扩展接口） | `/api/v2/public/servers/{id}/availability` |
-| 周期流量 | `/service` 页面解析 | `/api/v1/service` | `/api/v2/public/cycle-transfer` |
-| 分组数据 | 服务器 `Tag` 字段 | `/api/v1/server-group` | 服务器 `tag` 字段 |
-| 站点配置 | `config.js` / 公开备注 | `config.js` / `/api/v1/setting` 的 `site_name` | `config.js` / `/api/v2/public/bootstrap` 的 `brand` |
-| 查看密码 | 无 | 无 | `/api/v2/public/view-password/session` |
+| 数据类型 | v1 | santaizi |
+| --- | --- | --- |
+| 全量配置 | `/api/v1/setting` 等 REST API | `/api/v2/public/bootstrap` + `/api/v2/public/servers` |
+| 实时数据 | `/api/v1/ws/server` | `/ws/v2/public/runtime` |
+| 监控数据 | `/api/v1/server/{id}/service`（兼容 `/api/v1/service/{id}`） | `/api/v2/public/network/{id}` |
+| 资源历史 | `/api/v1/server/{id}/metrics` | `/api/v2/public/metrics/{id}` |
+| 可用性数据 | `/api/v1/server/availability`（可选扩展接口） | `/api/v2/public/servers/{id}/availability` |
+| 周期流量 | `/api/v1/service` | `/api/v2/public/cycle-transfer` |
+| 分组数据 | `/api/v1/server-group` | 服务器 `tag` 字段 |
+| 站点配置 | `config.js` / `/api/v1/setting` 的 `site_name` | `config.js` / `/api/v2/public/bootstrap` 的 `brand` |
+| 查看密码 | 无 | `/api/v2/public/view-password/session` |
 
 ## 本地开发
 
@@ -119,10 +119,9 @@ cp .env.development.local.example .env.development.local
 ```bash
 API_HOST=http://your-nezha-host:8080
 WS_HOST=http://your-nezha-host:8080
-NEZHA_HOST=http://your-nezha-host:8080
 ```
 
-`WS_HOST` 填站点 origin，不要带 `/ws` 或 `/api/v1/ws/server` 路径；前端会按哪吒版本请求对应通道（v0 `/ws`、v1 `/api/v1/ws/server`、santaizi `/ws/v2/public/runtime`）。`NEZHA_HOST` 仅 v0 页面抓取需要。
+`WS_HOST` 填站点 origin，不要带 WebSocket 路径；前端会按后端版本请求对应通道（v1 `/api/v1/ws/server`、santaizi `/ws/v2/public/runtime`）。
 
 ### Cloudflare Zero Trust
 
@@ -146,9 +145,7 @@ CF_ACCESS_CLIENT_SECRET=
 | --- | --- |
 | `npm run dev` | 启动 Vite 开发服务 |
 | `npm run build` | 构建生产版本（默认自动探测哪吒版本） |
-| `npm run build:v0` | 构建默认指向哪吒 v0 的版本 |
 | `npm run build:v1` | 构建默认指向哪吒 v1 的版本 |
-| `npm run build:aobobo` | 构建 v0 同域 `/aobobo/` 子目录版本 |
 | `npm run preview` | 预览生产构建 |
 | `npm run lint` | 运行 ESLint |
 | `npm run lint:fix` | 自动修复 ESLint 问题 |
@@ -237,15 +234,13 @@ src/
 | --- | --- | --- |
 | `eslint.yml` | 涉及 `js/ts/vue` 的 Pull Request | 运行 ESLint 检查 |
 | `docker-build.yml` | 推送 `v*.*.*` 标签 / 手动触发 | 构建并推送 Docker 镜像到 GHCR |
-| `release.yml` | 推送 `v*.*.*` 标签 / 手动触发 | 构建多版本压缩包并创建 Draft Release |
+| `release.yml` | 推送 `v*.*.*` 标签 / 手动触发 | 构建压缩包并创建 Draft Release |
 
 Release 产物说明：
 
 | 文件名 | 适用场景 |
 | --- | --- |
-| `dist.zip` | 自动检测版本，优先v1 |
-| `v0-dist.zip` | 构建时默认锁定为哪吒 v0 |
-| `v0-aobobo.zip` | 哪吒 v0 同域 `/aobobo/` 子目录部署 |
+| `dist.zip` | 自动检测 v1 或 santaizi 后端 |
 
 ## 相关链接
 

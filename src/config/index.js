@@ -1,8 +1,12 @@
 import { reactive } from 'vue';
-import { loadProfile as loadNezhaV1Profile } from '@/utils/load-nezha-v1-config';
 import loadStzBootstrap from '@/utils/load-stz-config';
 
 const defaultNezhaVersion = import.meta.env.VITE_NEZHA_VERSION;
+const supportedNezhaVersions = ['v1', 'santaizi'];
+
+function normalizeNezhaVersion(version) {
+  return supportedNezhaVersions.includes(version) ? version : null;
+}
 
 // 优先读取 $$aoboboConfig，同时兼容 nazhua-front 的 $$nazhuaConfig
 const runtimeConfig = window.$$aoboboConfig || window.$$nazhuaConfig || {};
@@ -11,15 +15,10 @@ const config = reactive({
   init: false,
   aobobo: {
     title: '哪吒监控',
-    nezhaVersion: ['v0', 'v1', 'santaizi'].includes(defaultNezhaVersion) ? defaultNezhaVersion : null,
-    apiMonitorPath: '/api/v1/monitor/{id}',
+    nezhaVersion: normalizeNezhaVersion(defaultNezhaVersion),
     showAvailability: false,
     apiAvailabilityPath: '/api/v1/server/availability',
     availabilityRefreshTime: 60,
-    wsPath: '/ws',
-    nezhaPath: '/nezha/',
-    v0ServicePath: null,
-    nezhaV0ConfigType: 'servers',
     v1ApiMetricsPath: '/api/v1/server/{id}/metrics',
     v1ApiOnlineHistoryPath: '/api/v1/server/{id}/online-history',
     v1ApiMonitorPath: '/api/v1/server/{id}/service',
@@ -57,13 +56,17 @@ const config = reactive({
   },
 });
 
+config.aobobo.nezhaVersion = normalizeNezhaVersion(config.aobobo.nezhaVersion);
+
 if (config.aobobo.nezhaVersion) {
   config.init = true;
 }
 
 export function mergeAoboboConfig(customConfig) {
   Object.keys(customConfig).forEach((key) => {
-    config.aobobo[key] = customConfig[key];
+    config.aobobo[key] = key === 'nezhaVersion'
+      ? normalizeNezhaVersion(customConfig[key])
+      : customConfig[key];
   });
 }
 
@@ -80,15 +83,8 @@ export const hasRuntimeShowAvailability = Object.prototype.hasOwnProperty.call(
 export default config;
 
 export const init = async () => {
-  // 依次探测：santaizi 公开 bootstrap → v1 profile → 回退 v0
+  // 优先探测 santaizi 公开接口，否则使用哪吒 v1。
   const isStz = await loadStzBootstrap(true);
-  if (isStz) {
-    config.aobobo.nezhaVersion = 'santaizi';
-    config.init = true;
-    return;
-  }
-  await loadNezhaV1Profile(true).then((res) => {
-    config.aobobo.nezhaVersion = res ? 'v1' : 'v0';
-  });
+  config.aobobo.nezhaVersion = isStz ? 'santaizi' : 'v1';
   config.init = true;
 };

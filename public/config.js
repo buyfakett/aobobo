@@ -2,7 +2,7 @@
 // 同时兼容 nazhua-front 的 window.$$nazhuaConfig
 window.$$aoboboConfig = {
   // title: 'AoBoBo', // 网站标题
-  // nezhaVersion: 'v1', // 后端兼容版本：v0 | v1 | santaizi；不填则自动探测
+  // nezhaVersion: 'v1', // 后端版本：v1 | santaizi；不填则自动探测
 
   // 监控图表类型：single | multi
   // monitorChartType: 'multi',
@@ -34,17 +34,10 @@ window.$$aoboboConfig = {
   // GPU 名称中包含以下关键字时过滤掉
   // filterGPUKeywords: ['Virtual Display'],
 
-  // v0 接口路径配置（一般无需修改）
-  // apiMonitorPath: '/api/v1/monitor/{id}',
-  // showAvailability: false, // 是否展示可用性数据
-  // apiAvailabilityPath: '/api/v1/server/availability', // 可用性数据接口路径
-  // availabilityRefreshTime: 60, // 可用性数据刷新间隔（秒），0 为不刷新
-  // wsPath: '/ws',
-  // nezhaPath: '/nezha/',
-  // v0ServicePath: null,
-  // nezhaV0ConfigType: 'servers',
-
   // v1 接口路径配置（一般无需修改）
+  // showAvailability: false, // 是否展示可用性数据
+  // apiAvailabilityPath: '/api/v1/server/availability', // v1 可用性数据接口路径
+  // availabilityRefreshTime: 60, // 可用性数据刷新间隔（秒），0 为不刷新
   // v1ApiMetricsPath: '/api/v1/server/{id}/metrics',
   // v1ApiMonitorPath: '/api/v1/server/{id}/service',
   // v1ApiMonitorPathFallback: '/api/v1/service/{id}',
