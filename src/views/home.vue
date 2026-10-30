@@ -318,11 +318,34 @@
         <div class="detail-drawer__body">
           <div class="detail-drawer__stack">
             <server-detail-header :info="detailServerInfo" class="stack-item stack-item--header" />
-            <server-detail-status :info="detailServerInfo" class="stack-item stack-item--status" />
-            <server-detail-resource-history :info="detailServerInfo" class="stack-item stack-item--resource-history" />
-            <server-detail-cycle-transfer :info="detailServerInfo" class="stack-item stack-item--cycle" />
-            <server-detail-info :info="detailServerInfo" class="stack-item stack-item--info" />
-            <server-detail-monitor :info="detailServerInfo" class="stack-item stack-item--monitor" />
+            <div class="detail-view-switch" role="tablist" aria-label="服务器详情视图">
+              <button
+                v-for="tab in detailTabs"
+                :key="tab.value"
+                type="button"
+                role="tab"
+                class="detail-view-switch__item"
+                :class="{ active: detailDrawerTab === tab.value }"
+                :aria-selected="detailDrawerTab === tab.value"
+                @click="selectDetailDrawerTab(tab.value)"
+              >
+                <i :class="tab.icon" />
+                <span>{{ tab.label }}</span>
+              </button>
+            </div>
+            <template v-if="detailDrawerTab === 'overview'">
+              <server-detail-status :info="detailServerInfo" class="stack-item stack-item--status" />
+              <server-detail-resource-history :info="detailServerInfo" class="stack-item stack-item--resource-history" />
+              <server-detail-cycle-transfer :info="detailServerInfo" class="stack-item stack-item--cycle" />
+              <server-detail-info :info="detailServerInfo" class="stack-item stack-item--info" />
+              <server-detail-monitor :info="detailServerInfo" class="stack-item stack-item--monitor" />
+            </template>
+            <server-online-history
+              v-else
+              :key="`online-history-${detailServerId}`"
+              :info="detailServerInfo"
+              class="stack-item stack-item--online-history"
+            />
           </div>
         </div>
       </aside>
@@ -382,6 +405,7 @@ import ServerDetailResourceHistory from '@/components/server-detail/server-detai
 import ServerDetailCycleTransfer from '@/components/server-detail/server-detail-cycle-transfer.vue';
 import ServerDetailInfo from '@/components/server-detail/server-detail-info.vue';
 import ServerDetailMonitor from '@/components/server-detail/server-detail-monitor.vue';
+import ServerOnlineHistory from '@/components/server-detail/server-online-history.vue';
 import {
   loadGlobeRotation,
   persistGlobeRotation,
@@ -409,6 +433,11 @@ const isWideScreen = ref(false);
 const detailDrawerOpen = ref(false);
 const detailServerId = ref(null);
 const detailDrawerRef = ref(null);
+const detailDrawerTab = ref('overview');
+const detailTabs = [
+  { value: 'overview', label: '概览', icon: 'ri-dashboard-3-line' },
+  { value: 'online', label: '在线历史', icon: 'ri-history-line' },
+];
 const globeRef = ref(null);
 const globeKey = ref(0);
 const savedGlobeRotation = loadGlobeRotation();
@@ -454,6 +483,7 @@ function updateWideScreen() {
 
 function openDetailDrawer(id) {
   detailServerId.value = id;
+  detailDrawerTab.value = 'overview';
   detailDrawerOpen.value = true;
 }
 
@@ -462,6 +492,10 @@ function closeDetailDrawer() {
   if (route.query.detail) {
     router.replace({ query: { ...route.query, detail: undefined } });
   }
+}
+
+function selectDetailDrawerTab(tab) {
+  detailDrawerTab.value = tab;
 }
 
 function restoreHomeTitle() {
@@ -2857,6 +2891,55 @@ onUnmounted(() => {
     border: 1px solid var(--border-color);
     box-shadow: var(--shadow-sm);
     overflow: hidden;
+  }
+}
+
+.detail-view-switch {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+  max-width: 100%;
+  padding: 3px;
+  border: 1px solid var(--panel-chip-border);
+  border-radius: 999px;
+  background: var(--panel-chip-bg);
+  box-shadow: inset 0 1px 0 var(--surface-highlight);
+}
+
+.detail-view-switch__item {
+  display: inline-flex;
+  min-width: 0;
+  height: 30px;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+
+  i {
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  &:hover:not(.active) {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+  }
+
+  &.active {
+    color: var(--text-on-accent);
+    background: var(--button-active-bg);
+    border-color: var(--button-active-border);
+    box-shadow: var(--button-active-shadow);
   }
 }
 

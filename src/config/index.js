@@ -21,6 +21,7 @@ const config = reactive({
     v0ServicePath: null,
     nezhaV0ConfigType: 'servers',
     v1ApiMetricsPath: '/api/v1/server/{id}/metrics',
+    v1ApiOnlineHistoryPath: '/api/v1/server/{id}/online-history',
     v1ApiMonitorPath: '/api/v1/server/{id}/service',
     v1ApiMonitorPathFallback: '/api/v1/service/{id}',
     v1ApiServicePath: '/api/v1/service',

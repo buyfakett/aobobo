@@ -1,75 +1,10 @@
 <template>
   <detail-panel
+    v-if="temperatureData.list.length || showBuyBtn"
     variant="flat"
     class="server-detail-info"
   >
     <div class="info-grid">
-      <div
-        v-if="info?.Host?.CPU?.length"
-        class="info-cell info-cell--full"
-      >
-        <div class="info-cell-label">
-          <i class="ri-cpu-line" />
-          <span>CPU</span>
-        </div>
-        <div class="info-cell-content">
-          <template v-if="info?.Host?.CPU?.length === 1">
-            <span
-              class="cpu-info"
-              :title="info.Host.CPU[0]"
-            >
-              {{ info.Host.CPU[0] }}
-            </span>
-          </template>
-          <div
-            v-else
-            class="info-chip-group"
-          >
-            <span
-              v-for="(cpuItem, cpuIndex) in info.Host.CPU"
-              :key="`${info.ID}_cpu_${cpuIndex}`"
-              class="info-chip"
-            >
-              <span class="info-chip-label">CPU.{{ cpuIndex + 1 }}</span>
-              <span class="info-chip-value">{{ cpuItem }}</span>
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div
-        v-if="gpuList.length"
-        class="info-cell info-cell--full"
-      >
-        <div class="info-cell-label">
-          <i class="ri-gamepad-line" />
-          <span>GPU</span>
-        </div>
-        <div class="info-cell-content">
-          <template v-if="gpuList.length === 1">
-            <span
-              class="gpu-info"
-              :title="gpuList[0]"
-            >
-              {{ gpuList[0] }}
-            </span>
-          </template>
-          <div
-            v-else
-            class="info-chip-group"
-          >
-            <span
-              v-for="(gpuItem, gpuIndex) in gpuList"
-              :key="`${info.ID}_gpu_${gpuIndex}`"
-              class="info-chip"
-            >
-              <span class="info-chip-label">GPU.{{ gpuIndex + 1 }}</span>
-              <span class="info-chip-value">{{ gpuItem }}</span>
-            </span>
-          </div>
-        </div>
-      </div>
-
       <div
         v-if="temperatureData.list.length"
         class="info-cell info-cell--full"
@@ -116,160 +51,6 @@
         </div>
       </div>
 
-      <div class="info-cell">
-        <div class="info-cell-label">
-          <i :class="systemOSIcon" />
-          <span>系统</span>
-        </div>
-        <div class="info-cell-content">
-          <span class="info-chip">
-            <span class="info-chip-label">{{ systemOSLabel }}</span>
-            <span
-              v-if="info?.Host?.PlatformVersion"
-              class="info-chip-value"
-            >
-              {{ info?.Host?.PlatformVersion }}
-            </span>
-          </span>
-        </div>
-      </div>
-
-      <div class="info-cell">
-        <div class="info-cell-label">
-          <i class="ri-pulse-line" />
-          <span>占用</span>
-        </div>
-        <div class="info-cell-content">
-          <div class="info-chip-group">
-            <span class="info-chip">
-              <span class="info-chip-label">进程</span>
-              <span class="info-chip-value">{{ processCount }}</span>
-            </span>
-            <span class="info-chip">
-              <span class="info-chip-label">负载</span>
-              <span class="info-chip-value">{{ sysLoadInfo }}</span>
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div class="info-cell">
-        <div class="info-cell-label">
-          <i class="ri-arrow-up-down-line" />
-          <span>流量</span>
-        </div>
-        <div class="info-cell-content">
-          <div class="info-chip-group">
-            <span class="info-chip transfer--in">
-              <span class="info-chip-label">入网</span>
-              <span class="info-chip-value">
-                <span class="text-value">{{ transfer?.in?.value }}</span>
-                <span class="text-unit">{{ transfer?.in?.unit }}</span>
-              </span>
-            </span>
-            <span class="info-chip transfer--out">
-              <span class="info-chip-label">出网</span>
-              <span class="info-chip-value">
-                <span class="text-value">{{ transfer?.out?.value }}</span>
-                <span class="text-unit">{{ transfer?.out?.unit }}</span>
-              </span>
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div
-        v-if="!hideConns"
-        class="info-cell"
-      >
-        <div class="info-cell-label">
-          <i class="ri-link-m" />
-          <span>连接</span>
-        </div>
-        <div class="info-cell-content">
-          <div class="info-chip-group">
-            <span class="info-chip conn--tcp">
-              <span class="info-chip-label">TCP</span>
-              <span class="info-chip-value">{{ tcpConnCount }}</span>
-            </span>
-            <span class="info-chip conn--udp">
-              <span class="info-chip-label">UDP</span>
-              <span class="info-chip-value">{{ udpConnCount }}</span>
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div class="info-cell">
-        <div class="info-cell-label">
-          <i class="ri-restart-line" />
-          <span>启动</span>
-        </div>
-        <div class="info-cell-content">
-          <span class="info-chip">
-            <span class="info-chip-value">{{ bootTime }}</span>
-          </span>
-        </div>
-      </div>
-
-      <div class="info-cell">
-        <div class="info-cell-label">
-          <i class="ri-time-line" />
-          <span>活跃</span>
-        </div>
-        <div class="info-cell-content">
-          <span class="info-chip">
-            <span class="info-chip-value">{{ lastActive }}</span>
-          </span>
-        </div>
-      </div>
-
-      <div
-        v-if="billPlanData.length"
-        class="info-cell info-cell--full"
-      >
-        <div class="info-cell-label">
-          <i class="ri-vip-crown-line" />
-          <span>套餐</span>
-        </div>
-        <div class="info-cell-content">
-          <div class="info-chip-group">
-            <span
-              v-for="item in billPlanData"
-              :key="item.label"
-              class="info-chip"
-            >
-              <span
-                v-if="item.label"
-                class="info-chip-label"
-              >{{ item.label }}</span>
-              <span class="info-chip-value">{{ item.value }}</span>
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div
-        v-if="tagList?.length"
-        class="info-cell info-cell--full"
-      >
-        <div class="info-cell-label">
-          <i class="ri-price-tag-3-line" />
-          <span>标签</span>
-        </div>
-        <div class="info-cell-content">
-          <div class="info-tag-list">
-            <span
-              v-for="(tag, index) in tagList"
-              :key="`${tag}_${index}`"
-              class="info-tag-item"
-            >
-              {{ tag }}
-            </span>
-          </div>
-        </div>
-      </div>
-
       <div
         v-if="showBuyBtn"
         class="info-cell info-cell--full info-cell--action"
@@ -293,12 +74,7 @@
 import {
   computed,
 } from 'vue';
-import { useStore } from 'vuex';
-import dayjs from 'dayjs';
 import config from '@/config';
-import * as hostUtils from '@/utils/host';
-import { isTsdbEnabled } from '@/utils/tsdb';
-import useServerBillAndPlan from '@/composables/server-bill-and-plan';
 import DetailPanel from '@/components/server-detail/detail-panel.vue';
 
 const props = defineProps({
@@ -307,8 +83,6 @@ const props = defineProps({
     default: () => ({}),
   },
 });
-
-const store = useStore();
 
 const buyBtnIcon = computed(() => {
   if (props.info?.PublicNote?.customData?.buyBtnIcon) {
@@ -328,33 +102,6 @@ function toBuy() {
   const decodeUrl = decodeURIComponent(props.info?.PublicNote?.customData?.orderLink);
   window.open(decodeUrl, '_blank');
 }
-
-const gpuList = computed(() => {
-  const gpus = props.info?.Host?.GPU || [];
-  if (config.aobobo?.filterGPUKeywords?.length) {
-    const keywors = Array.isArray(config.aobobo.filterGPUKeywords)
-      ? config.aobobo.filterGPUKeywords
-      : [config.aobobo.filterGPUKeywords];
-    return gpus.filter((i) => {
-      if (keywors.length) {
-        return !keywors.some((k) => i.toLowerCase().includes(k.toLowerCase()));
-      }
-      return true;
-    });
-  }
-  return gpus;
-});
-
-const sysLoadInfo = computed(() => {
-  if (props.info?.State?.Load1 !== undefined) {
-    return [
-      props.info.State?.Load1,
-      props.info.State?.Load5,
-      props.info.State?.Load15,
-    ].filter((i) => i !== undefined).map((i) => (i).toFixed(2) * 1).join(',');
-  }
-  return '-';
-});
 
 const temperatureData = computed(() => {
   const data = [];
@@ -519,107 +266,6 @@ const temperatureData = computed(() => {
   };
 });
 
-const {
-  billAndPlan,
-} = useServerBillAndPlan({
-  props,
-});
-
-const billPlanData = computed(() => ['billing', 'remainingTime', 'bandwidth', 'traffic'].map((i) => {
-  if (billAndPlan.value[i]) {
-    return {
-      label: billAndPlan.value[i].label,
-      value: billAndPlan.value[i].value,
-    };
-  }
-  return null;
-}).filter((i) => i));
-
-const tagList = computed(() => {
-  const list = [];
-  const {
-    networkRoute,
-    extra,
-    IPv4,
-    IPv6,
-  } = props?.info?.PublicNote?.planDataMod || {};
-  if (networkRoute) {
-    list.push(...String(networkRoute).split(','));
-  }
-  if (extra) {
-    list.push(...String(extra).split(','));
-  }
-  if (IPv4 === '1' && IPv6 === '1') {
-    list.push('双栈IP');
-  } else if (IPv4 === '1') {
-    list.push('仅IPv4');
-  } else if (IPv6 === '1') {
-    list.push('仅IPv6');
-  }
-  return list;
-});
-
-const systemOSLabel = computed(() => {
-  if (props?.info?.Host?.Platform) {
-    return hostUtils.getSystemOSLabel(props.info.Host.Platform);
-  }
-  return '';
-});
-
-const systemOSIcon = computed(() => {
-  if (props?.info?.Host?.Platform) {
-    return hostUtils.getPlatformLogoIconClassName(props.info.Host.Platform);
-  }
-  return 'ri-server-line';
-});
-
-const bootTime = computed(() => {
-  if (props?.info?.Host?.BootTime) {
-    return dayjs(props.info.Host.BootTime * 1000).format('YYYY.MM.DD HH:mm:ss');
-  }
-  return '-';
-});
-
-const lastActive = computed(() => {
-  if (props?.info?.Host?.BootTime && props?.info?.LastActive) {
-    return dayjs(props.info.LastActive).format('YYYY.MM.DD HH:mm:ss');
-  }
-  return '-';
-});
-
-const transfer = computed(() => {
-  const stats = {
-    in: 0,
-    out: 0,
-    total: 0,
-  };
-  if (props?.info?.State?.NetInTransfer) {
-    stats.total += props.info.State.NetInTransfer;
-    stats.in = props.info.State.NetInTransfer;
-  }
-  if (props?.info?.State?.NetOutTransfer) {
-    stats.total += props.info.State.NetOutTransfer;
-    stats.out = props.info.State.NetOutTransfer;
-  }
-  return {
-    in: hostUtils.calcTransfer(stats.in),
-    out: hostUtils.calcTransfer(stats.out),
-    total: hostUtils.calcTransfer(stats.total),
-    stats,
-  };
-});
-
-const hideConns = computed(() => {
-  if (isTsdbEnabled(store)) {
-    return true;
-  }
-  const tcp = props.info?.State?.TcpConnCount;
-  const udp = props.info?.State?.UdpConnCount;
-  return (tcp == null) && (udp == null);
-});
-const tcpConnCount = computed(() => props.info?.State?.TcpConnCount);
-const udpConnCount = computed(() => props.info?.State?.UdpConnCount);
-const processCount = computed(() => props.info?.State?.ProcessCount);
 </script>
 
 <style lang="scss" scoped>
@@ -749,29 +395,6 @@ const processCount = computed(() => props.info?.State?.ProcessCount);
   color: var(--accent-primary);
 }
 
-.cpu-info,
-.gpu-info {
-  color: var(--text-primary);
-  line-height: 1.4;
-  font-size: 12px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
-.transfer--in {
-  .text-value {
-    color: var(--transfer-in-color);
-  }
-}
-
-.transfer--out {
-  .text-value {
-    color: var(--transfer-out-color);
-  }
-}
-
 .buy-btn {
   display: flex;
   align-items: center;
@@ -804,23 +427,6 @@ const processCount = computed(() => props.info?.State?.ProcessCount);
 
   span {
     line-height: 1;
-  }
-}
-
-.info-tag-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-
-  .info-tag-item {
-    height: 22px;
-    padding: 0 7px;
-    line-height: 22px;
-    font-size: 11px;
-    color: var(--list-tag-text);
-    background: var(--list-tag-bg);
-    border: 1px solid var(--list-tag-border);
-    border-radius: 5px;
   }
 }
 
@@ -885,21 +491,6 @@ const processCount = computed(() => props.info?.State?.ProcessCount);
     white-space: nowrap;
   }
 
-  .cpu-info,
-  .gpu-info {
-    font-size: 11px;
-  }
-
-  .info-tag-list {
-    gap: 3px;
-
-    .info-tag-item {
-      height: 18px;
-      padding: 0 5px;
-      line-height: 18px;
-      font-size: 10px;
-    }
-  }
 }
 
 @media screen and (max-width: 900px) and (min-width: 769px) {
