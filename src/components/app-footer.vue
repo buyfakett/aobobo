@@ -18,7 +18,7 @@
         target="_blank"
         rel="noopener noreferrer"
       >
-        buyfakett
+        AoBoBo
       </a>
       <span v-if="resolvedVersion" class="app-footer__version">{{ resolvedVersion }}</span>
     </p>
