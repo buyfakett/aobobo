@@ -201,7 +201,6 @@ onUnmounted(() => {
   box-shadow:
     0 0 0 3px rgba(var(--accent-primary-rgb), 0.14),
     0 0 14px rgba(var(--accent-primary-rgb), 0.38);
-  animation: current-time-pulse 2s ease-in-out infinite;
 }
 
 .current-time__header-meta,
@@ -349,19 +348,6 @@ onUnmounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-@keyframes current-time-pulse {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-
-  50% {
-    transform: scale(0.72);
-    opacity: 0.72;
-  }
 }
 
 @media screen and (max-width: 1023px) {

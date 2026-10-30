@@ -8,8 +8,8 @@ AoBoBo 是一个为 [哪吒监控](https://nezha.wiki/) 设计的纯前端 3D �
 
 ## 特性
 
-- **3D 地球可视化** — 使用 echarts-gl 渲染地球，自定义海洋/陆地纹理与大气轮廓光晕；VPS 位置以脉冲光点、聚合簇、离线灰点等样式标注。
-- **原生 HTML 标点叠加** — 通过自定义投影将标记点精确叠加在 3D 地球表面，保留原有脉冲、聚合、离线等视觉风格。
+- **3D 地球可视化** — 使用 echarts-gl 渲染地球，自定义海洋/陆地纹理与大气轮廓光晕；VPS 位置以状态光点、聚合簇、离线灰点等样式标注。
+- **原生 HTML 标点叠加** — 通过自定义投影将标记点精确叠加在 3D 地球表面，保留状态光点、聚合、离线等视觉风格。
 - **深浅双主题** — 支持浅色 / 深色主题切换，运行时通过 `config.js` 或主题切换按钮切换。
 - **多后端兼容** — 支持哪吒 v1（REST API + WS）与三太子 santaizi（公开 API `/api/v2/public/*`），构建时可通过环境变量指定默认版本，运行时也允许通过 `config.js` 切换。
 - **实时状态更新** — WebSocket 推送，数据秒级同步。
@@ -54,8 +54,8 @@ services:
 如果你想本地构建：
 
 ```bash
-npm install
-npm run build
+pnpm install
+pnpm run build
 docker build -t aobobo:latest .
 ```
 
@@ -103,11 +103,17 @@ window.$$aoboboConfig = {
 
 ## 本地开发
 
+需要 Node.js `^20.19.0 || >=22.12.0` 和 pnpm `12.16.1`。首次使用可通过 Corepack 启用项目固定的 pnpm 版本：
+
+```bash
+corepack enable pnpm
+```
+
 安装依赖后启动开发服务：
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 开发环境可在 `.env.development.local` 中配置代理：
@@ -137,18 +143,18 @@ CF_ACCESS_CLIENT_SECRET=
 # CF_AUTHORIZATION=
 ```
 
-配置 `CF_ACCESS_*` 或 `CF_AUTHORIZATION` 后会忽略 `PROXY_WS_HOST`。未加闸的环境仍可用 `PROXY_WS_HOST` 做 WS 中继。启动 `npm run dev` 后日志应类似 `[aobobo-dev-proxy] remote=on access=on cookie=off`。
+配置 `CF_ACCESS_*` 或 `CF_AUTHORIZATION` 后会忽略 `PROXY_WS_HOST`。未加闸的环境仍可用 `PROXY_WS_HOST` 做 WS 中继。启动 `pnpm run dev` 后日志应类似 `[aobobo-dev-proxy] remote=on access=on cookie=off`。
 
 ### 常用脚本
 
 | 命令 | 说明 |
 | --- | --- |
-| `npm run dev` | 启动 Vite 开发服务 |
-| `npm run build` | 构建生产版本（默认自动探测哪吒版本） |
-| `npm run build:v1` | 构建默认指向哪吒 v1 的版本 |
-| `npm run preview` | 预览生产构建 |
-| `npm run lint` | 运行 ESLint |
-| `npm run lint:fix` | 自动修复 ESLint 问题 |
+| `pnpm run dev` | 启动 Vite 开发服务 |
+| `pnpm run build` | 构建生产版本（默认自动探测哪吒版本） |
+| `pnpm run build:v1` | 构建默认指向哪吒 v1 的版本 |
+| `pnpm run preview` | 预览生产构建 |
+| `pnpm run lint` | 运行 ESLint |
+| `pnpm run lint:fix` | 自动修复 ESLint 问题 |
 
 ## 项目结构
 

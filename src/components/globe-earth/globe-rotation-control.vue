@@ -63,7 +63,7 @@ defineProps({
 
 const modelAutoRotate = defineModel('autoRotate', {
   type: Boolean,
-  default: true,
+  default: false,
 });
 
 const modelRotateSpeed = defineModel('rotateSpeed', {

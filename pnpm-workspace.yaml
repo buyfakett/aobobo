@@ -1,0 +1,10 @@
+packages:
+  - '.'
+
+overrides:
+  postcss-selector-parser: ^7.1.7
+
+allowBuilds:
+  '@parcel/watcher': true
+minimumReleaseAgeExclude:
+  - eslint@10.14.0

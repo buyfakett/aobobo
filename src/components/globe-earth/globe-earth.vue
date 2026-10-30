@@ -97,7 +97,6 @@
 </template>
 
 <script setup>
-/* eslint-disable no-use-before-define */
 import {
   computed,
   nextTick,
@@ -188,6 +187,7 @@ const REINIT_MIN_INTERVAL = 1500;
 // needs a few frames on the GPU before the textured earth is actually painted;
 // lifting the loading mask too early exposes the blank canvas as a white flash.
 const READY_FRAME_BUFFER = 4;
+const GLOBE_TEXTURE_READY_TIMEOUT = 2000;
 // Delay between starting the canvas fade-in and marking the globe ready (which
 // lifts the loading mask). The mask stays on top until the dark earth is fully
 // painted underneath, so no blank-canvas frame is ever visible.
@@ -206,7 +206,7 @@ const props = defineProps({
   },
   autoRotate: {
     type: Boolean,
-    default: true,
+    default: false,
   },
   rotateSpeed: {
     type: Number,
@@ -284,8 +284,11 @@ let visibilityHandler = null;
 let markerUpdateHandler = null;
 let cachedContainerRect = null;
 let revealTimer = null;
+let revealRafId = null;
+let revealDeadline = 0;
 let activityEffectTimer = null;
 let activityEffectsPaused = false;
+let lifecycleMotionSuspended = false;
 let lastActivitySignature = '';
 // Per connection-series fade state: alpha eases toward target; outgoing lines
 // stay on screen until the fade-out completes.
@@ -628,7 +631,7 @@ function setMarkerAnimationSuspended(suspended) {
     );
   }
 
-  setActivityEffectsPaused(suspended);
+  syncGlobeMotionState();
 }
 
 function getOrbitControl() {
@@ -653,7 +656,8 @@ function applyAutoRotateState() {
   }
 
   const shouldPause = Boolean(
-    hoveredMarkerKey.value
+    lifecycleMotionSuspended
+      || hoveredMarkerKey.value
       || isPopupHovered.value
       || isMarkerAnimationSuspended.value
       || isUserInteracting.value
@@ -744,7 +748,7 @@ function applyRayFadeToSeriesOptions(seriesOptions) {
       // Connections just dropped to zero: keep the previous set on screen while it
       // fades out instead of vanishing mid-flight.
       series.data = state.lastData;
-      series.effect.show = true;
+      series.effect.show = false;
       state.target = 0;
       state.clearAtZero = true;
     } else {
@@ -906,25 +910,32 @@ function setActivityEffectsPaused(paused) {
   }
 
   try {
-    const seriesModels = chart.getModel().getSeriesByType('lines3D');
-    seriesModels.forEach((seriesModel) => {
-      const id = seriesModel?.get?.('id');
-      if (!isGlobeActivitySeriesId(id)) {
-        return;
-      }
-      const view = chart.getViewOfSeriesModel(seriesModel);
-      if (!view) {
-        return;
-      }
-      if (paused) {
-        view.pauseEffect?.();
-      } else {
-        view.resumeEffect?.();
-      }
+    GLOBE_ACTIVITY_SERIES_IDS.forEach((seriesId) => {
+      chart.dispatchAction({
+        type: paused ? 'lines3DPauseEffect' : 'lines3DResumeEffect',
+        seriesId,
+      });
     });
   } catch {
-    // Internal APIs may change; ignore if unavailable.
+    // Older echarts-gl builds may not expose the action; static lines still work.
   }
+}
+
+function syncGlobeMotionState() {
+  applyAutoRotateState();
+  setActivityEffectsPaused(
+    lifecycleMotionSuspended || isMarkerAnimationSuspended.value,
+  );
+}
+
+function setLifecycleMotionSuspended(suspended) {
+  lifecycleMotionSuspended = suspended;
+  if (suspended) {
+    stopRayFadeLoop();
+  } else {
+    startRayFadeLoop();
+  }
+  syncGlobeMotionState();
 }
 
 // Any setOption re-renders GlobeView, which re-applies viewControl and does
@@ -952,7 +963,7 @@ function setOptionPreservingView(option) {
   // and re-attach marker / persist listeners, then restore auto-rotate intent.
   orbitControl = null;
   attachMarkerUpdateListener();
-  applyAutoRotateState();
+  syncGlobeMotionState();
 }
 
 function applyActivitySeries(force = false) {
@@ -1124,6 +1135,11 @@ function clearRevealTimer() {
     window.clearTimeout(revealTimer);
     revealTimer = null;
   }
+  if (revealRafId !== null) {
+    window.cancelAnimationFrame(revealRafId);
+    revealRafId = null;
+  }
+  revealDeadline = 0;
 }
 
 function isGlobeTextureReady() {
@@ -1143,26 +1159,45 @@ function isGlobeTextureReady() {
   }
 }
 
+function scheduleGlobeRevealCheck(bufferFrames) {
+  if (revealRafId !== null) {
+    window.cancelAnimationFrame(revealRafId);
+  }
+  revealRafId = window.requestAnimationFrame(() => {
+    revealRafId = null;
+    showGlobeWhenReady(bufferFrames);
+  });
+}
+
+function beginGlobeReveal() {
+  clearRevealTimer();
+  revealDeadline = performance.now() + GLOBE_TEXTURE_READY_TIMEOUT;
+  showGlobeWhenReady(READY_FRAME_BUFFER);
+}
+
 function showGlobeWhenReady(bufferFrames) {
   if (!chart) {
+    revealDeadline = 0;
     isGlobeVisible.value = true;
     isReady.value = true;
     return;
   }
 
-  // Keep polling each frame until the ocean texture has decoded and uploaded.
-  if (!isGlobeTextureReady()) {
-    requestAnimationFrame(() => showGlobeWhenReady(READY_FRAME_BUFFER));
+  const textureReady = isGlobeTextureReady();
+  if (!textureReady && performance.now() < revealDeadline) {
+    scheduleGlobeRevealCheck(READY_FRAME_BUFFER);
     return;
   }
 
-  // Texture is ready — burn a few more frames so the GPU actually paints the
-  // textured earth before we reveal anything.
-  if (bufferFrames > 0) {
-    requestAnimationFrame(() => showGlobeWhenReady(bufferFrames - 1));
+  // Once the texture is ready, allow a few frames for the GPU upload. If the
+  // internal readiness API changes, reveal at the deadline instead of polling
+  // forever and keeping the tab active.
+  if (textureReady && bufferFrames > 0) {
+    scheduleGlobeRevealCheck(bufferFrames - 1);
     return;
   }
 
+  revealDeadline = 0;
   // Reveal in two steps: fade the canvas in first, and only after that fade
   // finishes lift the loading mask. The dark mask covers the canvas throughout,
   // so the untextured/blank canvas is never exposed as a white flash.
@@ -1181,7 +1216,7 @@ function applyThemeToGlobe() {
 
   chart.setOption(getGlobeOption(), { notMerge: true });
   lastActivitySignature = `${buildActivitySignature()}#${props.theme}#${isMobile.value ? 1 : 0}`;
-  showGlobeWhenReady(READY_FRAME_BUFFER);
+  beginGlobeReveal();
   sharpenGlobeTextures();
 
   // setOption with notMerge may recreate the GL view and its OrbitControl.
@@ -2101,8 +2136,15 @@ function handleVisibilityChange() {
   }
 
   if (document.hidden) {
+    setLifecycleMotionSuspended(true);
     return;
   }
+
+  if (!contextLossGuardsActive) {
+    return;
+  }
+
+  setLifecycleMotionSuspended(false);
 
   // Coming back from the background is the most common trigger for a mobile GL
   // context loss. Detect it first and rebuild the instance; re-optioning a dead
@@ -2168,13 +2210,7 @@ function initChart() {
     sharpenGlobeTextures();
 
     chart.on('finished', syncCoastlineDepth);
-    showGlobeWhenReady(READY_FRAME_BUFFER);
-    // Fallback: show the globe even if texture readiness cannot be detected.
-    setTimeout(() => {
-      clearRevealTimer();
-      isGlobeVisible.value = true;
-      isReady.value = true;
-    }, 2000);
+    beginGlobeReveal();
     syncCoastlineDepth();
 
     getOrbitControl();
@@ -2343,6 +2379,7 @@ onMounted(() => {
   startLocalTimeTicker();
   contextLossGuardsActive = true;
   initChart();
+  setLifecycleMotionSuspended(document.hidden);
   scheduleHealthCheck();
   window.addEventListener('resize', handleResize);
 
@@ -2356,6 +2393,7 @@ onActivated(() => {
   updateViewportMode();
   startLocalTimeTicker();
   contextLossGuardsActive = true;
+  setLifecycleMotionSuspended(document.hidden);
 
   nextTick(() => {
     scheduleHandleResize();
@@ -2387,6 +2425,7 @@ onDeactivated(() => {
   stopLocalTimeTicker();
   stopHealthCheck();
   contextLossGuardsActive = false;
+  setLifecycleMotionSuspended(true);
   clearInteractionSettleTimer();
   clearRevealTimer();
   clearActivityEffectTimer();
@@ -2400,6 +2439,7 @@ onUnmounted(() => {
   flushPersistGlobeView();
 
   contextLossGuardsActive = false;
+  setLifecycleMotionSuspended(true);
   stopHealthCheck();
   window.removeEventListener('resize', handleResize);
   stopLocalTimeTicker();
@@ -2595,7 +2635,6 @@ onUnmounted(() => {
   outline: none;
   pointer-events: auto;
   touch-action: none;
-  will-change: transform;
   transition: opacity 0.12s ease;
 
   &.is-hidden {
@@ -2662,8 +2701,7 @@ onUnmounted(() => {
   height: calc(var(--marker-visual-size) + 8px);
   border-radius: 999px;
   border: 2px solid var(--marker-core-color);
-  opacity: 0.45;
-  animation: marker-pulse 2.4s ease-out infinite;
+  opacity: 0.24;
 }
 
 :deep(.globe-marker.is-offline .marker-cluster--large) {
@@ -2738,20 +2776,6 @@ onUnmounted(() => {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
-}
-
-@keyframes marker-pulse {
-  0% {
-    transform: scale(0.86);
-    opacity: 0.42;
-  }
-  55% {
-    opacity: 0.12;
-  }
-  100% {
-    transform: scale(1.68);
-    opacity: 0;
-  }
 }
 
 @media screen and (max-width: 768px) {
