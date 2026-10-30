@@ -208,17 +208,35 @@ function getPlatformLogoClass(server) {
   return getPlatformLogoIconClassName(server?.Host?.Platform);
 }
 
+function formatMemorySize(bytes) {
+  if (!bytes) return '';
+  const rawMemoryGB = Number(bytes) / 1024 ** 3;
+  if (!Number.isFinite(rawMemoryGB) || rawMemoryGB <= 0) return '';
+  // 1G 以内保留 0.25G 档，超过 1G 统一按 0.5G 档规整。
+  const step = rawMemoryGB > 1 ? 0.5 : 0.25;
+  return String(Math.round(rawMemoryGB / step) * step);
+}
+
+function formatDiskSize(bytes) {
+  const diskGB = Number(bytes) / 1024 ** 3;
+  if (!Number.isFinite(diskGB) || diskGB <= 0) return '';
+  if (diskGB >= 1000) {
+    return `${Number((diskGB / 1024).toFixed(1))}T`;
+  }
+  return `${Math.round(diskGB)}G`;
+}
+
 function getSpec(server) {
   const cpu = server.Host?.CPU?.[0] || '';
   const cores = cpu.match(/(\d+)\s*(Virtual|Physical|Physics)\s*Core/i);
   const coreStr = cores ? `${cores[1]}C` : '';
-  const memGB = server.Host?.MemTotal ? (server.Host.MemTotal / 1024 / 1024 / 1024).toFixed(0) : '';
-  const diskGB = server.Host?.DiskTotal ? (server.Host.DiskTotal / 1024 / 1024 / 1024).toFixed(0) : '';
+  const memGB = formatMemorySize(server.Host?.MemTotal);
+  const diskSize = formatDiskSize(server.Host?.DiskTotal);
   const parts = [];
 
   if (coreStr) parts.push(coreStr);
   if (memGB) parts.push(`${memGB}G`);
-  if (diskGB) parts.push(`${diskGB}G`);
+  if (diskSize) parts.push(diskSize);
 
   return parts.join('') || '';
 }
