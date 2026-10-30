@@ -96,7 +96,7 @@ export default function (v1Data) {
   if (v1Data.public_note) {
     try {
       normalizedData.PublicNote = JSON.parse(v1Data.public_note);
-    } catch (e) {
+    } catch {
       normalizedData.PublicNote = null;
     }
   } else {

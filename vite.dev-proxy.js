@@ -1,5 +1,3 @@
-/* eslint-env node */
-
 function normalizeTarget(url) {
   if (!url || typeof url !== 'string') {
     return '';

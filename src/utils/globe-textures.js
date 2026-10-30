@@ -4,7 +4,10 @@ const BASE_TEXTURE_WIDTH = 4096;
 const MIN_TEXTURE_WIDTH = 2048;
 const BUMP_TEXTURE_WIDTH = 2048;
 const BUMP_TEXTURE_HEIGHT = 1024;
-const MAX_RENDERER_PIXEL_RATIO = 3;
+// A full-screen Retina WebGL canvas at DPR 2 contains four times as many pixels
+// as its CSS size. This cap keeps the globe sharp without redrawing an oversized
+// multi-megapixel surface on every animated frame.
+const MAX_RENDERER_PIXEL_RATIO = 1.5;
 
 let cachedMaxTextureSize = null;
 

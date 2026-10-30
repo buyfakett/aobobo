@@ -1,10 +1,12 @@
 /**
- * Animated globe connections between server locations.
+ * Globe connections between server locations.
  */
 
 const SERVER_CONNECTION_SERIES_ID = 'globe-server-connections';
 const MIN_ARC_SEGMENTS = 16;
 const MAX_ARC_SEGMENTS = 48;
+const MAX_CONNECTIONS_DESKTOP = 160;
+const MAX_CONNECTIONS_MOBILE = 80;
 
 export const GLOBE_ALTITUDE_ANCHOR_SERIES_ID = 'globe-effect-altitude-anchor';
 export const GLOBE_ACTIVITY_SERIES_IDS = [SERVER_CONNECTION_SERIES_ID];
@@ -105,18 +107,106 @@ function getServerLocations(locations) {
   ));
 }
 
-function buildServerConnectionData(locations) {
-  const serverLocations = getServerLocations(locations);
-  const data = [];
-  for (let startIndex = 0; startIndex < serverLocations.length; startIndex += 1) {
-    for (let endIndex = startIndex + 1; endIndex < serverLocations.length; endIndex += 1) {
-      data.push(buildConnectionArc(
+function angularDistance(start, end) {
+  const startPoint = toCartesian(start.lat, start.lng);
+  const endPoint = toCartesian(end.lat, end.lng);
+  const dot = startPoint.reduce((sum, value, index) => sum + value * endPoint[index], 0);
+  return Math.acos(clamp(dot, -1, 1));
+}
+
+function buildConnectionPairs(serverLocations, maxConnections) {
+  if (serverLocations.length < 2 || maxConnections <= 0) {
+    return [];
+  }
+
+  const pairs = [];
+  const edgeKeys = new Set();
+  const connected = new Set([0]);
+  const nearestDistance = Array(serverLocations.length).fill(Number.POSITIVE_INFINITY);
+  const nearestParent = Array(serverLocations.length).fill(-1);
+
+  const updateNearest = (sourceIndex) => {
+    for (let index = 0; index < serverLocations.length; index += 1) {
+      if (connected.has(index)) {
+        continue;
+      }
+      const distance = angularDistance(
+        serverLocations[sourceIndex],
+        serverLocations[index],
+      );
+      if (distance < nearestDistance[index]) {
+        nearestDistance[index] = distance;
+        nearestParent[index] = sourceIndex;
+      }
+    }
+  };
+
+  const addPair = (startIndex, endIndex) => {
+    const low = Math.min(startIndex, endIndex);
+    const high = Math.max(startIndex, endIndex);
+    const key = `${low}:${high}`;
+    if (edgeKeys.has(key) || pairs.length >= maxConnections) {
+      return false;
+    }
+    edgeKeys.add(key);
+    pairs.push([low, high]);
+    return true;
+  };
+
+  // Begin with a bounded minimum-spanning tree so ordinary dashboards remain
+  // connected without producing an O(n^2) all-pairs mesh.
+  updateNearest(0);
+  while (connected.size < serverLocations.length && pairs.length < maxConnections) {
+    let nextIndex = -1;
+    let nextDistance = Number.POSITIVE_INFINITY;
+    for (let index = 0; index < serverLocations.length; index += 1) {
+      if (!connected.has(index) && nearestDistance[index] < nextDistance) {
+        nextIndex = index;
+        nextDistance = nearestDistance[index];
+      }
+    }
+    if (nextIndex < 0 || nearestParent[nextIndex] < 0) {
+      break;
+    }
+    addPair(nearestParent[nextIndex], nextIndex);
+    connected.add(nextIndex);
+    updateNearest(nextIndex);
+  }
+
+  // Add one local neighbour per location when the cap has room. This keeps the
+  // network readable while giving small deployments more than a bare tree.
+  for (let startIndex = 0;
+    startIndex < serverLocations.length && pairs.length < maxConnections;
+    startIndex += 1) {
+    let nearestIndex = -1;
+    let distance = Number.POSITIVE_INFINITY;
+    for (let endIndex = 0; endIndex < serverLocations.length; endIndex += 1) {
+      if (startIndex === endIndex) {
+        continue;
+      }
+      const candidateDistance = angularDistance(
         serverLocations[startIndex],
         serverLocations[endIndex],
-      ));
+      );
+      if (candidateDistance < distance) {
+        nearestIndex = endIndex;
+        distance = candidateDistance;
+      }
+    }
+    if (nearestIndex >= 0) {
+      addPair(startIndex, nearestIndex);
     }
   }
-  return data;
+
+  return pairs;
+}
+
+function buildServerConnectionData(locations, isMobile = false) {
+  const serverLocations = getServerLocations(locations);
+  const maxConnections = isMobile ? MAX_CONNECTIONS_MOBILE : MAX_CONNECTIONS_DESKTOP;
+  return buildConnectionPairs(serverLocations, maxConnections).map(([startIndex, endIndex]) => (
+    buildConnectionArc(serverLocations[startIndex], serverLocations[endIndex])
+  ));
 }
 
 function createServerConnectionSeries(color, data, theme = 'dark', isMobile = false) {
@@ -134,12 +224,14 @@ function createServerConnectionSeries(color, data, theme = 'dark', isMobile = fa
       opacity: isLight ? 0.38 : 0.3,
     },
     effect: {
-      show: data.length > 0,
+      // A looping trail keeps echarts-gl rendering at the display refresh rate.
+      // Static arcs let ZRender sleep when the globe is idle.
+      show: false,
       constantSpeed: isMobile ? 24 : 20,
       trailWidth: isMobile ? 2.8 : 2.2,
       trailLength: isMobile ? 0.36 : 0.3,
       trailColor: color,
-      trailOpacity: isLight ? 0.9 : 0.84,
+      trailOpacity: 0,
       spotIntensity: 4,
     },
     data,
@@ -176,7 +268,7 @@ export function buildActivitySeriesOptions({
   const color = colors?.connection
     || (theme === 'light' ? '#5278d7' : '#89c3eb');
   const data = enabled && Array.isArray(locations)
-    ? buildServerConnectionData(locations)
+    ? buildServerConnectionData(locations, isMobile)
     : [];
   return [createServerConnectionSeries(color, data, theme, isMobile)];
 }

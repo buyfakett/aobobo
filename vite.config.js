@@ -2,9 +2,8 @@ import path from 'path';
 import dotenv from 'dotenv';
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
-import eslintPlugin from 'vite-plugin-eslint';
-import packageJson from './package';
-import { createAoboboDevProxy } from './vite.dev-proxy';
+import packageJson from './package.json' with { type: 'json' };
+import { createAoboboDevProxy } from './vite.dev-proxy.js';
 
 let proxy;
 if (process.env.NODE_ENV === 'development') {
@@ -37,14 +36,6 @@ export default defineConfig({
   },
   plugins: [
     vue(),
-    eslintPlugin({
-      include: ['src/**/*.js', 'src/**/*.vue', 'src/*.js', 'src/*.vue'],
-      overrideConfig: process.platform === 'win32' ? {
-        rules: {
-          'linebreak-style': 'off',
-        },
-      } : undefined,
-    }),
   ],
   build: {
     assetsInlineLimit: 8192, // 8KB 以下的资源会被内联
@@ -72,11 +63,11 @@ export default defineConfig({
     alias: [
       {
         find: '@',
-        replacement: path.resolve(__dirname, './src/'),
+        replacement: path.resolve(import.meta.dirname, './src/'),
       },
       {
         find: '~@',
-        replacement: path.resolve(__dirname, './src/'),
+        replacement: path.resolve(import.meta.dirname, './src/'),
       },
     ],
   },

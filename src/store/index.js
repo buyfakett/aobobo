@@ -106,7 +106,8 @@ function mergeAvailability(servers, availabilityMap, enabled) {
       if (!Object.prototype.hasOwnProperty.call(server, 'availability')) {
         return server;
       }
-      const { availability: _, ...rest } = server;
+      const rest = { ...server };
+      delete rest.availability;
       return rest;
     }
     if (!availabilityMap || typeof availabilityMap !== 'object') {

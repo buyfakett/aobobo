@@ -1091,7 +1091,7 @@ const detailStats = computed(() => {
       const maxBytes = parseTrafficVolumeToBytes(planDataMod.trafficVol);
       if (maxBytes) {
         const { trafficType } = planDataMod;
-        let used = 0;
+        let used;
         if (trafficType === '1') {
           used = state.NetOutTransfer || 0;
         } else if (trafficType === '3') {
@@ -1382,7 +1382,7 @@ async function focusLocationFromQuery(focusCode) {
   }
 
   const focusName = route.query.name;
-  let success = false;
+  let success;
   if (focusName) {
     success = await globeRef.value.focusLocationWithHighlight(location, String(focusName));
   } else {
@@ -1390,7 +1390,9 @@ async function focusLocationFromQuery(focusCode) {
   }
 
   if (success && route.query.focus) {
-    const { focus, name, ...rest } = route.query;
+    const rest = { ...route.query };
+    delete rest.focus;
+    delete rest.name;
     router.replace({ query: rest });
   }
 

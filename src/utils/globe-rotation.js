@@ -1,9 +1,9 @@
 // Persists homepage globe rotation and connection-display preferences.
 
 export const GLOBE_ROTATION_STORAGE_KEY = 'aobobo_globe_rotation';
-export const GLOBE_ROTATION_STORAGE_VERSION = 2;
+export const GLOBE_ROTATION_STORAGE_VERSION = 3;
 
-export const DEFAULT_AUTO_ROTATE = true;
+export const DEFAULT_AUTO_ROTATE = false;
 export const DEFAULT_ROTATE_SPEED = 0.5;
 export const MIN_ROTATE_SPEED = 0.2;
 export const MAX_ROTATE_SPEED = 2;
@@ -40,11 +40,15 @@ export function loadGlobeRotation() {
       return getDefaults();
     }
     const parsed = JSON.parse(raw);
-    if (!parsed || (parsed.v !== 1 && parsed.v !== GLOBE_ROTATION_STORAGE_VERSION)) {
+    if (!parsed || ![1, 2, GLOBE_ROTATION_STORAGE_VERSION].includes(parsed.v)) {
       return getDefaults();
     }
     return {
-      autoRotate: parsed.autoRotate !== false,
+      // Versions 1 and 2 inherited the old always-on default. Migrate them to
+      // the low-power default once; users can explicitly turn rotation back on.
+      autoRotate: parsed.v === GLOBE_ROTATION_STORAGE_VERSION
+        ? parsed.autoRotate === true
+        : DEFAULT_AUTO_ROTATE,
       rotateSpeed: clampSpeed(parsed.rotateSpeed),
       showServerConnections: parsed.v === 1
         ? parsed.showNetRays !== false
@@ -68,7 +72,7 @@ export function persistGlobeRotation(prefs) {
       GLOBE_ROTATION_STORAGE_KEY,
       JSON.stringify({
         v: GLOBE_ROTATION_STORAGE_VERSION,
-        autoRotate: prefs.autoRotate !== false,
+        autoRotate: prefs.autoRotate === true,
         rotateSpeed: clampSpeed(prefs.rotateSpeed),
         showServerConnections: prefs.showServerConnections !== false,
       }),
