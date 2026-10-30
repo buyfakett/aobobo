@@ -1,6 +1,6 @@
 import config from '@/config';
 import request from '@/utils/request';
-import stzTransformV0 from '@/utils/transform-stz-2-v0';
+import normalizeStzServer from '@/utils/normalize-stz-server';
 
 /**
  * 加载 santaizi 公开 bootstrap 配置（GET /api/v2/public/bootstrap）
@@ -41,7 +41,7 @@ export async function loadStzServers() {
     if (!Array.isArray(list)) {
       return null;
     }
-    return list.map((item) => stzTransformV0(item));
+    return list.map((item) => normalizeStzServer(item));
   } catch {
     return null;
   }

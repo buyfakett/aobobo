@@ -56,28 +56,12 @@ jobs:
           rm -f dist.zip
           zip -rq dist.zip dist
 
-      - name: Build Nezha v0 bundle
-        run: npm run build:v0
-
-      - name: Package v0-dist.zip
-        run: |
-          rm -f v0-dist.zip
-          zip -rq v0-dist.zip dist
-
-      - name: Build Nezha v0 /aobobo/ subdirectory bundle
-        run: npm run build:aobobo
-
-      - name: Package v0-aobobo.zip
-        run: |
-          rm -f v0-aobobo.zip
-          zip -rq v0-aobobo.zip dist
-
       - name: Generate release notes
         id: release_notes
         run: |
           echo "#### Changes" > release_notes.md
           git log -20 --pretty=format:"- %s" >> release_notes.md
-          echo -e "\n-----------\n默认构建（自动探测哪吒版本）请下载 dist.zip\n哪吒 v0 请下载 v0-dist.zip\n哪吒 v0 /aobobo/ 子目录需求请下载 v0-aobobo.zip" >> release_notes.md
+          echo -e "\n-----------\n请下载 dist.zip" >> release_notes.md
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -88,7 +72,5 @@ jobs:
           draft: true
           files: |
             dist.zip
-            v0-dist.zip
-            v0-aobobo.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

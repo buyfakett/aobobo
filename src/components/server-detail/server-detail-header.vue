@@ -304,23 +304,6 @@ const billingLabel = computed(() => billLabel(billAndPlan.value?.billing));
 const remainingTimeLabel = computed(() => billLabel(billAndPlan.value?.remainingTime));
 const bandwidthLabel = computed(() => billLabel(billAndPlan.value?.bandwidth));
 const planTrafficLabel = computed(() => billLabel(billAndPlan.value?.traffic));
-const hasMetaTags = computed(() => Boolean(
-  regionLabel.value
-  || systemOSLabel.value
-  || cpuLabel.value
-  || gpuLabel.value
-  || memoryDiskLabel.value
-  || systemVersionLabel.value
-  || billingLabel.value
-  || remainingTimeLabel.value
-  || bandwidthLabel.value
-  || planTrafficLabel.value
-  || loadLabel.value
-  || transferLabel.value
-  || bootTimeLabel.value
-  || lastActiveLabel.value
-  || tagList.value.length,
-));
 const systemOSLabel = computed(() => {
   if (props.info?.Host?.Platform) {
     return hostUtils.getSystemOSLabel(props.info.Host.Platform);
@@ -398,6 +381,24 @@ const regionLabel = computed(() => {
   }
   return loc.name || loc.code;
 });
+
+const hasMetaTags = computed(() => Boolean(
+  regionLabel.value
+  || systemOSLabel.value
+  || cpuLabel.value
+  || gpuLabel.value
+  || memoryDiskLabel.value
+  || systemVersionLabel.value
+  || billingLabel.value
+  || remainingTimeLabel.value
+  || bandwidthLabel.value
+  || planTrafficLabel.value
+  || loadLabel.value
+  || transferLabel.value
+  || bootTimeLabel.value
+  || lastActiveLabel.value
+  || tagList.value.length,
+));
 
 function viewOnGlobe() {
   if (!locationCode.value) {

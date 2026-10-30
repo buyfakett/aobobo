@@ -91,7 +91,7 @@ async function loadStzAvailability(serverList = []) {
 
 /**
  * 加载服务器可用性数据
- * v0/v1：config.aobobo.apiAvailabilityPath
+ * v1：config.aobobo.apiAvailabilityPath
  * santaizi：逐台请求 /api/v2/public/servers/{id}/availability
  * 支持两种返回格式：
  *   1. 数组形式：{ result: [{ server_id: 1, availability_percent: 99.9 }] }

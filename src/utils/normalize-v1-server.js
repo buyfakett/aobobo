@@ -62,7 +62,7 @@ const magics = {
 };
 
 export default function (v1Data) {
-  const v0Data = {};
+  const normalizedData = {};
   Object.keys(SERVER_FIELD_MAPS).forEach((key) => {
     if (SERVER_FIELD_MAPS[key] === undefined) return;
     if (SERVER_FIELD_MAPS[key].includes('_$')) {
@@ -70,18 +70,18 @@ export default function (v1Data) {
       switch ($magic[0]) {
         case '_$function':
           if ($magic.length >= 3 && magics[$magic[1]]) {
-            v0Data[key] = magics[$magic[1]](Mapping.mapping(v1Data, $magic[2]));
+            normalizedData[key] = magics[$magic[1]](Mapping.mapping(v1Data, $magic[2]));
           } else {
-            v0Data[key] = undefined;
+            normalizedData[key] = undefined;
           }
           break;
         case '_$mapping':
-          v0Data[key] = Mapping.each(magics[$magic[1]], v1Data);
+          normalizedData[key] = Mapping.each(magics[$magic[1]], v1Data);
           if (key === 'State') {
             ['Load1', 'Load5', 'Load15', 'NetInTransfer', 'NetOutTransfer', 'NetInSpeed', 'NetOutSpeed']
               .forEach((k) => {
-                if (!validate.isSet(v0Data[key][k])) {
-                  v0Data[key][k] = 0;
+                if (!validate.isSet(normalizedData[key][k])) {
+                  normalizedData[key][k] = 0;
                 }
               });
           }
@@ -91,16 +91,16 @@ export default function (v1Data) {
       }
       return;
     }
-    v0Data[key] = Mapping.mapping(v1Data, SERVER_FIELD_MAPS[key]);
+    normalizedData[key] = Mapping.mapping(v1Data, SERVER_FIELD_MAPS[key]);
   });
   if (v1Data.public_note) {
     try {
-      v0Data.PublicNote = JSON.parse(v1Data.public_note);
+      normalizedData.PublicNote = JSON.parse(v1Data.public_note);
     } catch (e) {
-      v0Data.PublicNote = null;
+      normalizedData.PublicNote = null;
     }
   } else {
-    v0Data.PublicNote = null;
+    normalizedData.PublicNote = null;
   }
-  return v0Data;
+  return normalizedData;
 }

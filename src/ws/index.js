@@ -1,16 +1,13 @@
 import config from '@/config';
 import MessageSubscribe from '@/utils/subscribe';
-import v1TransformV0 from '@/utils/transform-v1-2-v0';
-import stzTransformV0 from '@/utils/transform-stz-2-v0';
+import normalizeV1Server from '@/utils/normalize-v1-server';
+import normalizeStzServer from '@/utils/normalize-stz-server';
 import WSService, { WS_CONNECTION_STATUS } from './service';
 
 function getWsApiPath() {
-  let url = config?.aobobo?.wsPath;
-  if (config?.aobobo?.nezhaVersion === 'v1') {
-    url = config?.aobobo?.v1WsPath;
-  } else if (config?.aobobo?.nezhaVersion === 'santaizi') {
-    url = config?.aobobo?.stzWsPath;
-  }
+  const url = config?.aobobo?.nezhaVersion === 'santaizi'
+    ? config?.aobobo?.stzWsPath
+    : config?.aobobo?.v1WsPath;
   const a = document.createElement('a');
   a.href = url;
   return a.href.replace(/^http/, 'ws');
@@ -27,19 +24,13 @@ function createWsService() {
     onError: (error) => msg.emit('error', error),
     onMessage: (data) => {
       if (data?.now) {
-        if (config.aobobo.nezhaVersion === 'v1') {
-          msg.emit('servers', {
-            now: data.now,
-            servers: data?.servers?.map?.((server) => v1TransformV0(server)) || [],
-          });
-        } else if (config.aobobo.nezhaVersion === 'santaizi') {
-          msg.emit('servers', {
-            now: data.now,
-            servers: data?.servers?.map?.((server) => stzTransformV0(server)) || [],
-          });
-        } else {
-          msg.emit('servers', data);
-        }
+        const normalizeServer = config.aobobo.nezhaVersion === 'santaizi'
+          ? normalizeStzServer
+          : normalizeV1Server;
+        msg.emit('servers', {
+          now: data.now,
+          servers: data?.servers?.map?.((server) => normalizeServer(server)) || [],
+        });
       } else {
         msg.emit('message', data);
       }

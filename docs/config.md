@@ -11,7 +11,7 @@ AoBoBo 通过 `config.js` 注入运行时常量，部署时只需替换该文件
 | 配置项 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
 | `title` | `string` | `'哪吒监控'` | 网站标题，会显示在浏览器标签页与页面头部。 |
-| `nezhaVersion` | `'v0' / 'v1' / 'santaizi' / null` | `null` | 强制指定后端兼容版本。`v0` 使用页面抓取 + WS，`v1` 使用 REST API + WS，`santaizi` 适配三太子公开 API（`/api/v2/public/*`）；不填则运行时自动探测。 |
+| `nezhaVersion` | `'v1' / 'santaizi' / null` | `null` | 强制指定后端版本。`v1` 使用 REST API + WS，`santaizi` 适配三太子公开 API（`/api/v2/public/*`）；不填则运行时自动探测。 |
 
 ## 监控与详情页
 
@@ -42,23 +42,13 @@ AoBoBo 通过 `config.js` 注入运行时常量，部署时只需替换该文件
 | --- | --- | --- | --- |
 | `filterGPUKeywords` | `string[]` | `['Virtual Display']` | GPU 名称中包含以下关键字时会被过滤掉，不显示在服务器详情中。 |
 
-## v0 接口路径（一般无需修改）
-
-| 配置项 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `apiMonitorPath` | `string` | `'/api/v1/monitor/{id}'` | v0 监控数据接口路径，`{id}` 为服务器 ID 占位符。 |
-| `apiAvailabilityPath` | `string` | `'/api/v1/server/availability'` | 可用性数据接口路径。若后端提供该接口且返回有效数据，列表与详情页会展示服务器可用率。 |
-| `availabilityRefreshTime` | `number` | `60` | 可用性数据刷新间隔（秒），设置为 `0` 则不自动刷新。 |
-| `showAvailability` | `boolean` | `false` | 是否展示可用性数据。v0/v1 对应 `/api/v1/server/availability`（nezha-next 扩展）。santaizi 默认跟随 bootstrap 的 `show_availability`；仅当 `config.js` 显式设置本项时覆盖。 |
-| `wsPath` | `string` | `'/ws'` | v0 WebSocket 实时数据路径。 |
-| `nezhaPath` | `string` | `'/nezha/'` | v0 哪吒 Dashboard 页面路径，用于解析服务器列表与公开备注。 |
-| `v0ServicePath` | `string / null` | `null` | v0 服务页路径，为空时默认使用 `{nezhaPath}service`。 |
-| `nezhaV0ConfigType` | `string` | `'servers'` | v0 配置解析类型，一般保持默认。 |
-
 ## v1 接口路径（一般无需修改）
 
 | 配置项 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
+| `showAvailability` | `boolean` | `false` | 是否展示可用性数据。v1 对应 `/api/v1/server/availability`（nezha-next 扩展）；santaizi 默认跟随 bootstrap 的 `show_availability`，仅当 `config.js` 显式设置本项时覆盖。 |
+| `apiAvailabilityPath` | `string` | `'/api/v1/server/availability'` | v1 可用性数据接口路径。若后端提供该接口且返回有效数据，列表与详情页会展示服务器可用率。 |
+| `availabilityRefreshTime` | `number` | `60` | 可用性数据刷新间隔（秒），设置为 `0` 则不自动刷新。 |
 | `v1ApiMetricsPath` | `string` | `'/api/v1/server/{id}/metrics'` | v1 服务器指标历史接口路径，`{id}` 为服务器 ID 占位符。 |
 | `v1ApiMonitorPath` | `string` | `'/api/v1/server/{id}/service'` | v1 监控数据接口路径，`{id}` 为服务器 ID 占位符。 |
 | `v1ApiMonitorPathFallback` | `string` | `'/api/v1/service/{id}'` | v1 监控数据兜底路径，当主路径不可用或兼容旧版本时回退使用。 |
@@ -66,7 +56,7 @@ AoBoBo 通过 `config.js` 注入运行时常量，部署时只需替换该文件
 | `v1WsPath` | `string` | `'/api/v1/ws/server'` | v1 WebSocket 实时数据路径。 |
 | `v1GroupPath` | `string` | `'/api/v1/server-group'` | v1 服务器分组接口路径。 |
 | `v1ApiSettingPath` | `string` | `'/api/v1/setting'` | v1 站点设置接口路径。 |
-| `v1ApiProfilePath` | `string` | `'/api/v1/profile'` | v1 用户资料接口路径，用于判断是否为 v1 环境。 |
+| `v1ApiProfilePath` | `string` | `'/api/v1/profile'` | v1 用户资料接口路径。 |
 
 ## v1 登录/管理后台入口
 
@@ -124,15 +114,10 @@ window.$$aoboboConfig = {
   filterGPUKeywords: ['Virtual Display'],
 
   // 以下通常保持默认
-  apiMonitorPath: '/api/v1/monitor/{id}',
-  // nezha-next 才有的功能、原版nezha不存在这个功能
+  // nezha-next 扩展功能
   showAvailability: false,
   apiAvailabilityPath: '/api/v1/server/availability',
   availabilityRefreshTime: 60,
-  wsPath: '/ws',
-  nezhaPath: '/nezha/',
-  v0ServicePath: null,
-  nezhaV0ConfigType: 'servers',
 
   v1ApiMetricsPath: '/api/v1/server/{id}/metrics',
   v1ApiMonitorPath: '/api/v1/server/{id}/service',

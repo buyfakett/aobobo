@@ -14,14 +14,6 @@ function normalizeText(text) {
   return (text || '').replace(/\s+/g, ' ').trim();
 }
 
-function normalizeHeader(text) {
-  return normalizeText(text).toLowerCase().replace(/[:：]/g, '').replace(/\s+/g, '');
-}
-
-function normalizeName(name) {
-  return normalizeText(name);
-}
-
 function sortByRuleId(a, b) {
   const aId = Number(a.ruleId);
   const bId = Number(b.ruleId);
@@ -48,44 +40,6 @@ export function sortCycleTransferList(list) {
     }
     return sortByRuleId(a, b);
   });
-}
-
-function resolveRelativeUrl(path) {
-  const a = document.createElement('a');
-  a.href = path;
-  return a.href;
-}
-
-function getNezhaV0BaseUrl() {
-  const { nezhaPath } = config.aobobo;
-  if (nezhaPath.startsWith('http')) {
-    return nezhaPath;
-  }
-  const a = document.createElement('a');
-  if (nezhaPath === '/nezha/' && (import.meta.env.VITE_BASE_PATH && import.meta.env.VITE_BASE_PATH !== '/')) {
-    [a.href] = window.location.href.split(import.meta.env.VITE_BASE_PATH);
-  } else {
-    a.href = nezhaPath;
-  }
-  return a.href;
-}
-
-export function getV0ServiceUrl() {
-  const customPath = config.aobobo.v0ServicePath;
-  if (customPath) {
-    if (customPath.startsWith('http')) {
-      return customPath;
-    }
-    if (customPath.startsWith('/')) {
-      return resolveRelativeUrl(customPath);
-    }
-    return new URL(customPath, getNezhaV0BaseUrl()).toString();
-  }
-
-  const baseUrl = new URL(getNezhaV0BaseUrl(), window.location.href);
-  const pathname = baseUrl.pathname.endsWith('/') ? baseUrl.pathname : `${baseUrl.pathname}/`;
-  baseUrl.pathname = `${pathname}service`;
-  return baseUrl.toString();
 }
 
 function formatBytes(bytes) {
@@ -217,119 +171,6 @@ function normalizeV1CycleTransferMap(cycleTransferStats) {
   return byServerId;
 }
 
-function findCycleTransferTable(doc) {
-  const tables = [...doc.querySelectorAll('table')];
-  return tables.find((table) => {
-    const headerRows = [...table.querySelectorAll('thead tr')];
-    const lastHeaderRow = headerRows[headerRows.length - 1];
-    if (!lastHeaderRow) {
-      return false;
-    }
-    const headers = [...lastHeaderRow.querySelectorAll('th')].map((item) => normalizeHeader(item.textContent));
-    return headers.length === 10 && headers[0] === 'id' && headers[5] === 'max' && headers[6] === 'min';
-  });
-}
-
-function parseRemainingCell(text) {
-  const normalized = normalizeText(text);
-  const matched = normalized.match(/^(.*?)\s*\/\s*([0-9]+(?:\.[0-9]+)?)\s*%$/);
-  if (matched) {
-    return {
-      remainingDisplay: normalizeText(matched[1]),
-      remainingPercent: Number(matched[2]),
-    };
-  }
-
-  const percentMatched = normalized.match(/([0-9]+(?:\.[0-9]+)?)\s*%/);
-  if (!percentMatched) {
-    return {
-      remainingDisplay: normalized || '-',
-      remainingPercent: null,
-    };
-  }
-
-  const remainingDisplay = normalizeText(normalized.replace(percentMatched[0], '').replace(/\/$/, ''));
-  return {
-    remainingDisplay: remainingDisplay || '-',
-    remainingPercent: Number(percentMatched[1]),
-  };
-}
-
-export function parseV0CycleTransferHtmlToNameMap(html) {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, 'text/html');
-  const table = findCycleTransferTable(doc);
-  if (!table) {
-    return {};
-  }
-
-  const rows = [...table.querySelectorAll('tbody tr')];
-  const byServerName = {};
-
-  rows.forEach((row) => {
-    const cells = [...row.querySelectorAll('td')].map((item) => normalizeText(item.textContent));
-    if (cells.length < 10) {
-      return;
-    }
-
-    const serverName = normalizeName(cells[2]);
-    if (!serverName) {
-      return;
-    }
-
-    const {
-      remainingDisplay,
-      remainingPercent,
-    } = parseRemainingCell(cells[9]);
-
-    if (!byServerName[serverName]) {
-      byServerName[serverName] = [];
-    }
-
-    byServerName[serverName].push({
-      ruleId: cells[0],
-      ruleName: cells[1] || `规则 #${cells[0]}`,
-      serverKey: serverName,
-      periodStart: cells[3],
-      periodEnd: cells[4],
-      maxDisplay: cells[5] || '-',
-      minDisplay: cells[6] || '-',
-      currentUsageDisplay: cells[8] || '-',
-      remainingDisplay,
-      remainingPercent,
-      nextCheckDisplay: cells[7] || '-',
-      statusLevel: getCycleTransferStatusLevel(remainingPercent),
-      source: 'v0',
-    });
-  });
-
-  Object.keys(byServerName).forEach((serverName) => {
-    byServerName[serverName] = sortCycleTransferList(byServerName[serverName]);
-  });
-
-  return byServerName;
-}
-
-export function parseV0CycleTransferHtml(html, serverName) {
-  const nameMap = parseV0CycleTransferHtmlToNameMap(html);
-  return nameMap[normalizeName(serverName)] || [];
-}
-
-function buildV0CycleTransferMap(serverList, byServerName) {
-  const byServerId = {};
-
-  (serverList || []).forEach((serverInfo) => {
-    const serverId = String(serverInfo?.ID || '');
-    const serverName = normalizeName(serverInfo?.Name);
-    if (!serverId || !serverName || !byServerName[serverName]) {
-      return;
-    }
-    byServerId[serverId] = [...byServerName[serverName]];
-  });
-
-  return byServerId;
-}
-
 function decorateCycleTransferSummary(summaryItem) {
   if (!summaryItem) {
     return null;
@@ -420,24 +261,11 @@ async function loadStzCycleTransferMap(serverList = []) {
   return byServerId;
 }
 
-async function loadV0CycleTransferMap(serverList) {
-  const res = await fetch(getV0ServiceUrl());
-  if (!res.ok) {
-    return {};
-  }
-  const html = await res.text();
-  const byServerName = parseV0CycleTransferHtmlToNameMap(html);
-  return buildV0CycleTransferMap(serverList, byServerName);
-}
-
 export async function loadCycleTransferMap(serverList = []) {
-  if (config.aobobo.nezhaVersion === 'v1') {
-    return loadV1CycleTransferMap();
-  }
   if (config.aobobo.nezhaVersion === 'santaizi') {
     return loadStzCycleTransferMap(serverList);
   }
-  return loadV0CycleTransferMap(serverList);
+  return loadV1CycleTransferMap();
 }
 
 export async function loadCycleTransferByServer(serverInfo) {

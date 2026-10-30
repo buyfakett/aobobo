@@ -448,12 +448,10 @@ async function loadMonitor() {
     }
   } else if (isStz.value) {
     url = config.aobobo.stzApiNetworkPath.replace('{id}', props.info.ID);
-  } else {
-    url = config.aobobo.apiMonitorPath.replace('{id}', props.info.ID);
   }
   try {
     const res = await request({ url });
-    const list = (isV1.value || isStz.value) ? res?.data?.data : res?.data?.result;
+    const list = res?.data?.data;
     if (Array.isArray(list)) {
       monitorData.value = list;
     }

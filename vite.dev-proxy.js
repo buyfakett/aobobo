@@ -165,7 +165,6 @@ function wsEntry(target, headers, rewrite) {
 export function createAoboboDevProxy(env) {
   const apiHost = normalizeTarget(env.API_HOST);
   const wsHost = normalizeTarget(env.WS_HOST);
-  const nezhaHost = normalizeTarget(env.NEZHA_HOST);
   const proxyWsHost = normalizeTarget(env.PROXY_WS_HOST);
   const headers = accessHeaders(env);
   const useAccess = Boolean(headers['CF-Access-Client-Id'] || headers.Cookie);
@@ -176,7 +175,7 @@ export function createAoboboDevProxy(env) {
 
   const useWsRelay = Boolean(proxyWsHost) && !useAccess;
   const wsTarget = useWsRelay ? proxyWsHost : wsHost;
-  const remote = isRemote(apiHost) || isRemote(wsTarget) || isRemote(nezhaHost);
+  const remote = isRemote(apiHost) || isRemote(wsTarget);
 
   if (remote) {
     const access = headers['CF-Access-Client-Id'] ? 'on' : 'off';
@@ -196,17 +195,10 @@ export function createAoboboDevProxy(env) {
   // 更具体的 WS 路径必须写在 /api 之前，避免被 /api 前缀抢走
   if (wsTarget) {
     proxy['/api/v1/ws/server'] = wsEntry(wsTarget, headers, wsRewrite);
-    proxy['/ws'] = wsEntry(wsTarget, headers, wsRewrite);
+    proxy['/ws/v2/public'] = wsEntry(wsTarget, headers, wsRewrite);
   }
   if (apiHost) {
     proxy['/api'] = httpEntry(apiHost, headers);
-  }
-
-  const basePath = env.VITE_BASE_PATH;
-  if (nezhaHost && (basePath === '/' || !basePath)) {
-    proxy['/nezha/'] = httpEntry(nezhaHost, headers, {
-      rewrite: (requestPath) => requestPath.replace(/^\/nezha/, ''),
-    });
   }
 
   return proxy;
