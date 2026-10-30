@@ -13,7 +13,7 @@
       </div>
       <div class="right-box">
         <div class="time-range-group">
-          <span class="time-range-label">最近</span>
+          <span class="time-range-label">范围</span>
           <div class="time-range-options">
             <button
               v-for="timeRangeItem in availableTimeRanges"
@@ -100,7 +100,7 @@
             v-else
             class="history-card__empty"
           >
-            暂无历史数据
+            {{ isRealtimeMode ? '等待实时数据' : '暂无历史数据' }}
           </div>
           <div
             v-if="loading"
@@ -137,6 +137,8 @@ const props = defineProps({
 });
 
 const RESOURCE_HISTORY_PERIOD_KEY = 'aobobo_resource_history_period';
+const REALTIME_RANGE = 'realtime';
+const REALTIME_WINDOW_MS = 5 * 60 * 1000;
 const NO_SWAP_TEXT = 'no swap';
 const METRIC_KEYS = [
   'cpu',
@@ -150,6 +152,10 @@ const METRIC_KEYS = [
   'udp_conn',
 ];
 const TIME_RANGE_OPTIONS = [{
+  label: '实时',
+  value: REALTIME_RANGE,
+  realtime: true,
+}, {
   label: '30分钟',
   value: 30,
   period: '1d',
@@ -203,16 +209,23 @@ const serverId = computed(() => props.info?.ID);
 const tsdbEnabled = computed(() => isTsdbEnabled(store));
 const isStz = computed(() => config.aobobo.nezhaVersion === 'santaizi');
 const canUseLongPeriods = computed(() => (!!userLogin.value && hasTsdb(store)) || isStz.value);
+const isSupported = computed(() => (
+  (config.aobobo.nezhaVersion === 'v1' && tsdbEnabled.value) || isStz.value
+));
 const availableTimeRanges = computed(() => TIME_RANGE_OPTIONS.filter((item) => {
+  if (item.realtime) return true;
+  if (!isSupported.value) return false;
   if (item.period !== '1d') return canUseLongPeriods.value;
   if (item.hideWhenLong && canUseLongPeriods.value) return false;
   return true;
 }));
-const isSupported = computed(() => (
-  (config.aobobo.nezhaVersion === 'v1' && tsdbEnabled.value) || isStz.value
-));
 const timeRange = ref(readStoredTimeRange());
 const metricHistory = ref(createEmptyMetricMap());
+const liveMetricHistory = ref(createEmptyMetricMap());
+const isRealtimeMode = computed(() => timeRange.value === REALTIME_RANGE);
+const activeMetricHistory = computed(() => (
+  isRealtimeMode.value ? liveMetricHistory.value : metricHistory.value
+));
 const loading = ref(false);
 
 let loadMetricsTimer = null;
@@ -378,8 +391,7 @@ const historyCards = computed(() => {
   })];
 });
 
-const hasRenderableData = computed(() => historyCards.value.some((card) => card.hasData));
-const isModuleVisible = computed(() => isSupported.value && hasRenderableData.value);
+const isModuleVisible = computed(() => Boolean(serverId.value));
 
 watch(availableTimeRanges, (options) => {
   if (options.some((item) => item.value === timeRange.value)) {
@@ -394,10 +406,27 @@ watch(timeRange, (value) => {
   writeStoredTimeRange(value);
 });
 
+watch(serverId, () => {
+  resetLiveMetrics();
+}, {
+  immediate: true,
+});
+
+watch(() => props.info?.State, () => {
+  appendLiveMetricPoint();
+}, {
+  immediate: true,
+});
+
 watch(
   [serverId, timeRange, isSupported],
   ([nextServerId, nextTimeRange, supported]) => {
     clearLoadTimer();
+    if (nextTimeRange === REALTIME_RANGE) {
+      requestSerial += 1;
+      loading.value = false;
+      return;
+    }
     if (!supported || !nextServerId || !nextTimeRange) {
       requestSerial += 1;
       metricHistory.value = createEmptyMetricMap();
@@ -432,6 +461,9 @@ function readStoredTimeRange() {
   if (legacyMap[storedValue]) {
     return legacyMap[storedValue];
   }
+  if (storedValue === REALTIME_RANGE) {
+    return REALTIME_RANGE;
+  }
   const numericValue = Number(storedValue);
   return TIME_RANGE_OPTIONS.some((item) => item.value === numericValue) ? numericValue : 1440;
 }
@@ -452,7 +484,12 @@ function clearLoadTimer() {
 
 function scheduleAutoRefresh() {
   clearLoadTimer();
-  if (!isSupported.value || !serverId.value || timeRange.value > 1440) {
+  if (
+    isRealtimeMode.value
+    || !isSupported.value
+    || !serverId.value
+    || timeRange.value > 1440
+  ) {
     return;
   }
   let refreshSeconds = parseInt(config.aobobo.monitorRefreshTime, 10);
@@ -533,6 +570,59 @@ function filterHistoryByTimeRange(historyMap, minutes) {
     filtered[metricKey] = history.filter((item) => item.ts >= cutoff);
   });
   return filtered;
+}
+
+function resetLiveMetrics() {
+  const now = Date.now();
+  liveMetricHistory.value = createEmptyMetricMap();
+  appendLiveMetricPoint(now);
+}
+
+function appendLiveMetricPoint(timestamp = Date.now()) {
+  const state = props.info?.State;
+  if (!serverId.value || !state) {
+    return;
+  }
+
+  const pointValues = {
+    cpu: toFiniteNumber(state.CPU),
+    memory: calcLiveUsagePercent(state.MemUsed, props.info?.Host?.MemTotal),
+    swap: calcLiveUsagePercent(state.SwapUsed, props.info?.Host?.SwapTotal),
+    disk: calcLiveUsagePercent(state.DiskUsed, props.info?.Host?.DiskTotal),
+    process_count: toFiniteNumber(state.ProcessCount),
+    net_in_speed: toFiniteNumber(state.NetInSpeed),
+    net_out_speed: toFiniteNumber(state.NetOutSpeed),
+    tcp_conn: toFiniteNumber(state.TcpConnCount),
+    udp_conn: toFiniteNumber(state.UdpConnCount),
+  };
+  const cutoff = timestamp - REALTIME_WINDOW_MS;
+  const nextHistory = {};
+
+  METRIC_KEYS.forEach((metricKey) => {
+    const recentPoints = (liveMetricHistory.value[metricKey] || [])
+      .filter((item) => item.ts >= cutoff && item.ts < timestamp);
+    const value = pointValues[metricKey];
+    nextHistory[metricKey] = Number.isFinite(value)
+      ? [...recentPoints, { ts: timestamp, value }]
+      : recentPoints;
+  });
+
+  liveMetricHistory.value = nextHistory;
+}
+
+function toFiniteNumber(value) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : null;
+}
+
+function calcLiveUsagePercent(used, total) {
+  if (used === null || used === undefined || used === '') {
+    return null;
+  }
+  return calcPercent(used, total);
 }
 
 async function loadMetricHistory(id, metricKey, periodValue) {
@@ -643,7 +733,7 @@ function buildAlignedSeries(seriesDefs) {
   const metricMaps = {};
 
   seriesDefs.forEach((seriesDef) => {
-    const metricItems = metricHistory.value[seriesDef.metric] || [];
+    const metricItems = activeMetricHistory.value[seriesDef.metric] || [];
     metricMaps[seriesDef.metric] = new Map();
     metricItems.forEach((item) => {
       timestampSet.add(item.ts);
@@ -682,7 +772,7 @@ function buildAlignedSeries(seriesDefs) {
 }
 
 function latestMetricValue(metricKey) {
-  const history = metricHistory.value[metricKey] || [];
+  const history = activeMetricHistory.value[metricKey] || [];
   if (!history.length) {
     return null;
   }
