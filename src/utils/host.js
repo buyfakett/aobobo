@@ -2,6 +2,10 @@
  * 主机匹配信息工具
  */
 
+export function formatCPUText(text = '') {
+  return String(text).replace(/\bIntel\b/gi, 'intel');
+}
+
 export function getCPUInfo(text = '') {
   const cpuInfo = {
     company: '', model: '', modelNum: '', core: '', cores: '',
@@ -12,7 +16,7 @@ export function getCPUInfo(text = '') {
   const companyMatch = text.match(companyReg);
   const modelMatch = text.match(modelReg);
   const coresMatch = text.match(coresReg);
-  if (companyMatch) [cpuInfo.company] = companyMatch;
+  if (companyMatch) cpuInfo.company = formatCPUText(companyMatch[0]);
   if (modelMatch) [cpuInfo.model] = modelMatch;
 
   if (text.includes('Ryzen')) {

@@ -18,7 +18,7 @@
         target="_blank"
         rel="noopener noreferrer"
       >
-        AoBoBo
+        buyfakett
       </a>
       <span v-if="resolvedVersion" class="app-footer__version">{{ resolvedVersion }}</span>
     </p>
@@ -32,7 +32,7 @@ import config from '@/config';
 
 const NEZHA_SITE_URL = 'https://nezha.wiki';
 const SANTAIZI_REPO_URL = 'https://github.com/hi2shark/santaizi-dashboard';
-const AOBOBO_REPO_URL = 'https://github.com/hi2shark/aobobo';
+const AOBOBO_REPO_URL = 'https://github.com/buyfakett/aobobo';
 
 const props = defineProps({
   nezhaUrl: {

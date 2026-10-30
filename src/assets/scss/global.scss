@@ -709,8 +709,8 @@ html, body {
   }
 
   &--cpu {
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
+    text-transform: none;
+    letter-spacing: 0;
   }
 
   &--traffic {

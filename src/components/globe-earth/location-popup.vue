@@ -14,64 +14,24 @@
     </div>
 
     <div class="server-list">
-      <button
+      <server-card
         v-for="server in location.servers"
         :key="server.ID"
-        type="button"
-        :class="['server-list-item', { offline: server.online !== 1 }]"
-        @click="openServer(server)"
-      >
-        <div class="server-list-item__content">
-          <div class="server-list-item__head">
-            <div class="server-list-item__name-group">
-              <span class="server-list-item__name">{{ server.Name }}</span>
-            </div>
-            <span
-              v-if="getSpec(server)"
-              class="server-list-item__head-spec"
-            >
-              <i :class="getPlatformLogoClass(server)" />
-              <span>{{ getSpec(server) }}</span>
-            </span>
-          </div>
-          <div class="server-list-item__tags">
-            <span
-              :class="[
-                'meta-tag',
-                'meta-tag--status',
-                server.online === 1 ? 'online' : 'offline',
-              ]"
-            >
-              {{ server.online === 1 ? '在线' : '离线' }}
-            </span>
-            <span v-if="getCPUCompany(server)" class="meta-tag meta-tag--cpu">
-              {{ getCPUCompany(server) }}
-            </span>
-            <span v-if="getTraffic(server)" class="meta-tag">
-              {{ getTraffic(server) }}
-            </span>
-            <span v-if="getUptime(server)" class="meta-tag">{{ getUptime(server) }}</span>
-          </div>
-        </div>
-      </button>
+        compact
+        :server="server"
+        :cycle-transfer-map="cycleTransferMap"
+        @select="openServer"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
-import { duration } from '@/utils/date';
-import {
-  calcTransfer,
-  getCPUInfo,
-  getPlatformLogoIconClassName,
-} from '@/utils/host';
-import {
-  getCycleTransferSummaryByServer,
-} from '@/utils/cycle-transfer';
+import ServerCard from '@/components/server-panel/server-card.vue';
 
 const emit = defineEmits(['close', 'select-server']);
 
-const props = defineProps({
+defineProps({
   location: {
     type: Object,
     required: true,
@@ -96,88 +56,6 @@ const props = defineProps({
 
 function openServer(server) {
   emit('select-server', server);
-}
-
-function getCPUCompany(server) {
-  const cpu = server?.Host?.CPU?.[0];
-  if (!cpu) {
-    return '';
-  }
-  const info = getCPUInfo(cpu);
-  return info.company || '';
-}
-
-function formatTransferValue(value) {
-  if (!value) {
-    return '0';
-  }
-  const t = calcTransfer(value);
-  return `${t.value}${t.unit}`;
-}
-
-function getCycleTransferSummary(server) {
-  return getCycleTransferSummaryByServer(props.cycleTransferMap, server);
-}
-
-function getTraffic(server) {
-  const summary = getCycleTransferSummary(server);
-  if (summary) {
-    return `剩余 ${summary.remainingDisplay}`;
-  }
-
-  const trafficType = server?.PublicNote?.planDataMod?.trafficType;
-  const netIn = server.State?.NetInTransfer || 0;
-  const netOut = server.State?.NetOutTransfer || 0;
-
-  switch (+trafficType) {
-    case 1:
-      return `单向出 ${formatTransferValue(netOut)}`;
-    case 3: {
-      const isOut = netOut >= netIn;
-      return `${isOut ? '最大出' : '最大入'} ${formatTransferValue(isOut ? netOut : netIn)}`;
-    }
-    case 2:
-      return `双向 ${formatTransferValue(netIn + netOut)}`;
-    default:
-      return `双向 ${formatTransferValue(netIn + netOut)}`;
-  }
-}
-
-function getPlatformLogoClass(server) {
-  return getPlatformLogoIconClassName(server?.Host?.Platform);
-}
-
-function getSpec(server) {
-  const cpu = server.Host?.CPU?.[0] || '';
-  const cores = cpu.match(/(\d+)\s*(Virtual|Physical|Physics)\s*Core/i);
-  const coreStr = cores ? `${cores[1]}C` : '';
-  const memGB = server.Host?.MemTotal
-    ? (server.Host.MemTotal / 1024 / 1024 / 1024).toFixed(0)
-    : '';
-  const diskGB = server.Host?.DiskTotal
-    ? (server.Host.DiskTotal / 1024 / 1024 / 1024).toFixed(0)
-    : '';
-  const parts = [];
-
-  if (coreStr) {
-    parts.push(coreStr);
-  }
-  if (memGB) {
-    parts.push(`${memGB}G`);
-  }
-  if (diskGB) {
-    parts.push(`${diskGB}G`);
-  }
-
-  return parts.join('') || '';
-}
-
-function getUptime(server) {
-  const bootTime = server.Host?.BootTime;
-  if (!bootTime) {
-    return '';
-  }
-  return duration(bootTime * 1000, Date.now(), true);
 }
 </script>
 
@@ -394,22 +272,6 @@ function getUptime(server) {
   padding-right: 2px;
   position: relative;
   z-index: 1;
-}
-
-.meta-tag--status {
-  padding: 0 9px;
-
-  &.online {
-    color: var(--accent-success);
-    border-color: rgba(var(--accent-success-rgb), 0.28);
-    background: rgba(var(--accent-success-rgb), 0.08);
-  }
-
-  &.offline {
-    color: var(--accent-danger);
-    border-color: rgba(var(--accent-danger-rgb), 0.28);
-    background: rgba(var(--accent-danger-rgb), 0.08);
-  }
 }
 
 @media screen and (max-width: 768px) {

@@ -35,7 +35,7 @@
             class="cpu-company"
             :class="'cpu-company--' + cpuInfo.company.toLowerCase()"
           >
-            {{ cpuInfo.company }}
+            {{ hostUtils.formatCPUText(cpuInfo.company) }}
           </span>
           <span
             v-if="cpuInfo.model"
@@ -236,7 +236,7 @@ const cpuInfo = computed(() => hostUtils.getCPUInfo(props.info?.Host?.CPU?.[0]))
 const cpuLabel = computed(() => {
   const source = props.info?.Host?.CPU?.[0] || '';
   if (source) {
-    return source;
+    return hostUtils.formatCPUText(source);
   }
   return [cpuInfo.value?.company, cpuInfo.value?.model, cpuInfo.value?.modelNum]
     .filter(Boolean)
