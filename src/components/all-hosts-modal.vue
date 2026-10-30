@@ -131,7 +131,6 @@
               <server-card
                 v-for="server in group.servers"
                 :key="server.ID"
-                compact
                 :server="server"
                 :cycle-transfer-map="cycleTransferMap"
                 @select="onSelectServer"
@@ -247,13 +246,16 @@ const displayGroups = computed(() => {
   const assignedIds = new Set();
 
   const buildGroup = (key, label, servers) => {
-    const onlineCount = servers.filter((s) => s.online === 1).length;
+    const sortedServers = [...servers].sort(
+      (a, b) => Number(b.online === 1) - Number(a.online === 1),
+    );
+    const onlineCount = sortedServers.filter((s) => s.online === 1).length;
     return {
       key,
       label,
-      servers,
+      servers: sortedServers,
       onlineCount,
-      offlineCount: servers.length - onlineCount,
+      offlineCount: sortedServers.length - onlineCount,
     };
   };
 
@@ -818,7 +820,7 @@ onUnmounted(() => {
 
 .host-group__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 350px), 1fr));
   gap: 8px;
 }
 

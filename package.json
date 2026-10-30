@@ -1,6 +1,7 @@
 {
   "name": "aobobo",
   "version": "1.5.4",
+  "author": "buyfakett",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -29,7 +30,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/hi2shark/aobobo"
+    "url": "https://github.com/buyfakett/aobobo"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.7",

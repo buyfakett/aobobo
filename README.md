@@ -33,7 +33,7 @@ AoBoBo 是一个为 [哪吒监控](https://nezha.wiki/) 设计的纯前端 3D �
 ```yaml
 services:
   aobobo:
-    image: ghcr.io/hi2shark/aobobo:latest
+    image: ghcr.io/buyfakett/aobobo:latest
     container_name: aobobo
     ports:
       - 80:80
@@ -244,6 +244,6 @@ Release 产物说明：
 
 ## 相关链接
 
-- 项目仓库：[https://github.com/hi2shark/aobobo](https://github.com/hi2shark/aobobo)
+- 项目仓库：[https://github.com/buyfakett/aobobo](https://github.com/buyfakett/aobobo)
 - 哪吒监控文档：[https://nezha.wiki/](https://nezha.wiki/)
 - 同类型前端主题：[https://github.com/hi2shark/nazhua](https://github.com/hi2shark/nazhua)

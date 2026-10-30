@@ -1,5 +1,5 @@
 <template>
-  <div class="server-table-wrap">
+  <div :class="['server-table-wrap', { 'server-table-wrap--two-columns': twoColumns }]">
     <server-card
       v-for="server in servers"
       :key="server.ID"
@@ -22,6 +22,10 @@ defineProps({
   cycleTransferMap: {
     type: Object,
     default: () => ({}),
+  },
+  twoColumns: {
+    type: Boolean,
+    default: false,
   },
 });
 
@@ -48,10 +52,15 @@ function onRowHover(server) {
   padding: 10px 12px 14px;
   color: var(--text-primary);
   scrollbar-gutter: stable;
+
+  &--two-columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media screen and (max-width: 768px) {
   .server-table-wrap {
+    grid-template-columns: minmax(0, 1fr);
     padding: 12px;
     gap: 6px;
   }

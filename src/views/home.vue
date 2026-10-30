@@ -1,5 +1,12 @@
 <template>
-  <div class="home-view" :class="{ 'sidebar-collapsed': !sidebarOpen }">
+  <div
+    class="home-view"
+    :class="{
+      'sidebar-collapsed': !sidebarOpen,
+      'sidebar-resizing': isSidebarResizing,
+    }"
+    :style="{ '--server-sidebar-width': `${displayedSidebarWidth}px` }"
+  >
     <div v-if="!store.state.init" class="init-loading-overlay">
       <icon-loading class="spin init-loading-icon" />
       <span class="init-loading-text">正在连接哪吒探针...</span>
@@ -158,6 +165,23 @@
       class="server-list-section"
       :class="{ collapsed: !sidebarOpen, expanded: panelExpanded && sidebarOpen }"
     >
+      <div
+        v-if="isWideScreen"
+        class="desktop-sidebar-resizer"
+        role="separator"
+        aria-label="调整服务器列表宽度"
+        aria-orientation="vertical"
+        :aria-valuemin="SIDEBAR_MIN_WIDTH"
+        :aria-valuemax="sidebarMaxWidth"
+        :aria-valuenow="displayedSidebarWidth"
+        tabindex="0"
+        title="拖动调整宽度，双击恢复默认"
+        @pointerdown="onSidebarResizeStart"
+        @dblclick="resetSidebarWidth"
+        @keydown="onSidebarResizeKeydown"
+      >
+        <span aria-hidden="true" />
+      </div>
       <div class="tech-frame" aria-hidden="true" />
       <div class="section-header">
         <div
@@ -242,6 +266,7 @@
         v-if="filteredServers.length > 0"
         :servers="filteredServers"
         :cycle-transfer-map="cycleTransferMap"
+        :two-columns="sidebarUsesTwoColumns"
         @hover-server="handleServerHover"
         @select-server="handleServerSelect"
       />
@@ -421,6 +446,29 @@ const route = useRoute();
 const router = useRouter();
 const store = useStore();
 const WIDE_BREAKPOINT = 1001;
+const SIDEBAR_STORAGE_KEY = 'aobobo-server-sidebar-width';
+const SIDEBAR_MIN_WIDTH = 380;
+const SIDEBAR_MAX_WIDTH = 760;
+const SIDEBAR_DEFAULT_WIDTH = 420;
+const SIDEBAR_TWO_COLUMN_WIDTH = 600;
+const GLOBE_MIN_WIDTH = 420;
+const DESKTOP_LAYOUT_SPACE = 44;
+
+function loadSidebarWidth() {
+  if (typeof window === 'undefined') {
+    return SIDEBAR_DEFAULT_WIDTH;
+  }
+  try {
+    const savedValue = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
+    const savedWidth = Number(savedValue);
+    if (savedValue !== null && savedValue.trim() !== '' && Number.isFinite(savedWidth)) {
+      return Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, savedWidth));
+    }
+  } catch {
+    // Use the default when storage is blocked by the browser.
+  }
+  return SIDEBAR_DEFAULT_WIDTH;
+}
 
 const filterOnline = ref('');
 const searchKeyword = ref('');
@@ -428,6 +476,9 @@ const selectedGroup = ref('');
 const serverSortConfig = ref(defaultServerSortConfig());
 const sidebarOpen = ref(typeof window === 'undefined' ? true : window.innerWidth > 768);
 const isWideScreen = ref(false);
+const viewportWidth = ref(typeof window === 'undefined' ? 1440 : window.innerWidth);
+const sidebarWidth = ref(loadSidebarWidth());
+const isSidebarResizing = ref(false);
 const detailDrawerOpen = ref(false);
 const detailServerId = ref(null);
 const detailDrawerRef = ref(null);
@@ -464,6 +515,18 @@ const panelRef = ref(null);
 const panelExpanded = ref(false);
 const dragState = ref(null);
 const DRAG_THRESHOLD = 60;
+const sidebarMaxWidth = computed(() => Math.max(
+  SIDEBAR_MIN_WIDTH,
+  Math.min(SIDEBAR_MAX_WIDTH, viewportWidth.value - GLOBE_MIN_WIDTH - DESKTOP_LAYOUT_SPACE),
+));
+const displayedSidebarWidth = computed(() => Math.min(
+  sidebarMaxWidth.value,
+  Math.max(SIDEBAR_MIN_WIDTH, sidebarWidth.value),
+));
+const sidebarUsesTwoColumns = computed(() => (
+  isWideScreen.value && displayedSidebarWidth.value >= SIDEBAR_TWO_COLUMN_WIDTH
+));
+let sidebarResizeState = null;
 let serverHoverTimer = null;
 let cycleTransferTimer = null;
 let availabilityTimer = null;
@@ -471,11 +534,103 @@ let globeStatsResizeObserver = null;
 let exchangeRateRequestId = 0;
 
 function updateWideScreen() {
+  viewportWidth.value = window.innerWidth;
   isWideScreen.value = window.innerWidth >= WIDE_BREAKPOINT;
   if (isWideScreen.value) {
     sidebarOpen.value = true;
     panelExpanded.value = false;
   }
+}
+
+function persistSidebarWidth() {
+  try {
+    window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(Math.round(sidebarWidth.value)));
+  } catch {
+    // localStorage may be unavailable in privacy-restricted contexts.
+  }
+}
+
+function stopSidebarResize() {
+  if (!sidebarResizeState) {
+    return;
+  }
+  const { target, pointerId } = sidebarResizeState;
+  if (target?.hasPointerCapture?.(pointerId)) {
+    target.releasePointerCapture(pointerId);
+  }
+  sidebarResizeState = null;
+  isSidebarResizing.value = false;
+  document.documentElement.classList.remove('sidebar-resizing');
+  window.removeEventListener('pointermove', onSidebarResizeMove);
+  window.removeEventListener('pointerup', onSidebarResizeEnd);
+  window.removeEventListener('pointercancel', onSidebarResizeEnd);
+}
+
+function onSidebarResizeStart(event) {
+  if (!isWideScreen.value || event.button !== 0) {
+    return;
+  }
+  event.preventDefault();
+  sidebarResizeState = {
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startWidth: displayedSidebarWidth.value,
+    target: event.currentTarget,
+  };
+  event.currentTarget.setPointerCapture?.(event.pointerId);
+  isSidebarResizing.value = true;
+  document.documentElement.classList.add('sidebar-resizing');
+  window.addEventListener('pointermove', onSidebarResizeMove);
+  window.addEventListener('pointerup', onSidebarResizeEnd);
+  window.addEventListener('pointercancel', onSidebarResizeEnd);
+}
+
+function onSidebarResizeMove(event) {
+  if (!sidebarResizeState || event.pointerId !== sidebarResizeState.pointerId) {
+    return;
+  }
+  const nextWidth = sidebarResizeState.startWidth
+    + sidebarResizeState.startX
+    - event.clientX;
+  sidebarWidth.value = Math.min(
+    sidebarMaxWidth.value,
+    Math.max(SIDEBAR_MIN_WIDTH, nextWidth),
+  );
+}
+
+function onSidebarResizeEnd(event) {
+  if (!sidebarResizeState || event.pointerId !== sidebarResizeState.pointerId) {
+    return;
+  }
+  persistSidebarWidth();
+  stopSidebarResize();
+}
+
+function resetSidebarWidth() {
+  sidebarWidth.value = SIDEBAR_DEFAULT_WIDTH;
+  persistSidebarWidth();
+}
+
+function onSidebarResizeKeydown(event) {
+  const step = event.shiftKey ? 40 : 16;
+  let nextWidth = displayedSidebarWidth.value;
+  if (event.key === 'ArrowLeft') {
+    nextWidth += step;
+  } else if (event.key === 'ArrowRight') {
+    nextWidth -= step;
+  } else if (event.key === 'Home') {
+    nextWidth = SIDEBAR_MIN_WIDTH;
+  } else if (event.key === 'End') {
+    nextWidth = sidebarMaxWidth.value;
+  } else {
+    return;
+  }
+  event.preventDefault();
+  sidebarWidth.value = Math.min(
+    sidebarMaxWidth.value,
+    Math.max(SIDEBAR_MIN_WIDTH, nextWidth),
+  );
+  persistSidebarWidth();
 }
 
 function openDetailDrawer(id) {
@@ -1474,6 +1629,7 @@ onDeactivated(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleWindowResize);
+  stopSidebarResize();
   clearServerHoverTimer();
   stopCycleTransferTimer();
   stopAvailabilityTimer();
@@ -1943,6 +2099,7 @@ onUnmounted(() => {
 }
 
 .server-list-section {
+  position: relative;
   min-height: 0;
   min-width: 0;
   border-radius: var(--radius-xl);
@@ -2220,6 +2377,16 @@ onUnmounted(() => {
   }
 }
 
+.desktop-sidebar-resizer {
+  display: none;
+}
+
+:global(html.sidebar-resizing),
+:global(html.sidebar-resizing *) {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
 .drawer-drag-handle,
 .mobile-menu-btn {
   display: none;
@@ -2302,7 +2469,7 @@ onUnmounted(() => {
 
 @media screen and (min-width: 1024px) {
   .home-view {
-    grid-template-columns: minmax(0, 1fr) clamp(380px, 28vw, 440px);
+    grid-template-columns: minmax(0, 1fr) var(--server-sidebar-width, 420px);
 
     &.sidebar-collapsed {
       grid-template-columns: minmax(0, 1fr) 0;
@@ -2323,6 +2490,50 @@ onUnmounted(() => {
     grid-column: 2 / 3;
     grid-row: 2 / 3;
 
+    .desktop-sidebar-resizer {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      z-index: 8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 104px;
+      padding: 0;
+      border: 0;
+      border-radius: 0 10px 10px 0;
+      background: transparent;
+      cursor: col-resize;
+      touch-action: none;
+      transform: translateY(-50%);
+
+      span {
+        width: 3px;
+        height: 42px;
+        border-radius: 999px;
+        background: var(--text-muted);
+        opacity: 0.45;
+        transition:
+          height var(--transition-fast),
+          opacity var(--transition-fast),
+          background var(--transition-fast);
+      }
+
+      &:hover span,
+      &:focus-visible span,
+      &:active span {
+        height: 58px;
+        background: var(--accent-primary);
+        opacity: 1;
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--accent-primary);
+        outline-offset: -2px;
+      }
+    }
+
     &.collapsed {
       opacity: 0;
       visibility: hidden;
@@ -2330,6 +2541,10 @@ onUnmounted(() => {
       overflow: hidden;
       border: none;
     }
+  }
+
+  .home-view.sidebar-resizing {
+    grid-template-columns: minmax(0, 1fr) var(--server-sidebar-width, 420px);
   }
 
   .app-footer--absolute {
