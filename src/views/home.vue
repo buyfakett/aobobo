@@ -1069,10 +1069,14 @@ const isListFiltered = computed(() => (
 
 function sortServerList(list) {
   const { prop, order } = serverSortConfig.value;
-  if (prop === 'DisplayIndex' && order === 'desc') {
-    return list;
-  }
-  return [...list].sort((a, b) => serverSortHandler(a, b, prop, order));
+  const keepDefaultOrder = prop === 'DisplayIndex' && order === 'desc';
+  return [...list].sort((a, b) => {
+    const offlineOrder = Number(a?.online !== 1) - Number(b?.online !== 1);
+    if (offlineOrder !== 0) {
+      return offlineOrder;
+    }
+    return keepDefaultOrder ? 0 : serverSortHandler(a, b, prop, order);
+  });
 }
 
 const filteredServers = computed(() => {
