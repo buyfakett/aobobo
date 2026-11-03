@@ -20,11 +20,29 @@ import {
   createAltitudeAnchorSeries,
 } from '@/utils/globe-activity-effects';
 import { formatLocationLocalTime } from '@/utils/location-time';
+import { loadGlobeView, persistGlobeView } from '@/utils/globe-view';
 import useMediaQuery from '@/hooks/useMediaQuery';
 import ServerCard from '@/components/react/ServerCard';
 
 const textureCache = new Map();
 let coastlineCache = null;
+const GLOBE_RADIUS = 100;
+const VIEW_PERSIST_DELAY = 800;
+
+function normalizeLongitude(value) {
+  return ((value + 180) % 360 + 360) % 360 - 180;
+}
+
+function getLiveGlobeView(chart) {
+  const globeView = chart?._componentsViews?.find((view) => view?._control);
+  const control = globeView?._control;
+  if (!control) return null;
+  const lat = Number(control.getAlpha?.());
+  const lng = normalizeLongitude(Number(control.getBeta?.()) - 90);
+  const distance = Number(control.getDistance?.()) - GLOBE_RADIUS;
+  if (![lat, lng, distance].every(Number.isFinite) || distance <= 0) return null;
+  return { lat, lng, distance };
+}
 
 function getTexture(theme) {
   const size = getPreferredGlobeTextureSize({ maxWidth: 2048 });
@@ -50,7 +68,21 @@ function markerSize(count) {
   return 10;
 }
 
-function buildOption({ locations, theme, autoRotate, rotateSpeed, showServerConnections, isMobile }) {
+function buildGlobeDataKey(locations) {
+  return locations.map((location) => {
+    const online = location.servers.filter((server) => server.online === 1).length;
+    return [
+      location.key || location.code,
+      Number(location.lng).toFixed(5),
+      Number(location.lat).toFixed(5),
+      location.label,
+      location.servers.length,
+      online,
+    ].join(':');
+  }).join('|');
+}
+
+function buildOption({ locations, theme, autoRotate, rotateSpeed, showServerConnections, isMobile, view }) {
   const colors = THEME_COLORS[theme] || THEME_COLORS.dark;
   const onlineColor = theme === 'light' ? '#ffae00' : '#eaf4fc';
   const offlineColor = theme === 'light' ? '#9aa3af' : '#6d7888';
@@ -93,8 +125,8 @@ function buildOption({ locations, theme, autoRotate, rotateSpeed, showServerConn
         innerGlowPower: 2.5,
       },
       viewControl: {
-        targetCoord: [114, 24.5],
-        distance: isMobile ? 185 : 170,
+        targetCoord: view ? [view.lng, view.lat] : [114, 24.5],
+        distance: view?.distance || (isMobile ? 185 : 170),
         minDistance: 105,
         maxDistance: 330,
         alpha: 18,
@@ -153,6 +185,8 @@ const GlobeEarth = forwardRef(function GlobeEarth({
   const chartRef = useRef(null);
   const instanceRef = useRef(null);
   const globeOptionKeyRef = useRef('');
+  const viewRef = useRef(loadGlobeView());
+  const persistTimerRef = useRef(null);
   const locationsRef = useRef(locations);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState(false);
@@ -160,6 +194,7 @@ const GlobeEarth = forwardRef(function GlobeEarth({
   const [clock, setClock] = useState(Date.now());
   const isMobile = useMediaQuery('(max-width: 768px)');
   locationsRef.current = locations;
+  const globeDataKey = buildGlobeDataKey(locations);
 
   const option = useMemo(() => buildOption({
     locations,
@@ -168,22 +203,41 @@ const GlobeEarth = forwardRef(function GlobeEarth({
     rotateSpeed,
     showServerConnections,
     isMobile,
-  }), [autoRotate, isMobile, locations, rotateSpeed, showServerConnections, theme]);
+    view: viewRef.current,
+  }), [autoRotate, globeDataKey, isMobile, rotateSpeed, showServerConnections, theme]);
+
+  const syncView = () => {
+    const view = getLiveGlobeView(instanceRef.current);
+    if (view) viewRef.current = view;
+    return view;
+  };
+
+  const scheduleViewPersist = () => {
+    window.clearTimeout(persistTimerRef.current);
+    persistTimerRef.current = window.setTimeout(() => {
+      const view = syncView();
+      if (view) persistGlobeView(view);
+    }, VIEW_PERSIST_DELAY);
+  };
 
   useImperativeHandle(ref, () => ({
     ready: () => Promise.resolve(Boolean(instanceRef.current)),
     focusLocation(location) {
       if (!instanceRef.current || !location) return false;
+      viewRef.current = { lat: location.lat, lng: location.lng, distance: 135 };
       instanceRef.current.setOption({
         globe: { viewControl: { targetCoord: [location.lng, location.lat], distance: 135, autoRotate: false } },
       });
+      persistGlobeView(viewRef.current);
       return true;
     },
     async focusLocationWithHighlight(location) {
       if (!instanceRef.current || !location) return false;
+      viewRef.current = { lat: location.lat, lng: location.lng, distance: 135 };
       instanceRef.current.setOption({
         globe: { viewControl: { targetCoord: [location.lng, location.lat], distance: 135, autoRotate: false } },
       });
+      persistGlobeView(viewRef.current);
       setSelected(location);
       return true;
     },
@@ -201,7 +255,10 @@ const GlobeEarth = forwardRef(function GlobeEarth({
       instanceRef.current = chart;
       chart.on('click', (params) => {
         if (params.seriesId !== 'server-markers') return;
-        const location = params.data?.location;
+        const locationKey = params.data?.location?.key || params.data?.location?.code;
+        const location = locationsRef.current.find((item) => (
+          (item.key || item.code) === locationKey
+        ));
         if (!location) return;
         if (location.servers?.length === 1) onSelectServer?.(location.servers[0]);
         else setSelected(location);
@@ -211,6 +268,7 @@ const GlobeEarth = forwardRef(function GlobeEarth({
       setReady(true);
       setError(false);
       return () => {
+        window.clearTimeout(persistTimerRef.current);
         observer.disconnect();
         chart.dispose();
         instanceRef.current = null;
@@ -224,11 +282,37 @@ const GlobeEarth = forwardRef(function GlobeEarth({
   }, [onSelectServer]);
 
   useEffect(() => {
+    setSelected((current) => {
+      if (!current) return current;
+      const currentKey = current.key || current.code;
+      return locations.find((location) => (location.key || location.code) === currentKey) || null;
+    });
+  }, [locations]);
+
+  useEffect(() => {
     if (!instanceRef.current) return;
     const globeOptionKey = `${theme}:${isMobile}:${autoRotate}:${rotateSpeed}`;
     const globeChanged = globeOptionKeyRef.current !== globeOptionKey;
+    const liveView = syncView() || viewRef.current;
+    const viewControl = liveView ? {
+      targetCoord: [liveView.lng, liveView.lat],
+      distance: liveView.distance,
+      autoRotate,
+      autoRotateSpeed: Math.max(Number(rotateSpeed) || 0.5, 0.1) * 2,
+    } : null;
+    const nextOption = globeChanged
+      ? {
+        ...option,
+        globe: viewControl
+          ? { ...option.globe, viewControl: { ...option.globe.viewControl, ...viewControl } }
+          : option.globe,
+      }
+      : {
+        series: option.series,
+        ...(viewControl ? { globe: { viewControl } } : {}),
+      };
     instanceRef.current.setOption(
-      globeChanged ? option : { series: option.series },
+      nextOption,
       {
         notMerge: false,
         replaceMerge: ['series'],
@@ -244,7 +328,13 @@ const GlobeEarth = forwardRef(function GlobeEarth({
   }, []);
 
   return (
-    <div ref={rootRef} className={`globe-earth theme-${theme}`}>
+    <div
+      ref={rootRef}
+      className={`globe-earth theme-${theme}`}
+      onPointerUp={scheduleViewPersist}
+      onPointerCancel={scheduleViewPersist}
+      onWheel={scheduleViewPersist}
+    >
       {!ready && <div className="globe-stage-fallback" aria-hidden="true" />}
       <div ref={chartRef} className="globe-container" style={{ opacity: ready ? 1 : 0, transition: 'opacity .25s ease' }} />
       {selected && (

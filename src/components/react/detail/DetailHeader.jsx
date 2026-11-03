@@ -84,7 +84,7 @@ export default function DetailHeader({ info }) {
       <div className="server-identity">
         <div className="server-flag-box">
           {info?.Host?.CountryCode
-            ? <span className={`fi fi-${info.Host.CountryCode.toLowerCase()}`} />
+            ? <span className={`server-flag fi fi-${info.Host.CountryCode.toLowerCase()}`} />
             : <i className="ri-global-line" />}
         </div>
         <div className="server-name-and-meta">

@@ -32,7 +32,13 @@ export default function LineChart({
     return {
     animation: false,
     color: series.map((item) => item.color || item.lineStyle?.color).filter(Boolean),
-    grid: { top: 14, right: 14, bottom: timeSpan > 24 * 60 * 60 * 1000 ? 38 : 30, left: 46, containLabel: false },
+    grid: {
+      top: 12,
+      right: 10,
+      bottom: timeSpan > 24 * 60 * 60 * 1000 ? 10 : 8,
+      left: 8,
+      containLabel: true,
+    },
     tooltip: {
       trigger: 'axis',
       confine: true,

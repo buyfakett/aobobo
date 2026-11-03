@@ -183,9 +183,9 @@ export default function ServerCard({
   );
 }
 
-export function ServerTable({ servers, cycleTransferMap, twoColumns, onSelect, onHover }) {
+export function ServerTable({ servers, cycleTransferMap, onSelect, onHover }) {
   return (
-    <div className={`server-table-wrap${twoColumns ? ' two-columns' : ''}`}>
+    <div className="server-table-wrap">
       {servers.map((server) => (
         <ServerCard key={server.ID} server={server} cycleTransferMap={cycleTransferMap} onSelect={onSelect} onHover={onHover} />
       ))}

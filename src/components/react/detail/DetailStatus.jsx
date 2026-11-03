@@ -25,7 +25,8 @@ function resourceItems(info) {
 }
 
 function RealtimeItem({ icon, label, value, unit, className = '' }) {
-  return <div className={`real-time-item ${className}`.trim()}><i className={icon} /><div><span className="real-time-label">{label}</span><strong>{value}<small>{unit}</small></strong></div></div>;
+  const fullValue = `${value}${unit || ''}`;
+  return <div className={`real-time-item ${className}`.trim()}><i className={icon} /><div><span className="real-time-label">{label}</span><strong title={fullValue}>{value}<small>{unit}</small></strong></div></div>;
 }
 
 export default function DetailStatus({ info }) {

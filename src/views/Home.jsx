@@ -38,7 +38,6 @@ import DetailContent from '@/components/react/detail/DetailContent';
 const SIDEBAR_MIN_WIDTH = 380;
 const SIDEBAR_MAX_WIDTH = 760;
 const SIDEBAR_DEFAULT_WIDTH = 420;
-const SIDEBAR_TWO_COLUMNS = 600;
 const SIDEBAR_STORAGE_KEY = 'aobobo-server-sidebar-width';
 
 function initialSidebarWidth() {
@@ -286,7 +285,6 @@ export default function Home() {
   const effectiveSidebarOpen = isWide || sidebarOpen;
   const isFiltered = Boolean(search.trim() || status || group);
   const clearFilters = () => { setSearch(''); setStatus(''); setGroup(''); };
-  const sidebarTwoColumns = isWide && sidebarWidth >= SIDEBAR_TWO_COLUMNS;
 
   return (
     <div className={`home-view${effectiveSidebarOpen ? '' : ' sidebar-collapsed'}${sidebarResizing ? ' sidebar-resizing' : ''}`} style={{ '--server-sidebar-width': `${sidebarWidth}px` }}>
@@ -323,7 +321,7 @@ export default function Home() {
             {appState.serverGroup.length > 0 && <div className="group-filter-bar"><button type="button" className={`group-chip${group === '' ? ' active' : ''}`} onClick={() => setGroup('')}>全部</button>{appState.serverGroup.map((item) => <button key={item.name} type="button" className={`group-chip${group === item.name ? ' active' : ''}`} onClick={() => setGroup(item.name)}>{item.name}</button>)}</div>}
           </div>
         </div>
-        {filteredServers.length > 0 ? <ServerTable servers={filteredServers} cycleTransferMap={cycleTransferMap} twoColumns={sidebarTwoColumns} onSelect={selectServer} onHover={hoverServer} /> : <div className="empty-list"><i className="ri-inbox-line empty-icon" /><span>没有符合条件的服务器</span>{isFiltered && <button type="button" className="clear-filter-btn" onClick={clearFilters}>清除筛选</button>}</div>}
+        {filteredServers.length > 0 ? <ServerTable servers={filteredServers} cycleTransferMap={cycleTransferMap} onSelect={selectServer} onHover={hoverServer} /> : <div className="empty-list"><i className="ri-inbox-line empty-icon" /><span>没有符合条件的服务器</span>{isFiltered && <button type="button" className="clear-filter-btn" onClick={clearFilters}>清除筛选</button>}</div>}
         {isFiltered && <div className="result-hint-floating"><span className="section-summary">{filteredServers.length} 条匹配</span></div>}
       </div>
 
