@@ -1,6 +1,3 @@
-import {
-  computed,
-} from 'vue';
 import dayjs from 'dayjs';
 import config from '@/config';
 import validate from '@/utils/validate';
@@ -131,16 +128,4 @@ export function getBillAndPlanByServer(info) {
   return obj;
 }
 
-export default (params) => {
-  const {
-    props,
-  } = params || {};
-  /**
-   * 账单和计划
-   */
-  const billAndPlan = computed(() => getBillAndPlanByServer(props?.info));
-
-  return {
-    billAndPlan,
-  };
-};
+export default getBillAndPlanByServer;

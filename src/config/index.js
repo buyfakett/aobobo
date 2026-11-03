@@ -1,21 +1,9 @@
-import { reactive } from 'vue';
-import loadStzBootstrap from '@/utils/load-stz-config';
-
-const defaultNezhaVersion = import.meta.env.VITE_NEZHA_VERSION;
-const supportedNezhaVersions = ['v1', 'santaizi'];
-
-function normalizeNezhaVersion(version) {
-  return supportedNezhaVersions.includes(version) ? version : null;
-}
-
 // 优先读取 $$aoboboConfig，同时兼容 nazhua-front 的 $$nazhuaConfig
 const runtimeConfig = window.$$aoboboConfig || window.$$nazhuaConfig || {};
 
-const config = reactive({
-  init: false,
+const config = {
   aobobo: {
     title: '哪吒监控',
-    nezhaVersion: normalizeNezhaVersion(defaultNezhaVersion),
     showAvailability: false,
     apiAvailabilityPath: '/api/v1/server/availability',
     availabilityRefreshTime: 60,
@@ -30,14 +18,6 @@ const config = reactive({
     v1ApiProfilePath: '/api/v1/profile',
     v1DashboardUrl: '/dashboard',
     v1HideNezhaDashboardBtn: false,
-    stzBootstrapPath: '/api/v2/public/bootstrap',
-    stzWsPath: '/ws/v2/public/runtime',
-    stzApiServersPath: '/api/v2/public/servers',
-    stzApiNetworkPath: '/api/v2/public/network/{id}',
-    stzApiMetricsPath: '/api/v2/public/metrics/{id}',
-    stzApiCycleTransferPath: '/api/v2/public/cycle-transfer',
-    stzApiAvailabilityPath: '/api/v2/public/servers/{id}/availability',
-    stzViewPasswordPath: '/api/v2/public/view-password/session',
     detailCycleTransferRefreshTime: 60,
     hideDetailCycleTransfer: false,
     hideDetailServerGlobe: false,
@@ -53,19 +33,11 @@ const config = reactive({
     filterGPUKeywords: ['Virtual Display'],
     ...runtimeConfig,
   },
-});
-
-config.aobobo.nezhaVersion = normalizeNezhaVersion(config.aobobo.nezhaVersion);
-
-if (config.aobobo.nezhaVersion) {
-  config.init = true;
-}
+};
 
 export function mergeAoboboConfig(customConfig) {
   Object.keys(customConfig).forEach((key) => {
-    config.aobobo[key] = key === 'nezhaVersion'
-      ? normalizeNezhaVersion(customConfig[key])
-      : customConfig[key];
+    config.aobobo[key] = customConfig[key];
   });
 }
 
@@ -80,10 +52,3 @@ export const hasRuntimeShowAvailability = Object.prototype.hasOwnProperty.call(
 );
 
 export default config;
-
-export const init = async () => {
-  // 优先探测 santaizi 公开接口，否则使用哪吒 v1。
-  const isStz = await loadStzBootstrap(true);
-  config.aobobo.nezhaVersion = isStz ? 'santaizi' : 'v1';
-  config.init = true;
-};

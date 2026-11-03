@@ -1,13 +1,10 @@
 import config from '@/config';
 import MessageSubscribe from '@/utils/subscribe';
 import normalizeV1Server from '@/utils/normalize-v1-server';
-import normalizeStzServer from '@/utils/normalize-stz-server';
 import WSService, { WS_CONNECTION_STATUS } from './service';
 
 function getWsApiPath() {
-  const url = config?.aobobo?.nezhaVersion === 'santaizi'
-    ? config?.aobobo?.stzWsPath
-    : config?.aobobo?.v1WsPath;
+  const url = config?.aobobo?.v1WsPath;
   const a = document.createElement('a');
   a.href = url;
   return a.href.replace(/^http/, 'ws');
@@ -24,12 +21,9 @@ function createWsService() {
     onError: (error) => msg.emit('error', error),
     onMessage: (data) => {
       if (data?.now) {
-        const normalizeServer = config.aobobo.nezhaVersion === 'santaizi'
-          ? normalizeStzServer
-          : normalizeV1Server;
         msg.emit('servers', {
           now: data.now,
-          servers: data?.servers?.map?.((server) => normalizeServer(server)) || [],
+          servers: data?.servers?.map?.((server) => normalizeV1Server(server)) || [],
         });
       } else {
         msg.emit('message', data);

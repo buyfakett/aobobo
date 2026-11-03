@@ -1,12 +1,11 @@
-import { createStore } from 'vuex';
+import { useSyncExternalStore } from 'react';
 import dayjs from 'dayjs';
-import config, { hasRuntimeShowAvailability } from '@/config';
+import config from '@/config';
 import {
   loadServerGroup as loadNezhaV1ServerGroup,
   loadSetting as loadNezhaV1Setting,
   loadProfile as loadNezhaV1Profile,
 } from '@/utils/load-nezha-v1-config';
-import loadStzBootstrap, { loadStzServers } from '@/utils/load-stz-config';
 import loadAvailability from '@/utils/load-availability';
 import { msg } from '@/ws';
 import {
@@ -19,325 +18,194 @@ import {
   resolveTheme,
 } from '@/utils/theme';
 
-const defaultState = () => ({
+const state = {
   init: false,
   serverTime: 0,
   serverGroup: [],
   serverList: [],
-  serverCount: {
-    total: 0,
-    online: 0,
-    offline: 0,
-  },
+  serverCount: { total: 0, online: 0, offline: 0 },
   availability: {},
   availabilityEnabled: false,
   showAvailability: config.aobobo.showAvailability !== false,
   profile: {},
   setting: {},
-  stzBootstrap: null,
-  viewPasswordRequired: false,
   themeMode: THEME_MODES.AUTO,
   resolvedTheme: 'dark',
   globeFocus: null,
-});
+};
 
-function isOnline(LastActive, currentTime = Date.now()) {
-  const lastActiveTime = dayjs(LastActive)?.valueOf?.() || 0;
-  if (currentTime - lastActiveTime > 10 * 1000) {
-    return -1;
-  }
-  return 1;
+const listeners = new Set();
+let version = 0;
+let firstSetServers = true;
+let removeThemeListener = null;
+let watchingWs = false;
+
+function emitChange() {
+  version += 1;
+  listeners.forEach((listener) => listener());
+}
+
+function isOnline(lastActive, currentTime = Date.now()) {
+  const lastActiveTime = dayjs(lastActive)?.valueOf?.() || 0;
+  return currentTime - lastActiveTime > 10 * 1000 ? -1 : 1;
 }
 
 function resolveOnline(server, currentTime = Date.now()) {
-  if (config.aobobo.nezhaVersion === 'santaizi' && (server?.online === 1 || server?.online === -1)) {
-    return server.online;
-  }
   return isOnline(server?.LastActive, currentTime);
-}
-
-function applyStzSiteMeta(commit, bootstrap, route) {
-  if (!bootstrap) {
-    return;
-  }
-  commit('SET_STZ_BOOTSTRAP', bootstrap);
-  commit('SET_SETTING', { site_name: bootstrap.brand });
-  if (!hasRuntimeShowAvailability) {
-    commit('SET_SHOW_AVAILABILITY', bootstrap.show_availability === true);
-  }
-  if (!(window.$$aoboboConfig?.title ?? window.$$nazhuaConfig?.title) && bootstrap.brand) {
-    config.aobobo.title = bootstrap.brand;
-    if (route?.name === 'Home' || route?.name === 'ViewPassword' || !route) {
-      document.title = bootstrap.brand;
-    }
-  }
-}
-
-function groupServersByTag(servers) {
-  const groups = new Map();
-  servers.forEach((server) => {
-    if (!server.Tag) {
-      return;
-    }
-    if (!groups.has(server.Tag)) {
-      groups.set(server.Tag, []);
-    }
-    groups.get(server.Tag).push(server);
-  });
-  return [...groups.entries()].map(([tag, members]) => ({
-    name: tag,
-    count: members.length,
-    servers: members.map((server) => server.ID),
-    group: { name: tag },
-  }));
 }
 
 function handleServerCount(servers) {
   return {
     total: servers.length,
-    online: servers.filter((i) => i.online === 1).length,
-    offline: servers.filter((i) => i.online === -1).length,
+    online: servers.filter((item) => item.online === 1).length,
+    offline: servers.filter((item) => item.online === -1).length,
   };
 }
 
 function mergeAvailability(servers, availabilityMap, enabled) {
   return servers.map((server) => {
     if (!enabled) {
-      if (!Object.prototype.hasOwnProperty.call(server, 'availability')) {
-        return server;
-      }
-      const rest = { ...server };
-      delete rest.availability;
-      return rest;
+      if (!Object.prototype.hasOwnProperty.call(server, 'availability')) return server;
+      const next = { ...server };
+      delete next.availability;
+      return next;
     }
-    if (!availabilityMap || typeof availabilityMap !== 'object') {
-      return server;
-    }
-    const value = availabilityMap[String(server.ID)];
-    if (value === undefined) {
-      return server;
-    }
-    return {
-      ...server,
-      availability: value,
-    };
+    const value = availabilityMap?.[String(server.ID)];
+    return value === undefined ? server : { ...server, availability: value };
   });
 }
 
-let firstSetServers = true;
-let removeThemeListener = null;
-
-const store = createStore({
-  state: defaultState(),
-  mutations: {
-    SET_SERVER_TIME(state, time) {
-      state.serverTime = time;
-    },
-    SET_SERVER_GROUP(state, serverGroup) {
-      state.serverGroup = serverGroup;
-    },
-    SET_SERVERS(state, servers) {
-      let newServers = [...servers];
-      newServers = mergeAvailability(newServers, state.availability, state.showAvailability);
-      newServers.sort((a, b) => b.DisplayIndex - a.DisplayIndex);
-      state.serverList = newServers;
-      state.serverCount = handleServerCount(newServers);
-      state.init = true;
-    },
-    UPDATE_SERVERS(state, servers) {
-      const oldServersMap = {};
-      state.serverList.forEach((server) => {
-        oldServersMap[server.ID] = server;
-      });
-      let newServers = servers.map((server) => {
-        const oldItem = oldServersMap[server.ID];
-        const serverItem = { ...server };
-        if (oldItem?.PublicNote) {
-          serverItem.PublicNote = oldItem.PublicNote;
-        }
-        return serverItem;
-      });
-      newServers = newServers.filter((server) => server);
-      newServers = mergeAvailability(newServers, state.availability, state.showAvailability);
-      newServers.sort((a, b) => b.DisplayIndex - a.DisplayIndex);
-      state.serverList = newServers;
-      state.serverCount = handleServerCount(newServers);
-      state.init = true;
-    },
-    SET_AVAILABILITY(state, availability) {
-      state.availability = availability || {};
-      state.availabilityEnabled = !!availability && Object.keys(availability).length > 0;
-    },
-    SET_PROFILE(state, profile) {
-      state.profile = profile;
-    },
-    SET_SETTING(state, setting) {
-      state.setting = setting;
-    },
-    SET_STZ_BOOTSTRAP(state, bootstrap) {
-      state.stzBootstrap = bootstrap || null;
-    },
-    SET_VIEW_PASSWORD_REQUIRED(state, required) {
-      state.viewPasswordRequired = !!required;
-    },
-    SET_SHOW_AVAILABILITY(state, enabled) {
-      state.showAvailability = !!enabled;
-    },
-    SET_THEME_MODE(state, themeMode) {
-      state.themeMode = themeMode;
-    },
-    SET_RESOLVED_THEME(state, resolvedTheme) {
-      state.resolvedTheme = resolvedTheme;
-    },
-    SET_GLOBE_FOCUS(state, focus) {
-      state.globeFocus = focus;
-    },
-    CLEAR_GLOBE_FOCUS(state) {
-      state.globeFocus = null;
-    },
+const mutations = {
+  SET_SERVER_TIME(time) { state.serverTime = time; },
+  SET_SERVER_GROUP(serverGroup) { state.serverGroup = serverGroup || []; },
+  SET_SERVERS(servers) {
+    const next = mergeAvailability([...servers], state.availability, state.showAvailability)
+      .sort((a, b) => b.DisplayIndex - a.DisplayIndex);
+    state.serverList = next;
+    state.serverCount = handleServerCount(next);
+    state.init = true;
   },
-  actions: {
-    initTheme({ commit, dispatch }) {
-      const themeMode = loadThemeMode();
-      commit('SET_THEME_MODE', themeMode);
-      dispatch('syncTheme');
-
-      if (removeThemeListener) {
-        removeThemeListener();
-      }
-
-      const mediaQuery = getThemeMediaQuery();
-      if (!mediaQuery) {
-        return;
-      }
-
-      const handleThemeChange = () => {
-        dispatch('syncTheme');
-      };
-
-      if (typeof mediaQuery.addEventListener === 'function') {
-        mediaQuery.addEventListener('change', handleThemeChange);
-        removeThemeListener = () => {
-          mediaQuery.removeEventListener('change', handleThemeChange);
-        };
-        return;
-      }
-
-      if (typeof mediaQuery.addListener === 'function') {
-        mediaQuery.addListener(handleThemeChange);
-        removeThemeListener = () => {
-          mediaQuery.removeListener(handleThemeChange);
-        };
-      }
-    },
-    setThemeMode({ commit, dispatch }, themeMode) {
-      const normalizedMode = normalizeThemeMode(themeMode);
-      commit('SET_THEME_MODE', normalizedMode);
-      persistThemeMode(normalizedMode);
-      dispatch('syncTheme');
-    },
-    syncTheme({ commit, state }) {
-      const resolvedTheme = resolveTheme(state.themeMode);
-      commit('SET_RESOLVED_THEME', resolvedTheme);
-      applyResolvedTheme(resolvedTheme);
-    },
-    async initServerInfo({ commit, dispatch }, params) {
-      firstSetServers = true;
-      if (config.aobobo.nezhaVersion === 'santaizi') {
-        const { route } = params || {};
-        const bootstrap = await loadStzBootstrap();
-        if (!bootstrap) {
-          return { needsPassword: false };
-        }
-        applyStzSiteMeta(commit, bootstrap, route);
-        const needsPassword = bootstrap.requires_view_password === true
-          && bootstrap.view_password_verified !== true;
-        commit('SET_VIEW_PASSWORD_REQUIRED', needsPassword);
-        if (needsPassword) {
-          return { needsPassword: true };
-        }
-        const servers = await loadStzServers();
-        if (Array.isArray(servers)) {
-          const now = Date.now();
-          const mapped = servers.map((server) => ({
-            ...server,
-            online: resolveOnline(server, now),
-          }));
-          firstSetServers = false;
-          commit('SET_SERVERS', mapped);
-          const group = groupServersByTag(mapped);
-          if (group) commit('SET_SERVER_GROUP', group);
-          dispatch('refreshAvailability');
-        }
-        return { needsPassword: false };
-      }
-      if (config.aobobo.nezhaVersion === 'v1') {
-        const { route } = params || {};
-        loadNezhaV1ServerGroup().then((res) => {
-          if (res) commit('SET_SERVER_GROUP', res);
-        });
-        loadNezhaV1Setting().then((res) => {
-          if (res) {
-            commit('SET_SETTING', res);
-            // 仅在未通过运行时配置指定标题时，才使用后端的 site_name
-            if (!(window.$$aoboboConfig?.title ?? window.$$nazhuaConfig?.title)) {
-              config.aobobo.title = res.config?.site_name || res.site_name;
-              if (route?.name === 'Home' || !route) {
-                document.title = config.aobobo.title;
-              }
-            }
-          }
-        });
-        loadNezhaV1Profile().then((res) => {
-          if (res) commit('SET_PROFILE', res);
-        });
-        return { needsPassword: false };
-      }
-      return { needsPassword: false };
-    },
-    async refreshAvailability({ commit, state }) {
-      if (!state.showAvailability) {
-        return;
-      }
-      const availability = await loadAvailability(state.serverList);
-      if (availability?.hidden) {
-        commit('SET_SHOW_AVAILABILITY', false);
-        return;
-      }
-      if (availability) {
-        commit('SET_AVAILABILITY', availability);
-        // 重新合并到当前服务器列表
-        commit('UPDATE_SERVERS', state.serverList);
-      }
-    },
-    watchWsMsg({ commit }) {
-      msg.on('servers', (res) => {
-        if (res) {
-          if (res.now) commit('SET_SERVER_TIME', res.now);
-          const servers = res.servers?.map?.((i) => ({
-            ...i,
-            online: resolveOnline(i, res.now),
-          })) || [];
-          if (firstSetServers) {
-            firstSetServers = false;
-            commit('SET_SERVERS', servers);
-            if (config.aobobo.nezhaVersion === 'santaizi') {
-              const group = groupServersByTag(servers);
-              if (group) commit('SET_SERVER_GROUP', group);
-            }
-          } else {
-            commit('UPDATE_SERVERS', servers);
-          }
-        }
-      });
-    },
-    focusGlobeOnServer({ commit }, { code, name }) {
-      commit('SET_GLOBE_FOCUS', { code, name });
-    },
-    clearGlobeFocus({ commit }) {
-      commit('CLEAR_GLOBE_FOCUS');
-    },
+  UPDATE_SERVERS(servers) {
+    const previous = new Map(state.serverList.map((server) => [server.ID, server]));
+    const next = servers.map((server) => ({
+      ...server,
+      ...(previous.get(server.ID)?.PublicNote ? { PublicNote: previous.get(server.ID).PublicNote } : {}),
+    }));
+    state.serverList = mergeAvailability(next, state.availability, state.showAvailability)
+      .sort((a, b) => b.DisplayIndex - a.DisplayIndex);
+    state.serverCount = handleServerCount(state.serverList);
+    state.init = true;
   },
-});
+  SET_AVAILABILITY(availability) {
+    state.availability = availability || {};
+    state.availabilityEnabled = Object.keys(state.availability).length > 0;
+  },
+  SET_PROFILE(profile) { state.profile = profile || {}; },
+  SET_SETTING(setting) { state.setting = setting || {}; },
+  SET_SHOW_AVAILABILITY(enabled) { state.showAvailability = Boolean(enabled); },
+  SET_THEME_MODE(themeMode) { state.themeMode = themeMode; },
+  SET_RESOLVED_THEME(resolvedTheme) { state.resolvedTheme = resolvedTheme; },
+  SET_GLOBE_FOCUS(focus) { state.globeFocus = focus; },
+  CLEAR_GLOBE_FOCUS() { state.globeFocus = null; },
+};
+
+function commit(type, payload) {
+  const mutation = mutations[type];
+  if (!mutation) throw new Error(`Unknown store mutation: ${type}`);
+  mutation(payload);
+  emitChange();
+}
+
+const actions = {
+  initTheme() {
+    commit('SET_THEME_MODE', loadThemeMode());
+    actions.syncTheme();
+    removeThemeListener?.();
+    const mediaQuery = getThemeMediaQuery();
+    if (!mediaQuery) return;
+    const handleThemeChange = () => actions.syncTheme();
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleThemeChange);
+      removeThemeListener = () => mediaQuery.removeEventListener('change', handleThemeChange);
+    } else if (typeof mediaQuery.addListener === 'function') {
+      mediaQuery.addListener(handleThemeChange);
+      removeThemeListener = () => mediaQuery.removeListener(handleThemeChange);
+    }
+  },
+  setThemeMode(themeMode) {
+    const normalizedMode = normalizeThemeMode(themeMode);
+    commit('SET_THEME_MODE', normalizedMode);
+    persistThemeMode(normalizedMode);
+    actions.syncTheme();
+  },
+  syncTheme() {
+    const resolvedTheme = resolveTheme(state.themeMode);
+    commit('SET_RESOLVED_THEME', resolvedTheme);
+    applyResolvedTheme(resolvedTheme);
+  },
+  async initServerInfo() {
+    firstSetServers = true;
+    loadNezhaV1ServerGroup().then((result) => result && commit('SET_SERVER_GROUP', result));
+    loadNezhaV1Setting().then((result) => {
+      if (!result) return;
+      commit('SET_SETTING', result);
+      if (!(window.$$aoboboConfig?.title ?? window.$$nazhuaConfig?.title)) {
+        config.aobobo.title = result.config?.site_name || result.site_name;
+        document.title = config.aobobo.title;
+      }
+    });
+    loadNezhaV1Profile().then((result) => result && commit('SET_PROFILE', result));
+  },
+  async refreshAvailability() {
+    if (!state.showAvailability) return;
+    const availability = await loadAvailability();
+    if (availability?.hidden) {
+      commit('SET_SHOW_AVAILABILITY', false);
+    } else if (availability) {
+      commit('SET_AVAILABILITY', availability);
+      commit('UPDATE_SERVERS', state.serverList);
+    }
+  },
+  watchWsMsg() {
+    if (watchingWs) return;
+    watchingWs = true;
+    msg.on('servers', (result) => {
+      if (!result) return;
+      if (result.now) commit('SET_SERVER_TIME', result.now);
+      const servers = result.servers?.map?.((server) => ({
+        ...server,
+        online: resolveOnline(server, result.now),
+      })) || [];
+      if (firstSetServers) {
+        firstSetServers = false;
+        commit('SET_SERVERS', servers);
+      } else {
+        commit('UPDATE_SERVERS', servers);
+      }
+    });
+  },
+  focusGlobeOnServer({ code, name }) { commit('SET_GLOBE_FOCUS', { code, name }); },
+  clearGlobeFocus() { commit('CLEAR_GLOBE_FOCUS'); },
+};
+
+const store = {
+  state,
+  commit,
+  dispatch(type, payload) {
+    const action = actions[type];
+    if (!action) return Promise.reject(new Error(`Unknown store action: ${type}`));
+    return action(payload);
+  },
+  subscribe(listener) {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+  },
+  getVersion: () => version,
+};
+
+export function useStore(selector = (currentState) => currentState) {
+  useSyncExternalStore(store.subscribe, store.getVersion, store.getVersion);
+  return selector(state);
+}
 
 export default store;

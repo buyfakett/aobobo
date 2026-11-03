@@ -27,27 +27,27 @@ export function getCPUInfo(text = '') {
     } else {
       const altModelNumReg = /Ryzen.*?(\d{3,4}(?:[A-Z]{0,2}))/;
       const altModelNumMatch = text.match(altModelNumReg);
-      if (altModelNumMatch) [, cpuInfo.modelNum] = altModelNumMatch;
+      if (altModelNumMatch) cpuInfo.modelNum = altModelNumMatch[1];
     }
   }
   if (text.includes('EPYC')) {
     const modelNumReg = /EPYC\s+(\d[A-Z0-9]{2,4})/i;
     const modelNumMatch = text.match(modelNumReg);
-    if (modelNumMatch) [, cpuInfo.modelNum] = modelNumMatch;
+    if (modelNumMatch) cpuInfo.modelNum = modelNumMatch[1];
   }
   if (text.includes('Xeon')) {
     if (text.includes(' E')) {
       const modelNumReg = /(E\d-\d{4}(?:\s?v\d)?)/;
       const modelNumMatch = text.match(modelNumReg);
-      if (modelNumMatch) [, cpuInfo.modelNum] = modelNumMatch;
+      if (modelNumMatch) cpuInfo.modelNum = modelNumMatch[1];
     } else if (text.includes('Platinum')) {
       const modelNumReg = /(?:Platinum\s+)(\d{4}(?:\w)?)/;
       const modelNumMatch = text.match(modelNumReg);
-      if (modelNumMatch) [, cpuInfo.modelNum] = modelNumMatch;
+      if (modelNumMatch) cpuInfo.modelNum = modelNumMatch[1];
     } else if (text.includes('Gold')) {
       const modelNumReg = /(?:Gold\s+)(\d{4}(?:\w)?)/;
       const modelNumMatch = text.match(modelNumReg);
-      if (modelNumMatch) [, cpuInfo.modelNum] = modelNumMatch;
+      if (modelNumMatch) cpuInfo.modelNum = modelNumMatch[1];
     }
   }
   if (coresMatch) {

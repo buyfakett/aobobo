@@ -10,7 +10,7 @@ function getOnlineHistoryUrl(serverId, days) {
 }
 
 export function isOnlineHistorySupported() {
-  return config.aobobo.nezhaVersion === 'v1';
+  return true;
 }
 
 export async function loadServerOnlineHistory(serverId, days) {

@@ -2,7 +2,6 @@
 // 同时兼容 nazhua-front 的 window.$$nazhuaConfig
 window.$$aoboboConfig = {
   // title: 'AoBoBo', // 网站标题
-  // nezhaVersion: 'v1', // 后端版本：v1 | santaizi；不填则自动探测
 
   // 监控图表类型：single | multi
   // monitorChartType: 'multi',
@@ -49,14 +48,4 @@ window.$$aoboboConfig = {
   // v1DashboardUrl: '/dashboard', // v1 版本管理后台地址
   // v1HideNezhaDashboardBtn: false, // 是否隐藏顶部管理后台/登录入口
 
-  // santaizi（三太子）公开 API 路径配置（nezhaVersion: 'santaizi' 时生效，一般无需修改）
-  // stzBootstrapPath: '/api/v2/public/bootstrap',
-  // stzWsPath: '/ws/v2/public/runtime',
-  // stzApiServersPath: '/api/v2/public/servers',
-  // stzApiNetworkPath: '/api/v2/public/network/{id}',
-  // stzApiMetricsPath: '/api/v2/public/metrics/{id}',
-  // stzApiCycleTransferPath: '/api/v2/public/cycle-transfer',
-  // stzApiAvailabilityPath: '/api/v2/public/servers/{id}/availability',
-  // stzViewPasswordPath: '/api/v2/public/view-password/session',
-  // 可用性默认跟随 bootstrap.show_availability；config.js 显式设置 showAvailability 时优先生效
 };

@@ -33,76 +33,15 @@ function toAvailabilityMap(payload) {
   return Object.keys(map).length > 0 ? map : null;
 }
 
-async function loadStzServerAvailability(serverId) {
-  const baseUrl = config.aobobo.stzApiAvailabilityPath.replace('{id}', serverId);
-  const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}days=30`;
-  const res = await request({
-    url,
-    method: 'GET',
-    validateStatus: (status) => status === 200 || status === 403 || status === 404,
-  });
-  if (res?.status === 403) {
-    return { hidden: true };
-  }
-  if (res?.status !== 200) {
-    return null;
-  }
-  const item = res?.data?.data;
-  const percent = item?.availability_percent ?? item?.availability;
-  if (percent === undefined || percent === null) {
-    return null;
-  }
-  const num = Number(percent);
-  if (!Number.isFinite(num)) {
-    return null;
-  }
-  return {
-    id: String(item?.server_id ?? serverId),
-    percent: num,
-  };
-}
-
-async function loadStzAvailability(serverList = []) {
-  const ids = [...new Set(
-    (serverList || [])
-      .map((server) => server?.ID)
-      .filter((id) => id !== undefined && id !== null && id !== ''),
-  )];
-  if (!ids.length) {
-    return null;
-  }
-
-  const results = await Promise.all(ids.map((id) => (
-    loadStzServerAvailability(id).catch(() => null)
-  )));
-
-  if (results.some((item) => item?.hidden)) {
-    return { hidden: true };
-  }
-
-  const map = {};
-  results.forEach((item) => {
-    if (item?.id && Number.isFinite(item.percent)) {
-      map[item.id] = item.percent;
-    }
-  });
-  return Object.keys(map).length > 0 ? map : null;
-}
-
 /**
  * 加载服务器可用性数据
- * v1：config.aobobo.apiAvailabilityPath
- * santaizi：逐台请求 /api/v2/public/servers/{id}/availability
+ * config.aobobo.apiAvailabilityPath
  * 支持两种返回格式：
  *   1. 数组形式：{ result: [{ server_id: 1, availability_percent: 99.9 }] }
  *   2. 对象形式：{ "1": 99.9, "2": 98.5 }
  */
-export default async function loadAvailability(serverList = []) {
+export default async function loadAvailability() {
   try {
-    if (config.aobobo.nezhaVersion === 'santaizi') {
-      return loadStzAvailability(serverList);
-    }
-
     const res = await request({
       url: config.aobobo.apiAvailabilityPath,
       method: 'GET',

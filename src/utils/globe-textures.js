@@ -12,15 +12,15 @@ const MAX_RENDERER_PIXEL_RATIO = 1.5;
 let cachedMaxTextureSize = null;
 
 const BASE_LAND_COLORS = {
-  light: '#eef6ff',
-  dark: '#6b798f',
+  light: '#8faeb5',
+  dark: '#8294ad',
 };
 
 export const THEME_COLORS = {
   light: {
-    oceanBase: '#d0e6fa',
+    oceanBase: '#dceeff',
     land: BASE_LAND_COLORS.light,
-    coastline: 'rgba(96, 140, 184, 0.36)',
+    coastline: 'rgba(58, 92, 111, 0.48)',
     coastlineWidth: 0.9,
     coastlineHalo: 'rgba(255, 255, 255, 0.68)',
     coastlineHaloWidth: 2.2,
@@ -156,12 +156,13 @@ export function createGlobeBumpMap() {
 }
 
 function drawLightOcean(ctx) {
+  const colors = THEME_COLORS.light;
   const { width, height } = ctx.canvas;
 
   // Use a centered, subtle radial gradient so the sphere looks uniformly
   // round without visible seams or directional shadows when mapped onto the
   // globe with `shading: 'color'`.
-  ctx.fillStyle = '#c4ddf0';
+  ctx.fillStyle = colors.oceanBase;
   ctx.fillRect(0, 0, width, height);
 
   const bodyGradient = ctx.createRadialGradient(
@@ -172,9 +173,9 @@ function drawLightOcean(ctx) {
     height * 0.5,
     height * 0.85,
   );
-  bodyGradient.addColorStop(0, '#dff0ff');
-  bodyGradient.addColorStop(0.55, '#c6e2f5');
-  bodyGradient.addColorStop(1, '#a8ccea');
+  bodyGradient.addColorStop(0, '#eff8ff');
+  bodyGradient.addColorStop(0.55, '#dceeff');
+  bodyGradient.addColorStop(1, '#bfdcf4');
   ctx.fillStyle = bodyGradient;
   ctx.fillRect(0, 0, width, height);
 }
