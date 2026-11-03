@@ -13,6 +13,7 @@ import {
 import { resolveServerLocation } from '@/utils/world-map';
 import truncateDecimal from '@/utils/number';
 import { getBillAndPlanByServer } from '@/composables/server-bill-and-plan';
+import DetailGlobe from '@/components/react/detail/DetailGlobe';
 
 function capacityLabel(info) {
   const mem = calcBinary(info?.Host?.MemTotal || 0);
@@ -42,6 +43,7 @@ function billLabel(item) {
 export default function DetailHeader({ info }) {
   const navigate = useNavigate();
   const showAvailability = useStore((state) => state.showAvailability);
+  const theme = useStore((state) => state.resolvedTheme);
   const cpuInfo = getCPUInfo(info?.Host?.CPU?.[0] || '');
   const location = resolveServerLocation(info);
   const bill = getBillAndPlanByServer(info);
@@ -106,7 +108,7 @@ export default function DetailHeader({ info }) {
       </div>
       {location?.code && (
         <button type="button" className={`globe-focus-btn ${config.aobobo.hideDetailServerGlobe ? 'globe-focus-btn--text' : 'globe-focus-btn--visual react-detail-globe'}`} aria-label={`在地球上查看 ${info?.Name || '服务器'}`} onClick={viewOnGlobe}>
-          <span className="react-detail-globe__orb"><i className="ri-earth-line" /></span><span>在地球上查看</span>
+          {config.aobobo.hideDetailServerGlobe ? <><span className="react-detail-globe__orb"><i className="ri-earth-line" /></span><span>在地球上查看</span></> : <DetailGlobe location={location} theme={theme} />}
         </button>
       )}
     </div>
