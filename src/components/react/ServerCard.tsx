@@ -125,7 +125,7 @@ export default function ServerCard({
   const cpuText = [company, model].filter(Boolean).join(' ');
   const trafficInfo = traffic(server, cycleTransferMap, compact);
   const uptimeEnd = normalizeTimestamp(server?.LastActive, serverTime);
-  const uptime = server?.Host?.BootTime && uptimeEnd
+  const uptime = server?.online === 1 && server?.Host?.BootTime && uptimeEnd
     ? duration(server.Host.BootTime * 1000, uptimeEnd, true)
     : '';
   const bill = billingText(server);
@@ -155,6 +155,7 @@ export default function ServerCard({
               ? <span className={`fi fi-${server.Host.CountryCode.toLowerCase()}`} />
               : <span className="flag-placeholder"><i className="ri-global-line" /></span>)}
             <span className="server-list-item__name [min-width:0] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap] [font-size:14px] [font-weight:700] [color:var(--text-primary)] max-[768px]:[font-size:13px]" title={server.Name}>{server.Name || '-'}</span>
+            {!compact && server.online !== 1 && <span className="meta-tag [display:inline-flex] [align-items:center] [flex:0_0_auto] [min-height:19px] [padding:0_7px] [border-radius:5px] [border:1px_solid_var(--list-tag-border)] [background:var(--list-tag-bg)] [color:var(--list-tag-text)] [font-size:10px] [font-weight:700] [line-height:1] [font-family:var(--font-sans)] [white-space:nowrap] meta-tag--status offline">离线</span>}
           </div>
           {serverSpec && <span className="server-list-item__head-spec [display:inline-flex] [align-items:center] [gap:5px] [flex:0_0_auto] [font-size:11px] [font-weight:600] [color:var(--text-secondary)] [white-space:nowrap] [font-family:var(--font-mono)] [font-variant-numeric:tabular-nums] max-[768px]:[font-size:10px]"><i className={getPlatformLogoIconClassName(server?.Host?.Platform)} /><span>{serverSpec}</span></span>}
         </div>

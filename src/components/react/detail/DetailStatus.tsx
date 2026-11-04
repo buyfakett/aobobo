@@ -42,7 +42,7 @@ export default function DetailStatus({ info }) {
   const outgoing = calcTransfer(info?.State?.NetOutSpeed || 0);
   const transfer = calcTransfer((info?.State?.NetInTransfer || 0) + (info?.State?.NetOutTransfer || 0));
   const uptimeEnd = normalizeTimestamp(info?.LastActive, serverTime);
-  const uptime = info?.Host?.BootTime && uptimeEnd
+  const uptime = info?.online === 1 && info?.Host?.BootTime && uptimeEnd
     ? duration(info.Host.BootTime * 1000, uptimeEnd, true)
     : '-';
   const availability = Number(info?.availability);
@@ -66,7 +66,7 @@ export default function DetailStatus({ info }) {
         <h3 className="section-title"><i className="ri-speed-line" />实时数据</h3>
         <div className="server-real-time">
           {showAvailability && Number.isFinite(availability) && <RealtimeItem icon="ri-shield-check-line" label="可用性" value={truncateDecimal(availability, 2)} unit="%" />}
-          <RealtimeItem icon="ri-time-line" label="在线" value={uptime} />
+          <RealtimeItem icon="ri-time-line" label="在线时长" value={uptime} />
           <RealtimeItem icon="ri-arrow-up-down-line" label="双向流量" value={transfer.value} unit={transfer.unit} />
           <RealtimeItem icon="ri-download-line" label="入网" value={incoming.value} unit={`${incoming.unit}/s`} />
           <RealtimeItem icon="ri-upload-line" label="出网" value={outgoing.value} unit={`${outgoing.unit}/s`} />

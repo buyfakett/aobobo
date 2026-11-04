@@ -67,7 +67,7 @@ export default function DetailHeader({ info }) {
   const outgoing = calcTransfer(Number(info?.State?.NetOutTransfer) || 0);
   const hasTransfer = Number(info?.State?.NetInTransfer) || Number(info?.State?.NetOutTransfer);
   const uptimeEnd = normalizeTimestamp(info?.LastActive, serverTime);
-  const uptime = info?.Host?.BootTime && uptimeEnd
+  const uptime = info?.online === 1 && info?.Host?.BootTime && uptimeEnd
     ? duration(info.Host.BootTime * 1000, uptimeEnd, true)
     : '';
   const tags = [

@@ -465,7 +465,17 @@ html, body {
   box-shadow: var(--panel-row-hover-shadow);
 }
 .server-list-item.offline {
-  opacity: 0.76;
+  background: var(--panel-row-offline-bg);
+  border-color: var(--panel-row-offline-border);
+  box-shadow: var(--panel-row-shadow);
+  filter: grayscale(1) saturate(0);
+  opacity: 0.78;
+}
+.server-list-item.offline:hover, .server-list-item.offline:focus-visible {
+  background: var(--panel-row-offline-bg);
+  border-color: var(--panel-row-offline-border);
+  box-shadow: var(--panel-row-shadow);
+  opacity: 0.9;
 }
 .server-list-item.offline .server-list-item__name {
   color: var(--text-secondary);
