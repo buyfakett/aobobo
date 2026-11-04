@@ -1,5 +1,19 @@
 import dayjs from 'dayjs';
 
+export function normalizeTimestamp(value, fallback = 0) {
+  if (value === null || value === undefined || value === '') return fallback;
+
+  const numericValue = typeof value === 'number'
+    ? value
+    : (typeof value === 'string' && value.trim() !== '' ? Number(value) : Number.NaN);
+  if (Number.isFinite(numericValue)) {
+    return Math.abs(numericValue) < 1e12 ? numericValue * 1000 : numericValue;
+  }
+
+  const parsedValue = dayjs(value).valueOf();
+  return Number.isFinite(parsedValue) ? parsedValue : fallback;
+}
+
 export const duration = (startDate, endDate, noSub = false) => {
   const startTime = dayjs(startDate).valueOf();
   const endTime = dayjs(endDate).valueOf();

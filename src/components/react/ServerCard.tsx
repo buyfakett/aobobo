@@ -6,7 +6,7 @@ import {
   getPlatformLogoIconClassName,
   truncateDecimal,
 } from '@/utils/host';
-import { duration } from '@/utils/date';
+import { duration, normalizeTimestamp } from '@/utils/date';
 import { getCycleTransferSummaryByServer } from '@/utils/cycle-transfer';
 import { getBillAndPlanByServer } from '@/composables/server-bill-and-plan';
 import type { AnyCallback } from '@/types/ui';
@@ -43,16 +43,27 @@ function formatTransfer(value) {
 
 function traffic(server, cycleTransferMap, compact) {
   const summary = getCycleTransferSummaryByServer(cycleTransferMap, server);
-  if (summary) return `剩余 ${summary.remainingDisplay}`;
   const incoming = server.State?.NetInTransfer || 0;
   const outgoing = server.State?.NetOutTransfer || 0;
-  switch (+server?.PublicNote?.planDataMod?.trafficType) {
-    case 1: return `单向出 ${formatTransfer(outgoing)}`;
-    case 3: return outgoing >= incoming
-      ? `最大出 ${formatTransfer(outgoing)}`
-      : `最大入 ${formatTransfer(incoming)}`;
-    case 2: return `双向 ${formatTransfer(incoming + outgoing)}`;
-    default: return compact ? `双向 ${formatTransfer(incoming + outgoing)}` : '不限制';
+  const trafficType = +server?.PublicNote?.planDataMod?.trafficType;
+  if (summary) {
+    return {
+      type: trafficType === 1 ? '单向出' : trafficType === 3 ? '单向取最大' : '双向',
+      value: `剩余 ${summary.remainingDisplay}`,
+    };
+  }
+  switch (trafficType) {
+    case 1: return { type: '单向出', value: formatTransfer(outgoing) };
+    case 3: return {
+      type: '单向取最大',
+      value: outgoing >= incoming
+        ? `出 ${formatTransfer(outgoing)}`
+        : `入 ${formatTransfer(incoming)}`,
+    };
+    case 2: return { type: '双向', value: formatTransfer(incoming + outgoing) };
+    default: return compact
+      ? { type: '双向', value: formatTransfer(incoming + outgoing) }
+      : { type: '不限制', value: '' };
   }
 }
 
@@ -111,8 +122,9 @@ export default function ServerCard({
   const serverSpec = spec(server);
   const company = cpuCompany(server);
   const model = cpuModel(server);
-  const trafficText = traffic(server, cycleTransferMap, compact);
-  const uptimeEnd = server?.LastActive ? new Date(server.LastActive).getTime() : serverTime;
+  const cpuText = [company, model].filter(Boolean).join(' ');
+  const trafficInfo = traffic(server, cycleTransferMap, compact);
+  const uptimeEnd = normalizeTimestamp(server?.LastActive, serverTime);
   const uptime = server?.Host?.BootTime && uptimeEnd
     ? duration(server.Host.BootTime * 1000, uptimeEnd, true)
     : '';
@@ -150,17 +162,18 @@ export default function ServerCard({
         {compact ? (
           <div className="server-list-item__tags [display:flex] [flex-wrap:wrap] [gap:5px] [min-width:0] [min-height:22px] max-[768px]:[gap:4px]">
             <span className={`meta-tag [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_9px] [border-radius:6px] [border:1px_solid_var(--list-tag-border)] [background:var(--list-tag-bg)] [color:var(--list-tag-text)] [font-size:11px] [font-weight:600] [line-height:1.2] [font-family:var(--font-sans)] [white-space:nowrap] [max-width:100%] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[min-height:19px] max-[768px]:[padding:0_6px] max-[768px]:[font-size:10px] max-[768px]:[border-radius:5px] meta-tag--status ${server.online === 1 ? 'online' : 'offline'}`}>{server.online === 1 ? '在线' : '离线'}</span>
-            {company && <span className="meta-tag [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_9px] [border-radius:6px] [border:1px_solid_var(--list-tag-border)] [background:var(--list-tag-bg)] [color:var(--list-tag-text)] [font-size:11px] [font-weight:600] [line-height:1.2] [font-family:var(--font-sans)] [white-space:nowrap] [max-width:100%] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[min-height:19px] max-[768px]:[padding:0_6px] max-[768px]:[font-size:10px] max-[768px]:[border-radius:5px] meta-tag--cpu">{company}</span>}
-            {trafficText && <span className="meta-tag [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_9px] [border-radius:6px] [border:1px_solid_var(--list-tag-border)] [background:var(--list-tag-bg)] [color:var(--list-tag-text)] [font-size:11px] [font-weight:600] [line-height:1.2] [font-family:var(--font-sans)] [white-space:nowrap] [max-width:100%] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[min-height:19px] max-[768px]:[padding:0_6px] max-[768px]:[font-size:10px] max-[768px]:[border-radius:5px] meta-tag--traffic">{trafficText}</span>}
+            {cpuText && <span className="meta-tag [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_9px] [border-radius:6px] [border:1px_solid_var(--list-tag-border)] [background:var(--list-tag-bg)] [color:var(--list-tag-text)] [font-size:11px] [font-weight:600] [line-height:1.2] [font-family:var(--font-sans)] [white-space:nowrap] [max-width:100%] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[min-height:19px] max-[768px]:[padding:0_6px] max-[768px]:[font-size:10px] max-[768px]:[border-radius:5px] meta-tag--cpu" title={cpuText}>{cpuText}</span>}
+            {trafficInfo.type && <span className="meta-tag [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_9px] [border-radius:6px] [border:1px_solid_var(--list-tag-border)] [background:var(--list-tag-bg)] [color:var(--list-tag-text)] [font-size:11px] [font-weight:600] [line-height:1.2] [font-family:var(--font-sans)] [white-space:nowrap] [max-width:100%] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[min-height:19px] max-[768px]:[padding:0_6px] max-[768px]:[font-size:10px] max-[768px]:[border-radius:5px] meta-tag--traffic-type">{trafficInfo.type}</span>}
+            {trafficInfo.value && <span className="meta-tag [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_9px] [border-radius:6px] [border:1px_solid_var(--list-tag-border)] [background:var(--list-tag-bg)] [color:var(--list-tag-text)] [font-size:11px] [font-weight:600] [line-height:1.2] [font-family:var(--font-sans)] [white-space:nowrap] [max-width:100%] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[min-height:19px] max-[768px]:[padding:0_6px] max-[768px]:[font-size:10px] max-[768px]:[border-radius:5px] meta-tag--traffic">{trafficInfo.value}</span>}
             {uptime && <span className="meta-tag [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_9px] [border-radius:6px] [border:1px_solid_var(--list-tag-border)] [background:var(--list-tag-bg)] [color:var(--list-tag-text)] [font-size:11px] [font-weight:600] [line-height:1.2] [font-family:var(--font-sans)] [white-space:nowrap] [max-width:100%] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[min-height:19px] max-[768px]:[padding:0_6px] max-[768px]:[font-size:10px] max-[768px]:[border-radius:5px] meta-tag--uptime">{uptime}</span>}
           </div>
         ) : (
           <>
-            {(company || model || trafficText) && (
+            {(cpuText || trafficInfo.type || trafficInfo.value) && (
               <div className="server-list-item__resource [display:flex] [align-items:center] [flex-wrap:wrap] [gap:8px] [min-width:0]">
-                {company && <span className="meta-tag [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_9px] [border-radius:6px] [border:1px_solid_var(--list-tag-border)] [background:var(--list-tag-bg)] [color:var(--list-tag-text)] [font-size:11px] [font-weight:600] [line-height:1.2] [font-family:var(--font-sans)] [white-space:nowrap] [max-width:100%] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[min-height:19px] max-[768px]:[padding:0_6px] max-[768px]:[font-size:10px] max-[768px]:[border-radius:5px] meta-tag--cpu">{company}</span>}
-                {model && <span className="resource-text resource-text--cpu">{model}</span>}
-                {trafficText && <span className="resource-text resource-text--traffic"><i className="ri-arrow-up-down-line" /><span>{trafficText}</span></span>}
+                {cpuText && <span className="meta-tag [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_9px] [border-radius:6px] [border:1px_solid_var(--list-tag-border)] [background:var(--list-tag-bg)] [color:var(--list-tag-text)] [font-size:11px] [font-weight:600] [line-height:1.2] [font-family:var(--font-sans)] [white-space:nowrap] [max-width:100%] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[min-height:19px] max-[768px]:[padding:0_6px] max-[768px]:[font-size:10px] max-[768px]:[border-radius:5px] meta-tag--cpu" title={cpuText}>{cpuText}</span>}
+                {trafficInfo.type && <span className="meta-tag [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_9px] [border-radius:6px] [border:1px_solid_var(--list-tag-border)] [background:var(--list-tag-bg)] [color:var(--list-tag-text)] [font-size:11px] [font-weight:600] [line-height:1.2] [font-family:var(--font-sans)] [white-space:nowrap] [max-width:100%] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[min-height:19px] max-[768px]:[padding:0_6px] max-[768px]:[font-size:10px] max-[768px]:[border-radius:5px] meta-tag--traffic-type">{trafficInfo.type}</span>}
+                {trafficInfo.value && <span className="meta-tag [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_9px] [border-radius:6px] [border:1px_solid_var(--list-tag-border)] [background:var(--list-tag-bg)] [color:var(--list-tag-text)] [font-size:11px] [font-weight:600] [line-height:1.2] [font-family:var(--font-sans)] [white-space:nowrap] [max-width:100%] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[min-height:19px] max-[768px]:[padding:0_6px] max-[768px]:[font-size:10px] max-[768px]:[border-radius:5px] meta-tag--traffic">{trafficInfo.value}</span>}
               </div>
             )}
             {(hasAvailability || uptime || bill || remainingItem || tags.length > 0) && (

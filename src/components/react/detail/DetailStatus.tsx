@@ -1,5 +1,5 @@
 import { calcBinary, calcTransfer, formatDiskSize, truncateDecimal } from '@/utils/host';
-import { duration } from '@/utils/date';
+import { duration, normalizeTimestamp } from '@/utils/date';
 import { useStore } from '@/store';
 import { DetailPanel } from '@/components/react/Common';
 
@@ -41,7 +41,7 @@ export default function DetailStatus({ info }) {
   const incoming = calcTransfer(info?.State?.NetInSpeed || 0);
   const outgoing = calcTransfer(info?.State?.NetOutSpeed || 0);
   const transfer = calcTransfer((info?.State?.NetInTransfer || 0) + (info?.State?.NetOutTransfer || 0));
-  const uptimeEnd = info?.LastActive ? new Date(info.LastActive).getTime() : serverTime;
+  const uptimeEnd = normalizeTimestamp(info?.LastActive, serverTime);
   const uptime = info?.Host?.BootTime && uptimeEnd
     ? duration(info.Host.BootTime * 1000, uptimeEnd, true)
     : '-';

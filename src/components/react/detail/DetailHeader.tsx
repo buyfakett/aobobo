@@ -15,7 +15,7 @@ import {
 import { resolveServerLocation } from '@/utils/world-map';
 import { getBillAndPlanByServer } from '@/composables/server-bill-and-plan';
 import DetailGlobe from '@/components/react/detail/DetailGlobe';
-import { duration } from '@/utils/date';
+import { duration, normalizeTimestamp } from '@/utils/date';
 
 function capacityLabel(info) {
   const mem = calcBinary(info?.Host?.MemTotal || 0);
@@ -66,7 +66,7 @@ export default function DetailHeader({ info }) {
   const incoming = calcTransfer(Number(info?.State?.NetInTransfer) || 0);
   const outgoing = calcTransfer(Number(info?.State?.NetOutTransfer) || 0);
   const hasTransfer = Number(info?.State?.NetInTransfer) || Number(info?.State?.NetOutTransfer);
-  const uptimeEnd = info?.LastActive ? new Date(info.LastActive).getTime() : serverTime;
+  const uptimeEnd = normalizeTimestamp(info?.LastActive, serverTime);
   const uptime = info?.Host?.BootTime && uptimeEnd
     ? duration(info.Host.BootTime * 1000, uptimeEnd, true)
     : '';
@@ -84,7 +84,7 @@ export default function DetailHeader({ info }) {
     load && { icon: 'ri-pulse-line', text: `负载 ${load}`, className: 'meta-tag--load' },
     hasTransfer && { icon: 'ri-arrow-up-down-line', text: `入 ${incoming.value}${incoming.unit} · 出 ${outgoing.value}${outgoing.unit}`, className: 'meta-tag--transfer' },
     info?.Host?.BootTime && { icon: 'ri-restart-line', text: dayjs(info.Host.BootTime * 1000).format('MM-DD HH:mm'), className: 'meta-tag--boot' },
-    info?.LastActive && { icon: 'ri-time-line', text: dayjs(info.LastActive).format('MM-DD HH:mm'), className: 'meta-tag--active' },
+    info?.LastActive && { icon: 'ri-time-line', text: dayjs(normalizeTimestamp(info.LastActive)).format('MM-DD HH:mm'), className: 'meta-tag--active' },
     ...planTags(info).map((text) => ({ icon: 'ri-price-tag-3-line', text, className: 'meta-tag--tag' })),
   ].filter(Boolean);
 

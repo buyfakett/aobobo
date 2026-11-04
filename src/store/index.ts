@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
-import dayjs from 'dayjs';
 import config from '@/config';
+import { normalizeTimestamp } from '@/utils/date';
 import {
   loadAvailability,
   loadServerGroup as loadNezhaV1ServerGroup,
@@ -46,8 +46,10 @@ function emitChange() {
 }
 
 function isOnline(lastActive: any, currentTime = Date.now()) {
-  const lastActiveTime = dayjs(lastActive)?.valueOf?.() || 0;
-  return currentTime - lastActiveTime > 10 * 1000 ? -1 : 1;
+  const lastActiveTime = normalizeTimestamp(lastActive);
+  if (!lastActiveTime) return -1;
+  const normalizedCurrentTime = normalizeTimestamp(currentTime, Date.now());
+  return normalizedCurrentTime - lastActiveTime > 10 * 1000 ? -1 : 1;
 }
 
 function resolveOnline(server: any, currentTime = Date.now()) {
@@ -171,10 +173,11 @@ const actions: Record<string, (_payload?: any) => any> = {
     watchingWs = true;
     msg.on('servers', (result) => {
       if (!result) return;
-      if (result.now) commit('SET_SERVER_TIME', result.now);
+      const currentTime = normalizeTimestamp(result.now, Date.now());
+      commit('SET_SERVER_TIME', currentTime);
       const servers = result.servers?.map?.((server) => ({
         ...server,
-        online: resolveOnline(server, result.now),
+        online: resolveOnline(server, currentTime),
       })) || [];
       if (firstSetServers) {
         firstSetServers = false;
