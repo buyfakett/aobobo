@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import { defineConfig } from '@rsbuild/core';
 import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginTailwindcss } from '@rsbuild/plugin-tailwindcss';
+import { RsdoctorRspackPlugin } from '@rsdoctor/core';
 import packageJson from './package.json' with { type: 'json' };
 import { createAoboboDevProxy } from './rsbuild.dev-proxy';
 
@@ -40,6 +41,20 @@ export default defineConfig({
   output: {
     assetPrefix,
     dataUriLimit: 8192,
+  },
+  tools: {
+    rspack: {
+      plugins: [
+        process.env.RSDOCTOR === 'true' && new RsdoctorRspackPlugin({
+          disableClientServer: true,
+          output: {
+            mode: 'brief',
+            reportDir: path.resolve(import.meta.dirname, 'node_modules/.cache/rsdoctor'),
+            options: { type: ['html', 'json'] },
+          },
+        }),
+      ],
+    },
   },
   performance: {
     chunkSplit: {

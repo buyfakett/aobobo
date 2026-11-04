@@ -146,10 +146,17 @@ CF_ACCESS_CLIENT_SECRET=
 | --- | --- |
 | `pnpm run dev` | 启动 Rsbuild 开发服务 |
 | `pnpm run build` | 构建哪吒 v1 生产版本 |
+| `pnpm run build:analyze` | 构建生产版本并生成 Rsdoctor 离线分析报告 |
 | `pnpm run preview` | 预览生产构建 |
 | `pnpm run lint` | 运行 Rslint |
 | `pnpm run lint:fix` | 自动修复 Rslint 问题 |
 | `pnpm run typecheck` | 运行 TypeScript 类型检查 |
+
+### 构建性能分析
+
+运行 `pnpm run build:analyze` 可启用 Rsdoctor，查看构建耗时、产物体积、模块依赖和重复依赖。命令兼容 Windows、macOS 和 Linux，完成后可直接用浏览器打开 `node_modules/.cache/rsdoctor/rsdoctor-report.html`，原始分析数据保存在同目录的 `rsdoctor-data.json`。
+
+分析过程不会自动启动报告服务或打开浏览器，报告也不会混入 `dist` 部署产物。普通 `pnpm run build` 不启用 Rsdoctor。Rsdoctor 分析的是构建过程和打包产物；页面运行时的 GPU 占用需结合浏览器 Performance 工具检查 WebGL 渲染和动画。
 
 ## 项目结构
 

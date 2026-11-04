@@ -22,6 +22,8 @@ const config: { aobobo: Record<string, any> } = {
     hideDetailCycleTransfer: false,
     hideDetailServerGlobe: false,
     globeActivityEffects: true,
+    globeMaxFps: 30,
+    globePixelRatio: 1.25,
     monitorRefreshTime: 30,
     monitorChartType: 'multi',
     monitorChartTypeToggle: true,

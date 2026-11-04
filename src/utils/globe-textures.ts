@@ -1,11 +1,12 @@
 import worldLandData from '@/assets/globe/world-land.json';
+import config from '@/config';
 
 const BASE_TEXTURE_WIDTH = 4096;
 const MIN_TEXTURE_WIDTH = 2048;
 // A full-screen Retina WebGL canvas at DPR 2 contains four times as many pixels
 // as its CSS size. This cap keeps the globe sharp without redrawing an oversized
 // multi-megapixel surface on every animated frame.
-const MAX_RENDERER_PIXEL_RATIO = 1.5;
+const MAX_RENDERER_PIXEL_RATIO = 1.25;
 
 let cachedLandPolygons: any[] | null = null;
 
@@ -105,7 +106,11 @@ export function getGlobeRendererPixelRatio() {
   }
 
   const dpr = Number(window.devicePixelRatio) || 1;
-  return Math.min(Math.max(dpr, 1), MAX_RENDERER_PIXEL_RATIO);
+  const requestedRatio = Number(config.aobobo.globePixelRatio);
+  const maxRatio = Number.isFinite(requestedRatio) && requestedRatio > 0
+    ? Math.min(2, Math.max(0.75, requestedRatio))
+    : MAX_RENDERER_PIXEL_RATIO;
+  return Math.min(Math.max(dpr, 1), maxRatio);
 }
 
 export function getPreferredGlobeTextureSize(options: { maxWidth?: number } = {}) {

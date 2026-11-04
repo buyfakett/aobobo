@@ -8,6 +8,7 @@ import { DetailPanel } from '@/components/react/Common';
 import LineChart from '@/components/react/LineChart';
 
 const REALTIME = 'realtime';
+const PERCENT_Y_AXIS = { max: 100 };
 const METRICS = ['cpu', 'memory', 'swap', 'disk', 'process_count', 'net_in_speed', 'net_out_speed', 'tcp_conn', 'udp_conn'];
 const RANGES = [
   { label: '实时', value: REALTIME },
@@ -90,7 +91,7 @@ function buildSeries(history, ...definitions) {
   }));
 }
 
-function MetricCard({ title, summary, details = [], series, yAxis = {}, loading, emptyText }: {
+function MetricCard({ title, summary, details = [], series, yAxis, loading, emptyText }: {
   title: string;
   summary?: string;
   details?: Array<{ label: string; value: string; detail?: string; color: string }>;
@@ -176,7 +177,10 @@ export default function ResourceHistory({ info }) {
       const result = rawResult as MetricHistory;
       if (serial !== requestRef.current) return;
       if (Number(range) <= 1440) {
-        const latest = Math.max(...Object.values(result).flat().map((point) => point.ts), 0);
+        let latest = 0;
+        for (const points of Object.values(result)) {
+          for (const point of points) latest = Math.max(latest, point.ts);
+        }
         const cutoff = latest - Number(range) * 60000;
         setHistory(Object.fromEntries(Object.entries(result).map(([key, points]) => [key, points.filter((point) => point.ts >= cutoff)])));
       } else setHistory(result);
@@ -187,23 +191,32 @@ export default function ResourceHistory({ info }) {
   }, [canHistory, info?.ID, metricInfo, range]);
 
   const active = range === REALTIME ? live : history;
+  // Current summary values change with each push; historical chart data does not.
+  const chartSeries = useMemo(() => ({
+    cpu: buildSeries(active, ['cpu', 'CPU']),
+    memory: buildSeries(active, ['memory', '内存'], ['swap', '交换']),
+    disk: buildSeries(active, ['disk', '磁盘']),
+    processes: buildSeries(active, ['process_count', '进程']),
+    network: buildSeries(active, ['net_in_speed', '上传'], ['net_out_speed', '下载']),
+    connections: buildSeries(active, ['tcp_conn', 'TCP'], ['udp_conn', 'UDP']),
+  }), [active]);
   const cards = useMemo(() => [
-    { title: 'CPU', summary: formatNumber(info?.State?.CPU, '%'), series: buildSeries(active, ['cpu', 'CPU']), yAxis: { max: 100 } },
+    { title: 'CPU', summary: formatNumber(info?.State?.CPU, '%'), series: chartSeries.cpu, yAxis: PERCENT_Y_AXIS },
     { title: '内存 / 交换', details: [
       { label: '内存', value: formatBytes(info?.State?.MemUsed), detail: `/ ${formatBytes(info?.Host?.MemTotal)}`, color: COLORS.memory },
       { label: '交换', value: info?.Host?.SwapTotal ? formatBytes(info?.State?.SwapUsed) : 'no swap', detail: info?.Host?.SwapTotal ? `/ ${formatBytes(info?.Host?.SwapTotal)}` : '', color: COLORS.swap },
-    ], series: buildSeries(active, ['memory', '内存'], ['swap', '交换']), yAxis: { max: 100 } },
-    { title: '磁盘', summary: `${formatDiskSize(info?.State?.DiskUsed) || '-'} / ${formatDiskSize(info?.Host?.DiskTotal) || '-'}`, series: buildSeries(active, ['disk', '磁盘']), yAxis: { max: 100 } },
-    { title: '进程数', summary: formatNumber(info?.State?.ProcessCount), series: buildSeries(active, ['process_count', '进程']) },
+    ], series: chartSeries.memory, yAxis: PERCENT_Y_AXIS },
+    { title: '磁盘', summary: `${formatDiskSize(info?.State?.DiskUsed) || '-'} / ${formatDiskSize(info?.Host?.DiskTotal) || '-'}`, series: chartSeries.disk, yAxis: PERCENT_Y_AXIS },
+    { title: '进程数', summary: formatNumber(info?.State?.ProcessCount), series: chartSeries.processes },
     { title: '上传 / 下载', details: [
       { label: '上传', value: `${formatBytes(info?.State?.NetInSpeed)}/s`, color: COLORS.net_in_speed },
       { label: '下载', value: `${formatBytes(info?.State?.NetOutSpeed)}/s`, color: COLORS.net_out_speed },
-    ], series: buildSeries(active, ['net_in_speed', '上传'], ['net_out_speed', '下载']) },
+    ], series: chartSeries.network },
     { title: 'TCP / UDP', details: [
       { label: 'TCP', value: formatNumber(info?.State?.TcpConnCount), color: COLORS.tcp_conn },
       { label: 'UDP', value: formatNumber(info?.State?.UdpConnCount), color: COLORS.udp_conn },
-    ], series: buildSeries(active, ['tcp_conn', 'TCP'], ['udp_conn', 'UDP']) },
-  ], [active, info]);
+    ], series: chartSeries.connections },
+  ], [chartSeries, info]);
 
   return (
     <DetailPanel className="server-detail-resource-history [padding:16px_18px_18px] max-[768px]:[padding:12px_14px]">

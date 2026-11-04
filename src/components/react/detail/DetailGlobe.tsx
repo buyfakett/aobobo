@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef } from 'react';
-import * as echarts from 'echarts';
-import 'echarts-gl';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import echarts from '@/utils/echarts';
+import '@/utils/echarts-globe';
+import { manageGlobeRendering } from '@/utils/globe-renderer';
 import {
   createGlobeOceanMap,
   getGlobeRendererPixelRatio,
@@ -33,6 +34,7 @@ function buildOption(location, theme) {
   const lng = Number(location?.lng);
   return {
     backgroundColor: 'transparent',
+    animation: false,
     globe: {
       baseTexture: getTexture(theme),
       shading: 'color',
@@ -114,6 +116,8 @@ function buildOption(location, theme) {
 export default function DetailGlobe({ location, theme = 'dark' }) {
   const chartRef = useRef(null);
   const instanceRef = useRef(null);
+  const previousOptionRef = useRef(null);
+  const [renderActive, setRenderActive] = useState(false);
   const lat = Number(location?.lat);
   const lng = Number(location?.lng);
   const validLocation = Number.isFinite(lat) && Number.isFinite(lng);
@@ -131,12 +135,12 @@ export default function DetailGlobe({ location, theme = 'dark' }) {
         devicePixelRatio: getGlobeRendererPixelRatio(),
       });
       instanceRef.current = chart;
-      const observer = new ResizeObserver(() => chart.resize());
-      observer.observe(chartRef.current);
+      const renderer = manageGlobeRendering(chart, chartRef.current, setRenderActive);
       return () => {
-        observer.disconnect();
+        renderer.dispose();
         chart.dispose();
         instanceRef.current = null;
+        previousOptionRef.current = null;
       };
     } catch (error) {
       console.error('Failed to initialize detail globe:', error);
@@ -145,9 +149,10 @@ export default function DetailGlobe({ location, theme = 'dark' }) {
   }, [validLocation]);
 
   useEffect(() => {
-    if (!instanceRef.current || !option) return;
+    if (!instanceRef.current || !option || !renderActive || previousOptionRef.current === option) return;
     instanceRef.current.setOption(option, { notMerge: true, lazyUpdate: false });
-  }, [option]);
+    previousOptionRef.current = option;
+  }, [option, renderActive]);
 
   return (
     <span className="server-detail-globe [position:relative] [display:block] [width:100%] [height:100%] [min-width:0] [overflow:visible] [border-radius:0] [pointer-events:none]" aria-hidden="true">

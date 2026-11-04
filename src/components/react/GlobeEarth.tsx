@@ -1,13 +1,14 @@
 import {
   forwardRef,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useMemo,
   useRef,
   useState,
 } from 'react';
-import * as echarts from 'echarts';
-import 'echarts-gl';
+import echarts from '@/utils/echarts';
+import '@/utils/echarts-globe';
 import {
   createGlobeOceanMap,
   getGlobeRendererPixelRatio,
@@ -22,6 +23,7 @@ import {
 import { formatLocationLocalTime } from '@/utils/location-time';
 import { loadGlobeView, persistGlobeView } from '@/utils/globe-view';
 import { DEFAULT_AUTO_ROTATE, DEFAULT_ROTATE_SPEED } from '@/utils/globe-rotation';
+import { manageGlobeRendering, type GlobeRenderController } from '@/utils/globe-renderer';
 import useMediaQuery from '@/hooks/useMediaQuery';
 import ServerCard from '@/components/react/ServerCard';
 import type { AnyCallback, GlobeEarthHandle } from '@/types/ui';
@@ -38,6 +40,7 @@ type GlobeEarthProps = {
   autoRotate?: boolean;
   rotateSpeed?: number;
   showServerConnections?: boolean;
+  active?: boolean;
   onSelectServer?: AnyCallback;
 };
 
@@ -80,37 +83,44 @@ function markerSize(count) {
   return 10;
 }
 
-function buildOption({ locations, theme, autoRotate, rotateSpeed, showServerConnections, isMobile, view }) {
-  const colors = THEME_COLORS[theme] || THEME_COLORS.dark;
+function buildMarkerSeries(locations, theme) {
   const onlineColor = theme === 'light' ? '#ffae00' : '#eaf4fc';
   const offlineColor = theme === 'light' ? '#9aa3af' : '#6d7888';
   const markerData = locations.map((location) => {
-    const onlineCount = location.servers.filter((server) => server.online === 1).length;
+    const online = location.online;
     return {
       value: [location.lng, location.lat, 0.015],
       name: location.label,
-      location,
-      symbolSize: markerSize(location.servers.length),
+      locationKey: location.key,
+      symbolSize: markerSize(location.count),
       itemStyle: {
-        color: onlineCount > 0 ? onlineColor : offlineColor,
-        opacity: onlineCount > 0 ? 1 : 0.72,
-        borderWidth: onlineCount > 0 ? 2 : 1,
-        borderColor: onlineCount > 0
+        color: online ? onlineColor : offlineColor,
+        opacity: online ? 1 : 0.72,
+        borderWidth: online ? 2 : 1,
+        borderColor: online
           ? (theme === 'light' ? 'rgba(255,174,0,.35)' : 'rgba(46,207,255,.45)')
           : 'rgba(148,163,184,.25)',
       },
     };
   });
-  const activity = (buildActivitySeriesOptions as any)({
-    locations,
-    colors: { connection: theme === 'light' ? '#5278d7' : '#89c3eb' },
-    isMobile,
-    enabled: showServerConnections,
-    theme,
-  });
+  return {
+    id: 'server-markers',
+    type: 'scatter3D',
+    coordinateSystem: 'globe',
+    name: '服务器',
+    symbol: 'circle',
+    symbolSize: (_value, params) => params.data.symbolSize,
+    emphasis: { itemStyle: { opacity: 1, borderWidth: 4 } },
+    data: markerData,
+  };
+}
+
+function buildOption({ theme, autoRotate, rotateSpeed, isMobile, view }) {
+  const colors = THEME_COLORS[theme] || THEME_COLORS.dark;
 
   return {
     backgroundColor: 'transparent',
+    animation: false,
     globe: {
       baseTexture: getTexture(theme),
       shading: 'color',
@@ -155,17 +165,6 @@ function buildOption({ locations, theme, autoRotate, rotateSpeed, showServerConn
         data: getCoastlines(),
       },
       createAltitudeAnchorSeries(),
-      ...activity,
-      {
-        id: 'server-markers',
-        type: 'scatter3D',
-        coordinateSystem: 'globe',
-        name: '服务器',
-        symbol: 'circle',
-        symbolSize: (_value, params) => params.data.symbolSize,
-        emphasis: { itemStyle: { opacity: 1, borderWidth: 4 } },
-        data: markerData,
-      },
     ],
   };
 }
@@ -177,32 +176,62 @@ const GlobeEarth = forwardRef<GlobeEarthHandle, GlobeEarthProps>(function GlobeE
   autoRotate = DEFAULT_AUTO_ROTATE,
   rotateSpeed = DEFAULT_ROTATE_SPEED,
   showServerConnections = true,
+  active = true,
   onSelectServer,
 }, ref) {
   const rootRef = useRef(null);
   const chartRef = useRef(null);
   const instanceRef = useRef(null);
-  const globeOptionKeyRef = useRef('');
-  const viewRef = useRef(loadGlobeView());
+  const rendererRef = useRef<GlobeRenderController>(null);
+  const previousOptionsRef = useRef(null);
+  const [initialView] = useState(loadGlobeView);
+  const viewRef = useRef(initialView);
   const persistTimerRef = useRef(null);
+  const pendingFocusRef = useRef(null);
   const locationsRef = useRef(locations);
   const onSelectServerRef = useRef(onSelectServer);
   const [ready, setReady] = useState(false);
+  const [renderActive, setRenderActive] = useState(false);
   const [error, setError] = useState(false);
   const [selected, setSelected] = useState(null);
+  const hasSelection = Boolean(selected);
   const [clock, setClock] = useState(Date.now());
   const isMobile = useMediaQuery('(max-width: 768px)');
   locationsRef.current = locations;
   onSelectServerRef.current = onSelectServer;
+  // Runtime metrics belong to the popup/list, not to WebGL geometry. Only the
+  // fields affecting marker appearance and connection topology invalidate it.
+  const markerSnapshot = JSON.stringify(locations.map((location) => ({
+    key: location.key || location.code,
+    lat: location.lat,
+    lng: location.lng,
+    label: location.label,
+    count: location.servers.length,
+    online: location.servers.some((server) => server.online === 1),
+  })));
+  const connectionSnapshot = JSON.stringify(locations.map((location) => ({
+    key: location.key || location.code,
+    country: location.country,
+    lat: location.lat,
+    lng: location.lng,
+  })));
+  const markerSeries = useMemo(
+    () => buildMarkerSeries(JSON.parse(markerSnapshot), theme),
+    [markerSnapshot, theme],
+  );
+  const activitySeries = useMemo(() => buildActivitySeriesOptions({
+    locations: JSON.parse(connectionSnapshot),
+    isMobile,
+    enabled: showServerConnections,
+    theme,
+  }), [connectionSnapshot, isMobile, showServerConnections, theme]);
   const option = useMemo(() => buildOption({
-    locations,
     theme,
     autoRotate,
     rotateSpeed,
-    showServerConnections,
     isMobile,
     view: viewRef.current,
-  }), [autoRotate, isMobile, locations, rotateSpeed, showServerConnections, theme]);
+  }), [autoRotate, isMobile, rotateSpeed, theme]);
 
   const syncView = () => {
     const view = getLiveGlobeView(instanceRef.current);
@@ -218,29 +247,34 @@ const GlobeEarth = forwardRef<GlobeEarthHandle, GlobeEarthProps>(function GlobeE
     }, VIEW_PERSIST_DELAY);
   };
 
+  const focusLocation = useCallback((location, highlight = false) => {
+    if (!instanceRef.current || !location) return false;
+    // The detail drawer finishes its exit animation after navigation to Home.
+    // Keep its "view on globe" request until the globe can render again.
+    if (!rendererRef.current?.isActive()) {
+      pendingFocusRef.current = { location, highlight };
+      return true;
+    }
+    pendingFocusRef.current = null;
+    viewRef.current = { lat: location.lat, lng: location.lng, distance: 135 };
+    rendererRef.current.setAutoRotate(false);
+    instanceRef.current.setOption({
+      globe: { viewControl: { targetCoord: [location.lng, location.lat], distance: 135, autoRotate: false } },
+    });
+    persistGlobeView(viewRef.current);
+    if (highlight) {
+      const key = location.key || location.code;
+      setSelected(locationsRef.current.find((item) => (item.key || item.code) === key) || location);
+    }
+    return true;
+  }, []);
+
   useImperativeHandle(ref, () => ({
     ready: () => Promise.resolve(Boolean(instanceRef.current)),
-    focusLocation(location) {
-      if (!instanceRef.current || !location) return false;
-      viewRef.current = { lat: location.lat, lng: location.lng, distance: 135 };
-      instanceRef.current.setOption({
-        globe: { viewControl: { targetCoord: [location.lng, location.lat], distance: 135, autoRotate: false } },
-      });
-      persistGlobeView(viewRef.current);
-      return true;
-    },
-    async focusLocationWithHighlight(location) {
-      if (!instanceRef.current || !location) return false;
-      viewRef.current = { lat: location.lat, lng: location.lng, distance: 135 };
-      instanceRef.current.setOption({
-        globe: { viewControl: { targetCoord: [location.lng, location.lat], distance: 135, autoRotate: false } },
-      });
-      persistGlobeView(viewRef.current);
-      setSelected(location);
-      return true;
-    },
+    focusLocation,
+    focusLocationWithHighlight: async (location) => focusLocation(location, true),
     clearFocusBubble: () => setSelected(null),
-  }), []);
+  }), [focusLocation]);
 
   useEffect(() => {
     if (!chartRef.current) return undefined;
@@ -253,7 +287,7 @@ const GlobeEarth = forwardRef<GlobeEarthHandle, GlobeEarthProps>(function GlobeE
       instanceRef.current = chart;
       chart.on('click', (params) => {
         if (params.seriesId !== 'server-markers') return;
-        const locationKey = params.data?.location?.key || params.data?.location?.code;
+        const locationKey = params.data?.locationKey;
         const location = locationsRef.current.find((item) => (
           (item.key || item.code) === locationKey
         ));
@@ -261,16 +295,17 @@ const GlobeEarth = forwardRef<GlobeEarthHandle, GlobeEarthProps>(function GlobeE
         if (location.servers?.length === 1) onSelectServerRef.current?.(location.servers[0]);
         else setSelected(location);
       });
-      const observer = new ResizeObserver(() => chart.resize());
-      observer.observe(chartRef.current);
+      const renderer = manageGlobeRendering(chart, chartRef.current, setRenderActive);
+      rendererRef.current = renderer;
       setReady(true);
       setError(false);
       return () => {
         window.clearTimeout(persistTimerRef.current);
-        observer.disconnect();
+        renderer.dispose();
         chart.dispose();
         instanceRef.current = null;
-        globeOptionKeyRef.current = '';
+        rendererRef.current = null;
+        previousOptionsRef.current = null;
       };
     } catch (initError) {
       console.error('Failed to initialize globe:', initError);
@@ -278,6 +313,10 @@ const GlobeEarth = forwardRef<GlobeEarthHandle, GlobeEarthProps>(function GlobeE
       return undefined;
     }
   }, []);
+
+  useEffect(() => {
+    rendererRef.current?.setEnabled(active);
+  }, [active, ready]);
 
   useEffect(() => {
     setSelected((current) => {
@@ -288,9 +327,12 @@ const GlobeEarth = forwardRef<GlobeEarthHandle, GlobeEarthProps>(function GlobeE
   }, [locations]);
 
   useEffect(() => {
-    if (!instanceRef.current) return;
-    const globeOptionKey = `${theme}:${isMobile}:${autoRotate}:${rotateSpeed}`;
-    const globeChanged = globeOptionKeyRef.current !== globeOptionKey;
+    if (!instanceRef.current || !active || !renderActive) return;
+    const previous = previousOptionsRef.current;
+    const globeChanged = previous?.option !== option;
+    const markersChanged = previous?.markerSeries !== markerSeries;
+    const connectionsChanged = previous?.activitySeries !== activitySeries;
+    if (!globeChanged && !markersChanged && !connectionsChanged) return;
     const liveView = syncView() || viewRef.current;
     const viewControl = liveView ? {
       targetCoord: [liveView.lng, liveView.lat],
@@ -301,29 +343,40 @@ const GlobeEarth = forwardRef<GlobeEarthHandle, GlobeEarthProps>(function GlobeE
     const nextOption = globeChanged
       ? {
         ...option,
+        series: [...option.series, ...activitySeries, markerSeries],
         globe: viewControl
           ? { ...option.globe, viewControl: { ...option.globe.viewControl, ...viewControl } }
           : option.globe,
       }
       : {
-        series: option.series,
-        ...(viewControl ? { globe: { viewControl } } : {}),
+        series: [
+          ...(connectionsChanged ? activitySeries : []),
+          ...(markersChanged ? [markerSeries] : []),
+        ],
       };
+    if (globeChanged) rendererRef.current?.setAutoRotate(autoRotate);
     instanceRef.current.setOption(
       nextOption,
       {
         notMerge: false,
-        replaceMerge: ['series'],
         lazyUpdate: !globeChanged,
       },
     );
-    globeOptionKeyRef.current = globeOptionKey;
-  }, [autoRotate, isMobile, option, ready, rotateSpeed, theme]);
+    previousOptionsRef.current = { option, markerSeries, activitySeries };
+  }, [active, activitySeries, autoRotate, markerSeries, option, ready, renderActive, rotateSpeed]);
 
   useEffect(() => {
+    if (!active || !renderActive || !pendingFocusRef.current) return;
+    const { location, highlight } = pendingFocusRef.current;
+    focusLocation(location, highlight);
+  }, [active, focusLocation, renderActive]);
+
+  useEffect(() => {
+    if (!hasSelection || !renderActive) return undefined;
+    setClock(Date.now());
     const timer = window.setInterval(() => setClock(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [hasSelection, renderActive]);
 
   return (
     <div
