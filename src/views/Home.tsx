@@ -12,7 +12,12 @@ import { resolveServerLocation, clusterLocations } from '@/utils/world-map';
 import { calcDiskDisplay, calcTransfer, getCPUInfo, getSystemOSLabel } from '@/utils/host';
 import { loadCycleTransferMap } from '@/utils/cycle-transfer';
 import billing from '@/utils/billing';
-import { formatCurrencyValue, parseBillingCostAmount } from '@/utils/exchange-rate';
+import {
+  formatCurrencyValue,
+  loadExchangeRatesForCurrencies,
+  normalizeCurrencyCode,
+  parseBillingCostAmount,
+} from '@/utils/exchange-rate';
 import {
   compareServerOnlineStatus,
   defaultServerSortConfig,
@@ -73,15 +78,30 @@ function buildLocations(servers) {
   })));
 }
 
-function aggregateStats(servers, groups, serverCount) {
+function formatExchangeRateTime(timestamp) {
+  if (!timestamp) return '';
+  const value = new Date(timestamp);
+  if (Number.isNaN(value.getTime())) return '';
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  const hour = String(value.getHours()).padStart(2, '0');
+  const minute = String(value.getMinutes()).padStart(2, '0');
+  return `${month}-${day} ${hour}:${minute}`;
+}
+
+function aggregateStats(servers, groups, serverCount, exchangeRateState) {
   let memory = 0;
   let disk = 0;
   let incoming = 0;
   let outgoing = 0;
   let cores = 0;
   let monthlyCost = 0;
+  let ignoredCostCount = 0;
+  let unconvertedCostCount = 0;
   const brands: Record<string, number> = {};
-  const targetCurrency = config.aobobo.statsCostCurrency || 'CNY';
+  const targetCurrency = normalizeCurrencyCode(config.aobobo.statsCostCurrency || 'CNY');
+  const sourceCurrencies = new Set([targetCurrency]);
+  const exchangeRates = exchangeRateState?.rates || {};
   servers.forEach((server) => {
     memory += Number(server.Host?.MemTotal) || 0;
     disk += Number(server.Host?.DiskTotal) || 0;
@@ -95,12 +115,33 @@ function aggregateStats(servers, groups, serverCount) {
     const billingData = server.PublicNote?.billingDataMod;
     if (billingData?.amount !== undefined) {
       const parsed = parseBillingCostAmount(billingData.amount, config.aobobo.defaultCostCurrency || 'CNY');
-      if (parsed.type === 'fixed' && parsed.currency === targetCurrency) {
-        monthlyCost += parsed.value / Math.max(billing.getCycleMonths(billingData.cycle), 1);
+      if (parsed.type === 'fixed') {
+        sourceCurrencies.add(parsed.currency);
+        const rate = parsed.currency === targetCurrency
+          ? 1
+          : Number(exchangeRates[parsed.currency]?.rate);
+        if (Number.isFinite(rate) && rate > 0) {
+          monthlyCost += (parsed.value * rate) / Math.max(billing.getCycleMonths(billingData.cycle), 1);
+        } else {
+          unconvertedCostCount += 1;
+        }
+      } else if (parsed.type === 'metered' || parsed.type === 'invalid') {
+        ignoredCostCount += 1;
       }
     }
   });
   const ids = new Set(servers.map((server) => String(server.ID)));
+  const currencies = [...sourceCurrencies]
+    .sort((a, b) => (a === targetCurrency ? -1 : b === targetCurrency ? 1 : a.localeCompare(b)));
+  const hasExternalCurrency = currencies.some((currency) => currency !== targetCurrency);
+  let rateStatus = '无需汇率';
+  if (exchangeRateState?.disabled && hasExternalCurrency) rateStatus = '汇率已关闭';
+  else if (exchangeRateState?.loading) rateStatus = '汇率更新中';
+  else if (exchangeRateState?.error) rateStatus = '汇率更新失败';
+  else if (unconvertedCostCount > 0) rateStatus = '部分未换算';
+  else if (exchangeRateState?.staleCurrencies?.length > 0) rateStatus = '使用缓存汇率';
+  else if (hasExternalCurrency) rateStatus = exchangeRateState?.updatedAt ? '汇率已更新' : '汇率已缓存';
+  else if (ignoredCostCount > 0) rateStatus = '含未计入项';
   return {
     totalServers: serverCount.total,
     onlineServers: serverCount.online,
@@ -116,6 +157,17 @@ function aggregateStats(servers, groups, serverCount) {
     monthlyCost: monthlyCost > 0 ? formatCurrencyValue(monthlyCost, targetCurrency) : '',
     yearlyCost: monthlyCost > 0 ? formatCurrencyValue(monthlyCost * 12, targetCurrency) : '',
     costCurrency: targetCurrency,
+    costSummary: {
+      sourceCurrencies: currencies,
+      ignoredCount: ignoredCostCount,
+      unconvertedCount: unconvertedCostCount,
+      exchangeRate: {
+        loading: Boolean(exchangeRateState?.loading),
+        statusText: rateStatus,
+        updatedAtText: formatExchangeRateTime(exchangeRateState?.updatedAt),
+        warning: Boolean(exchangeRateState?.error || unconvertedCostCount > 0),
+      },
+    },
   };
 }
 
@@ -138,6 +190,19 @@ export default function Home() {
   const [cycleTransferMap, setCycleTransferMap] = useState({});
   const [statsOpen, setStatsOpen] = useState(false);
   const [allHostsOpen, setAllHostsOpen] = useState(false);
+  const targetCostCurrency = normalizeCurrencyCode(config.aobobo.statsCostCurrency || 'CNY');
+  const [exchangeRateState, setExchangeRateState] = useState(() => ({
+    targetCurrency: targetCostCurrency,
+    rates: { [targetCostCurrency]: { rate: 1 } },
+    loading: false,
+    missingCurrencies: [],
+    staleCurrencies: [],
+    fetchedCurrencies: [],
+    cachedCurrencies: [],
+    updatedAt: 0,
+    disabled: config.aobobo.exchangeRateEnabled === false,
+    error: '',
+  }));
   const savedRotation = useMemo(() => loadGlobeRotation(), []);
   const [autoRotate, setAutoRotate] = useState(savedRotation.autoRotate);
   const [rotateSpeed, setRotateSpeed] = useState(savedRotation.rotateSpeed);
@@ -160,6 +225,51 @@ export default function Home() {
   useEffect(() => {
     persistGlobeRotation({ autoRotate, rotateSpeed, showServerConnections: connections });
   }, [autoRotate, connections, rotateSpeed]);
+
+  const requiredCostCurrencies = useMemo(() => {
+    const currencies = new Set();
+    appState.serverList.forEach((server) => {
+      const amount = server.PublicNote?.billingDataMod?.amount;
+      if (amount === undefined || amount === null || amount === '') return;
+      const parsed = parseBillingCostAmount(amount, config.aobobo.defaultCostCurrency || 'CNY');
+      if (parsed.type === 'fixed' && parsed.currency !== targetCostCurrency) {
+        currencies.add(parsed.currency);
+      }
+    });
+    return [...currencies].sort();
+  }, [appState.serverList, targetCostCurrency]);
+  const requiredCostCurrencySignature = requiredCostCurrencies.join(',');
+
+  useEffect(() => {
+    let active = true;
+    const currencies = requiredCostCurrencySignature
+      ? requiredCostCurrencySignature.split(',')
+      : [];
+    setExchangeRateState((state) => ({
+      ...state,
+      targetCurrency: targetCostCurrency,
+      loading: config.aobobo.exchangeRateEnabled !== false && currencies.length > 0,
+      disabled: config.aobobo.exchangeRateEnabled === false,
+      error: '',
+    }));
+    loadExchangeRatesForCurrencies(currencies, targetCostCurrency, {
+      enabled: config.aobobo.exchangeRateEnabled !== false,
+      apiBase: config.aobobo.exchangeRateApiBase,
+      cacheHours: config.aobobo.exchangeRateCacheHours,
+    }).then((result) => {
+      if (active) setExchangeRateState({ ...result, loading: false });
+    }).catch((error) => {
+      if (active) {
+        setExchangeRateState((state) => ({
+          ...state,
+          loading: false,
+          error: error?.message || '汇率更新失败',
+        }));
+      }
+      console.error('Failed to load exchange rates:', error);
+    });
+    return () => { active = false; };
+  }, [requiredCostCurrencySignature, targetCostCurrency]);
 
   useEffect(() => {
     if (!appState.init || !serverIds) return undefined;
@@ -238,7 +348,10 @@ export default function Home() {
       netInSpeed: calcTransfer(total.inSpeed), netOutSpeed: calcTransfer(total.outSpeed),
     };
   }, [appState.serverList]);
-  const detailStats = useMemo(() => aggregateStats(appState.serverList, appState.serverGroup, appState.serverCount), [appState.serverCount, appState.serverGroup, appState.serverList]);
+  const detailStats = useMemo(
+    () => aggregateStats(appState.serverList, appState.serverGroup, appState.serverCount, exchangeRateState),
+    [appState.serverCount, appState.serverGroup, appState.serverList, exchangeRateState],
+  );
 
   const detailId = routeServerId || legacyDetailId;
   const detailServer = appState.serverList.find((server) => String(server.ID) === detailId);

@@ -15,6 +15,7 @@ import {
 import { resolveServerLocation } from '@/utils/world-map';
 import { getBillAndPlanByServer } from '@/composables/server-bill-and-plan';
 import DetailGlobe from '@/components/react/detail/DetailGlobe';
+import { duration } from '@/utils/date';
 
 function capacityLabel(info) {
   const mem = calcBinary(info?.Host?.MemTotal || 0);
@@ -41,9 +42,19 @@ function billLabel(item) {
   return item.label ? `${item.label} ${item.value}` : String(item.value);
 }
 
+function remainingClass(item) {
+  if (!item) return '';
+  if (item.type === 'expired') return 'remaining-status--danger';
+  if (item.type === 'infinity') return 'remaining-status--success';
+  if (item.value2 <= 7) return 'remaining-status--danger';
+  if (item.value2 <= 30) return 'remaining-status--warning';
+  return 'remaining-status--success';
+}
+
 export default function DetailHeader({ info }) {
   const navigate = useNavigate();
   const showAvailability = useStore((state) => state.showAvailability);
+  const serverTime = useStore((state) => state.serverTime);
   const theme = useStore((state) => state.resolvedTheme);
   const cpuInfo = getCPUInfo(info?.Host?.CPU?.[0] || '');
   const location = resolveServerLocation(info);
@@ -55,14 +66,19 @@ export default function DetailHeader({ info }) {
   const incoming = calcTransfer(Number(info?.State?.NetInTransfer) || 0);
   const outgoing = calcTransfer(Number(info?.State?.NetOutTransfer) || 0);
   const hasTransfer = Number(info?.State?.NetInTransfer) || Number(info?.State?.NetOutTransfer);
+  const uptimeEnd = info?.LastActive ? new Date(info.LastActive).getTime() : serverTime;
+  const uptime = info?.Host?.BootTime && uptimeEnd
+    ? duration(info.Host.BootTime * 1000, uptimeEnd, true)
+    : '';
   const tags = [
     location && { icon: 'ri-map-pin-line', text: location.name || location.code, className: 'meta-tag--region' },
     info?.Host?.Platform && { icon: getPlatformLogoIconClassName(info.Host.Platform), text: getSystemOSLabel(info.Host.Platform), className: 'meta-tag--os' },
     info?.Host?.CPU?.[0] && { icon: 'ri-cpu-line', text: formatCPUText(info.Host.CPU[0]), className: 'meta-tag--cpu' },
     capacityLabel(info) && { icon: 'ri-ram-line', text: capacityLabel(info), className: 'meta-tag--storage' },
     info?.Host?.PlatformVersion && { icon: 'ri-information-line', text: info.Host.PlatformVersion, className: 'meta-tag--version' },
+    uptime && { icon: 'ri-time-line', text: `在线 ${uptime}`, className: 'meta-tag--uptime' },
     billLabel(bill.billing) && { icon: 'ri-wallet-3-line', text: billLabel(bill.billing), className: 'meta-tag--billing' },
-    billLabel(bill.remainingTime) && { icon: 'ri-calendar-check-line', text: billLabel(bill.remainingTime), className: 'meta-tag--remaining' },
+    billLabel(bill.remainingTime) && { icon: 'ri-calendar-check-line', text: billLabel(bill.remainingTime), className: `meta-tag--remaining ${remainingClass(bill.remainingTime)}` },
     billLabel(bill.bandwidth) && { icon: 'ri-speed-up-line', text: billLabel(bill.bandwidth), className: 'meta-tag--bandwidth' },
     billLabel(bill.traffic) && { icon: 'ri-bar-chart-box-line', text: billLabel(bill.traffic), className: 'meta-tag--traffic' },
     load && { icon: 'ri-pulse-line', text: `负载 ${load}`, className: 'meta-tag--load' },

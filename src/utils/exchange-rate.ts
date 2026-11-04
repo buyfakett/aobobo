@@ -1,4 +1,21 @@
+const CACHE_KEY = 'aobobo:exchange-rates:v1';
 const DEFAULT_TARGET_CURRENCY = 'CNY';
+const DEFAULT_API_BASE = 'https://api.frankfurter.dev/v2';
+const DEFAULT_CACHE_HOURS = 24;
+
+type ExchangeRateOptions = {
+  enabled?: boolean;
+  apiBase?: string;
+  cacheHours?: number;
+};
+
+type ExchangeRateItem = {
+  rate: number;
+  fetchedAt: number;
+  source: string;
+  date?: string;
+  stale?: boolean;
+};
 
 const CURRENCY_ALIASES = {
   CNY: 'CNY',
@@ -60,6 +77,70 @@ const CURRENCY_SYMBOLS = {
 const SORTED_ALIAS_KEYS = Object.keys(CURRENCY_ALIASES)
   .sort((a, b) => b.length - a.length);
 
+function getStorage() {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  try {
+    return window.localStorage || null;
+  } catch {
+    return null;
+  }
+}
+
+function readCache() {
+  const storage = getStorage();
+  if (!storage) {
+    return {};
+  }
+  try {
+    const data = JSON.parse(storage.getItem(CACHE_KEY) || '{}');
+    return data && typeof data === 'object' ? data : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeCache(cache) {
+  const storage = getStorage();
+  if (!storage) {
+    return;
+  }
+  try {
+    storage.setItem(CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // Exchange rate loading can continue without browser storage.
+  }
+}
+
+function pairKey(base, target) {
+  return `${base}->${target}`;
+}
+
+function toCacheHours(value) {
+  const hours = Number(value);
+  return Number.isFinite(hours) && hours > 0 ? hours : DEFAULT_CACHE_HOURS;
+}
+
+function trimApiBase(apiBase) {
+  return String(apiBase || DEFAULT_API_BASE).replace(/\/+$/, '');
+}
+
+function getCachedPair(cache, base, target, cacheHours) {
+  const item = cache[pairKey(base, target)];
+  if (!item || !Number.isFinite(Number(item.rate))) {
+    return null;
+  }
+  const fetchedAt = Number(item.fetchedAt) || 0;
+  const age = Date.now() - fetchedAt;
+  return {
+    ...item,
+    rate: Number(item.rate),
+    fetchedAt,
+    stale: age > toCacheHours(cacheHours) * 60 * 60 * 1000,
+  };
+}
+
 function compactCurrencyToken(token) {
   return String(token || '')
     .trim()
@@ -84,7 +165,7 @@ function findCurrencyToken(text) {
   return iso ? iso[0] : '';
 }
 
-function normalizeCurrencyCode(token, fallback = DEFAULT_TARGET_CURRENCY) {
+export function normalizeCurrencyCode(token, fallback = DEFAULT_TARGET_CURRENCY) {
   const compact = compactCurrencyToken(token);
   if (!compact) {
     return fallback !== undefined ? fallback : DEFAULT_TARGET_CURRENCY;
@@ -101,7 +182,7 @@ function normalizeCurrencyCode(token, fallback = DEFAULT_TARGET_CURRENCY) {
   return fallback !== undefined ? fallback : DEFAULT_TARGET_CURRENCY;
 }
 
-function getCurrencySymbol(currency) {
+export function getCurrencySymbol(currency) {
   const code = normalizeCurrencyCode(currency, DEFAULT_TARGET_CURRENCY);
   return CURRENCY_SYMBOLS[code] || `${code} `;
 }
@@ -179,4 +260,123 @@ export function formatCurrencyValue(value, currency = DEFAULT_TARGET_CURRENCY) {
     maximumFractionDigits: 2,
   });
   return `${symbol}${number}`;
+}
+
+async function fetchExchangeRate(base, target, apiBase) {
+  const url = `${trimApiBase(apiBase)}/rate/${encodeURIComponent(base)}/${encodeURIComponent(target)}`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Exchange rate request failed: ${response.status}`);
+  }
+  const data = await response.json();
+  const rate = Number(data?.rate);
+  if (!Number.isFinite(rate) || rate <= 0) {
+    throw new Error('Exchange rate response missing rate');
+  }
+  return {
+    rate,
+    date: data?.date || '',
+  };
+}
+
+export async function loadExchangeRatesForCurrencies(
+  currencies: unknown[] = [],
+  targetCurrency: unknown,
+  options: ExchangeRateOptions = {},
+) {
+  const target = normalizeCurrencyCode(targetCurrency, DEFAULT_TARGET_CURRENCY);
+  const enabled = options.enabled !== false;
+  const cacheHours = toCacheHours(options.cacheHours);
+  const apiBase = options.apiBase || DEFAULT_API_BASE;
+  const now = Date.now();
+  const cache = readCache();
+  const rates: Record<string, ExchangeRateItem> = {
+    [target]: {
+      rate: 1,
+      fetchedAt: now,
+      source: 'base',
+      date: '',
+      stale: false,
+    },
+  };
+  const missingCurrencies: string[] = [];
+  const staleCurrencies: string[] = [];
+  const fetchedCurrencies: string[] = [];
+  const cachedCurrencies: string[] = [];
+
+  const sourceCurrencies: string[] = [...new Set(currencies
+    .map((currency) => normalizeCurrencyCode(currency, ''))
+    .filter((currency) => currency && currency !== target))]
+    .sort();
+
+  if (!enabled) {
+    return {
+      targetCurrency: target,
+      rates,
+      missingCurrencies: sourceCurrencies,
+      staleCurrencies,
+      fetchedCurrencies,
+      cachedCurrencies,
+      updatedAt: 0,
+      disabled: true,
+      error: '',
+    };
+  }
+
+  await Promise.all(sourceCurrencies.map(async (base) => {
+    const cached = getCachedPair(cache, base, target, cacheHours);
+    if (cached && !cached.stale) {
+      rates[base] = {
+        ...cached,
+        source: 'cache',
+      };
+      cachedCurrencies.push(base);
+      return;
+    }
+
+    try {
+      const remote = await fetchExchangeRate(base, target, apiBase);
+      const item = {
+        rate: remote.rate,
+        fetchedAt: Date.now(),
+        source: 'frankfurter',
+        date: remote.date,
+      };
+      cache[pairKey(base, target)] = item;
+      rates[base] = {
+        ...item,
+        stale: false,
+      };
+      fetchedCurrencies.push(base);
+    } catch {
+      if (cached) {
+        rates[base] = {
+          ...cached,
+          source: 'stale-cache',
+          stale: true,
+        };
+        staleCurrencies.push(base);
+      } else {
+        missingCurrencies.push(base);
+      }
+    }
+  }));
+
+  writeCache(cache);
+
+  const updatedAt = Object.values(rates)
+    .filter((item) => item.source !== 'base')
+    .reduce((max, item) => Math.max(max, Number(item.fetchedAt) || 0), 0);
+
+  return {
+    targetCurrency: target,
+    rates,
+    missingCurrencies,
+    staleCurrencies,
+    fetchedCurrencies,
+    cachedCurrencies,
+    updatedAt,
+    disabled: false,
+    error: '',
+  };
 }

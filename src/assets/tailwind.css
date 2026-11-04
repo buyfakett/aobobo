@@ -465,16 +465,10 @@ html, body {
   box-shadow: var(--panel-row-hover-shadow);
 }
 .server-list-item.offline {
-  opacity: 0.72;
-  filter: grayscale(0.85);
+  opacity: 0.76;
 }
 .server-list-item.offline .server-list-item__name {
   color: var(--text-secondary);
-}
-.server-list-item.offline .meta-tag {
-  color: var(--text-muted);
-  background: var(--surface-subtle);
-  border-color: var(--list-tag-border);
 }
 .server-list-item__name-group .fi,
 .server-list-item__name-group .flag-placeholder {
@@ -617,19 +611,19 @@ html, body {
   background: rgba(229, 160, 38, 0.1);
 }
 .meta-tag--remaining.remaining-status--success {
-  color: var(--accent-success);
-  border-color: rgba(var(--accent-success-rgb), 0.3);
-  background: rgba(var(--accent-success-rgb), 0.1);
+  color: var(--accent-success) !important;
+  border-color: rgba(var(--accent-success-rgb), 0.3) !important;
+  background: rgba(var(--accent-success-rgb), 0.1) !important;
 }
 .meta-tag--remaining.remaining-status--warning {
-  color: var(--accent-warning);
-  border-color: rgba(229, 160, 38, 0.35);
-  background: rgba(229, 160, 38, 0.12);
+  color: var(--accent-warning) !important;
+  border-color: rgba(229, 160, 38, 0.35) !important;
+  background: rgba(229, 160, 38, 0.12) !important;
 }
 .meta-tag--remaining.remaining-status--danger {
-  color: var(--accent-danger);
-  border-color: rgba(var(--accent-danger-rgb), 0.35);
-  background: rgba(var(--accent-danger-rgb), 0.12);
+  color: var(--accent-danger) !important;
+  border-color: rgba(var(--accent-danger-rgb), 0.35) !important;
+  background: rgba(var(--accent-danger-rgb), 0.12) !important;
 }
 .meta-tag--availability i {
   display: inline-flex;
@@ -641,19 +635,19 @@ html, body {
   line-height: 1;
 }
 .meta-tag--availability.availability-status--success {
-  color: var(--accent-success);
-  border-color: rgba(var(--accent-success-rgb), 0.3);
-  background: rgba(var(--accent-success-rgb), 0.1);
+  color: var(--accent-success) !important;
+  border-color: rgba(var(--accent-success-rgb), 0.3) !important;
+  background: rgba(var(--accent-success-rgb), 0.1) !important;
 }
 .meta-tag--availability.availability-status--warning {
-  color: var(--accent-warning);
-  border-color: rgba(229, 160, 38, 0.35);
-  background: rgba(229, 160, 38, 0.12);
+  color: var(--accent-warning) !important;
+  border-color: rgba(229, 160, 38, 0.35) !important;
+  background: rgba(229, 160, 38, 0.12) !important;
 }
 .meta-tag--availability.availability-status--danger {
-  color: var(--accent-danger);
-  border-color: rgba(var(--accent-danger-rgb), 0.35);
-  background: rgba(var(--accent-danger-rgb), 0.12);
+  color: var(--accent-danger) !important;
+  border-color: rgba(var(--accent-danger-rgb), 0.35) !important;
+  background: rgba(var(--accent-danger-rgb), 0.12) !important;
 }
 
 /* ===== Detail Page ===== */
@@ -1290,6 +1284,20 @@ html, body {
   border-color: var(--button-active-border);
   box-shadow: var(--button-active-shadow);
   opacity: 1;
+}
+.globe-effects-control .effect-toggle[aria-pressed="false"] {
+  color: var(--text-muted) !important;
+  background: transparent !important;
+  border-color: var(--button-subtle-border) !important;
+  box-shadow: none !important;
+  opacity: 0.48 !important;
+}
+.globe-effects-control .effect-toggle[aria-pressed="true"] {
+  color: #fff !important;
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.98), rgba(37, 99, 235, 0.96)) !important;
+  border-color: rgba(186, 230, 253, 0.72) !important;
+  box-shadow: 0 0 0 1px rgba(var(--accent-primary-rgb), 0.28), 0 8px 18px rgba(var(--accent-primary-rgb), 0.24) !important;
+  opacity: 1 !important;
 }
 .effect-toggle:focus-visible {
   outline: 2px solid rgba(var(--accent-primary-rgb), 0.45);
@@ -2215,6 +2223,68 @@ html, body {
 }
 .server-detail-header .meta-tag--cpu, .server-detail-header .meta-tag--gpu, .server-detail-header .meta-tag--storage, .server-detail-header .meta-tag--version {
   color: var(--text-primary);
+}
+.server-list-item .meta-tag--uptime,
+.server-detail-header .meta-tag--uptime,
+.server-detail-header .meta-tag--boot {
+  color: var(--duration-color) !important;
+  border-color: rgba(var(--accent-primary-rgb), 0.28) !important;
+  background: rgba(var(--accent-primary-rgb), 0.1) !important;
+}
+.server-list-item .meta-tag--billing,
+.server-detail-header .meta-tag--billing {
+  color: var(--accent-warning) !important;
+  border-color: rgba(229, 160, 38, 0.34) !important;
+  background: rgba(229, 160, 38, 0.12) !important;
+}
+.server-detail-header .meta-tag--remaining.remaining-status--success,
+.server-detail-header .meta-tag--active {
+  color: var(--accent-success) !important;
+  border-color: rgba(var(--accent-success-rgb), 0.3) !important;
+  background: rgba(var(--accent-success-rgb), 0.1) !important;
+}
+.server-detail-header .meta-tag--remaining.remaining-status--warning {
+  color: var(--accent-warning) !important;
+  border-color: rgba(229, 160, 38, 0.35) !important;
+  background: rgba(229, 160, 38, 0.12) !important;
+}
+.server-detail-header .meta-tag--remaining.remaining-status--danger {
+  color: var(--accent-danger) !important;
+  border-color: rgba(var(--accent-danger-rgb), 0.35) !important;
+  background: rgba(var(--accent-danger-rgb), 0.12) !important;
+}
+.server-list-item .meta-tag--traffic,
+.server-detail-header .meta-tag--bandwidth,
+.server-detail-header .meta-tag--traffic,
+.server-detail-header .meta-tag--transfer {
+  color: #1497aa !important;
+  border-color: rgba(34, 184, 207, 0.32) !important;
+  background: rgba(34, 184, 207, 0.1) !important;
+}
+.server-detail-header .meta-tag--region,
+.server-detail-header .meta-tag--tag,
+.server-list-item .meta-tag--plan {
+  color: #8b5cf6 !important;
+  border-color: rgba(139, 92, 246, 0.3) !important;
+  background: rgba(139, 92, 246, 0.1) !important;
+}
+.server-detail-header .meta-tag--load {
+  color: #e35768 !important;
+  border-color: rgba(227, 87, 104, 0.3) !important;
+  background: rgba(227, 87, 104, 0.1) !important;
+}
+.server-detail-header .meta-tag--uptime i,
+.server-detail-header .meta-tag--boot i,
+.server-detail-header .meta-tag--billing i,
+.server-detail-header .meta-tag--remaining i,
+.server-detail-header .meta-tag--bandwidth i,
+.server-detail-header .meta-tag--traffic i,
+.server-detail-header .meta-tag--transfer i,
+.server-detail-header .meta-tag--region i,
+.server-detail-header .meta-tag--tag i,
+.server-detail-header .meta-tag--load i,
+.server-detail-header .meta-tag--active i {
+  color: currentColor;
 }
 
 @media screen and (max-width: 768px) {
@@ -3411,14 +3481,14 @@ html, body {
 /* src/components/server-panel/server-card.vue */
 /* 紧凑卡片的状态配色（与地点弹窗一致；全局样式不含 --status 配色） */
 .meta-tag--status.online {
-  color: var(--accent-success);
-  border-color: rgba(var(--accent-success-rgb), 0.28);
-  background: rgba(var(--accent-success-rgb), 0.08);
+  color: var(--accent-success) !important;
+  border-color: rgba(var(--accent-success-rgb), 0.28) !important;
+  background: rgba(var(--accent-success-rgb), 0.08) !important;
 }
 .meta-tag--status.offline {
-  color: var(--accent-danger);
-  border-color: rgba(var(--accent-danger-rgb), 0.28);
-  background: rgba(var(--accent-danger-rgb), 0.08);
+  color: var(--accent-danger) !important;
+  border-color: rgba(var(--accent-danger-rgb), 0.28) !important;
+  background: rgba(var(--accent-danger-rgb), 0.08) !important;
 }
 
 /* src/components/server-panel/server-table.vue */
@@ -5054,6 +5124,22 @@ html.sidebar-resizing * {
 .app-modal-overlay.is-visible .all-hosts-modal {
   opacity: 1;
   transform: translateY(0) scale(1);
+}
+
+/* Keep close controls visibly interactive even when utility colors are present. */
+:is(
+  .react-modal__close,
+  .stats-modal-close,
+  .all-hosts-modal__close,
+  .close-btn,
+  .detail-drawer__close,
+  .close-sidebar
+):is(:hover, :focus-visible) {
+  color: var(--text-on-accent) !important;
+  background: var(--button-active-bg) !important;
+  border-color: var(--button-active-border) !important;
+  box-shadow: var(--button-active-shadow) !important;
+  transform: translateY(-1px);
 }
 .stats-modal-overlay.is-visible .stats-modal-body > *,
 .all-hosts-overlay.is-visible .host-group {

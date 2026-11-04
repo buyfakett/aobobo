@@ -16,6 +16,10 @@ function useEscape(open, onClose) {
 export function StatsModal({ open, display, onClose }) {
   useEscape(open, onClose);
   const presence = useAnimatedPresence(open);
+  const exchangeRate = display.costSummary?.exchangeRate || {};
+  const costCurrencies = display.costSummary?.sourceCurrencies?.length
+    ? display.costSummary.sourceCurrencies
+    : [display.costCurrency || 'CNY'];
   if (!presence.rendered) return null;
   return (
     <div className={`stats-modal-overlay app-modal-overlay [position:fixed] [inset:0] [z-index:200] [display:flex] [align-items:center] [justify-content:center] [padding:18px] [background:rgba(2,_7,_16,_0.55)] [backdrop-filter:blur(8px)] [-webkit-backdrop-filter:blur(8px)] max-[640px]:[padding:12px] max-[640px]:[align-items:flex-end]${presence.visible ? ' is-visible' : ''}`} role="dialog" aria-modal="true" aria-labelledby="stats-modal-title" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
@@ -33,7 +37,20 @@ export function StatsModal({ open, display, onClose }) {
           </section>
           <div className="detail-panels [display:grid] [grid-template-columns:repeat(2,_minmax(0,_1fr))] [gap:12px]">
             <section className="dashboard-section [display:flex] [flex-direction:column] [gap:12px] [padding:14px] [border-radius:18px] max-[640px]:[gap:10px] max-[640px]:[padding:12px]"><div className="section-heading [display:flex] [align-items:center] [gap:10px] [min-width:0]"><span className="section-icon [display:grid] [place-items:center] [width:34px] [height:34px] [flex:0_0_auto] [border-radius:12px] [border:1px_solid_rgba(var(--accent-primary-rgb),_0.16)] [background:rgba(var(--accent-primary-rgb),_0.08)] [color:var(--accent-primary)]"><i className="ri-arrow-up-down-line" /></span><div><h4>流量</h4><span>累计传输</span></div></div><div className="headline-metric [min-height:58px] [display:flex] [flex-direction:column] [justify-content:center] [gap:6px] [padding:10px_12px] [border-radius:14px] [border:1px_solid_var(--panel-chip-border)] [background:rgba(var(--accent-primary-rgb),_0.04)] max-[640px]:[min-height:52px] max-[640px]:[padding:9px_11px]"><span>总流量</span><strong>{display.totalTransfer?.value || 0}<small>{display.totalTransfer?.unit || 'B'}</small></strong></div><div className="split-row [display:grid] [grid-template-columns:repeat(2,_minmax(0,_1fr))] [gap:8px] max-[640px]:[grid-template-columns:1fr]"><div><span className="split-label [display:inline-flex] [align-items:center] [gap:4px] [color:var(--text-muted)] [font-size:11px] [font-weight:700] [line-height:1.2] in"><i className="ri-arrow-down-line" />入站</span><strong>{display.netInTransfer?.value || 0}{display.netInTransfer?.unit || 'B'}</strong></div><div><span className="split-label [display:inline-flex] [align-items:center] [gap:4px] [color:var(--text-muted)] [font-size:11px] [font-weight:700] [line-height:1.2] out"><i className="ri-arrow-up-line" />出站</span><strong>{display.netOutTransfer?.value || 0}{display.netOutTransfer?.unit || 'B'}</strong></div></div></section>
-            <section className="dashboard-section [display:flex] [flex-direction:column] [gap:12px] [padding:14px] [border-radius:18px] max-[640px]:[gap:10px] max-[640px]:[padding:12px] dashboard-section--cost"><div className="section-heading [display:flex] [align-items:center] [gap:10px] [min-width:0]"><span className="section-icon [display:grid] [place-items:center] [width:34px] [height:34px] [flex:0_0_auto] [border-radius:12px] [border:1px_solid_rgba(var(--accent-primary-rgb),_0.16)] [background:rgba(var(--accent-primary-rgb),_0.08)] [color:var(--accent-primary)]"><i className="ri-money-cny-circle-line" /></span><div><h4>成本</h4><span>{display.costCurrency || 'CNY'} 统计</span></div></div><div className="cost-grid [display:grid] [grid-template-columns:repeat(2,_minmax(0,_1fr))] [gap:8px]"><div><span>每月</span><strong>{display.monthlyCost || '—'}</strong></div><div><span>每年</span><strong>{display.yearlyCost || '—'}</strong></div></div></section>
+            <section className="dashboard-section [display:flex] [flex-direction:column] [gap:12px] [padding:14px] [border-radius:18px] max-[640px]:[gap:10px] max-[640px]:[padding:12px] dashboard-section--cost">
+              <div className="section-heading [display:flex] [align-items:center] [gap:10px] [min-width:0]"><span className="section-icon [display:grid] [place-items:center] [width:34px] [height:34px] [flex:0_0_auto] [border-radius:12px] [border:1px_solid_rgba(var(--accent-primary-rgb),_0.16)] [background:rgba(var(--accent-primary-rgb),_0.08)] [color:var(--accent-primary)]"><i className="ri-money-cny-circle-line" /></span><div><h4>成本</h4><span>{display.costCurrency || 'CNY'} 折算</span></div></div>
+              <div className="cost-grid [display:grid] [grid-template-columns:repeat(2,_minmax(0,_1fr))] [gap:8px]"><div><span>每月</span><strong>{display.monthlyCost || '—'}</strong></div><div><span>每年</span><strong>{display.yearlyCost || '—'}</strong></div></div>
+              <div className={`rate-status${exchangeRate.warning ? ' warning' : ''}${exchangeRate.loading ? ' loading' : ''}`}>
+                <i className={exchangeRate.loading ? 'ri-refresh-line' : 'ri-exchange-dollar-line'} />
+                <span>{exchangeRate.statusText || '无需汇率'}</span>
+                {exchangeRate.updatedAtText && <small>{exchangeRate.updatedAtText}</small>}
+              </div>
+              <div className="cost-tags">
+                <span className="stat-badge">{costCurrencies.join(' / ')}</span>
+                {display.costSummary?.unconvertedCount > 0 && <span className="stat-badge warning">{display.costSummary.unconvertedCount} 项未换算</span>}
+                {display.costSummary?.ignoredCount > 0 && <span className="stat-badge">{display.costSummary.ignoredCount} 项未计入</span>}
+              </div>
+            </section>
           </div>
         </div>
       </div>
