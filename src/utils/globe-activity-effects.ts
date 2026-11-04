@@ -7,6 +7,10 @@ const MIN_ARC_SEGMENTS = 16;
 const MAX_ARC_SEGMENTS = 48;
 const MAX_CONNECTIONS_DESKTOP = 160;
 const MAX_CONNECTIONS_MOBILE = 80;
+const CONNECTION_ENDPOINT_ALTITUDE = 0.015;
+const MIN_CONNECTION_ARC_HEIGHT = 0.03;
+const MAX_CONNECTION_ARC_HEIGHT = 0.18;
+const CONNECTION_ARC_DISTANCE_SCALE = 0.065;
 
 type ActivitySeriesOptions = {
   locations?: any[];
@@ -72,7 +76,11 @@ function buildConnectionArc(startLocation, endLocation) {
   const angle = Math.acos(dot);
   const sinAngle = Math.sin(angle);
   const segments = clamp(Math.ceil(angle * 24), MIN_ARC_SEGMENTS, MAX_ARC_SEGMENTS);
-  const peakAltitude = clamp(0.12 + angle * 0.22, 0.12, 0.55);
+  const peakAltitude = clamp(
+    MIN_CONNECTION_ARC_HEIGHT + angle * CONNECTION_ARC_DISTANCE_SCALE,
+    MIN_CONNECTION_ARC_HEIGHT,
+    MAX_CONNECTION_ARC_HEIGHT,
+  );
   const coords = [];
 
   for (let index = 0; index <= segments; index += 1) {
@@ -81,7 +89,7 @@ function buildConnectionArc(startLocation, endLocation) {
     coords.push([
       point.lng,
       point.lat,
-      0.02 + Math.sin(Math.PI * t) * peakAltitude,
+      CONNECTION_ENDPOINT_ALTITUDE + Math.sin(Math.PI * t) * peakAltitude,
     ]);
   }
 
