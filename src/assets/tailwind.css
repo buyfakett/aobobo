@@ -4568,21 +4568,22 @@ html.sidebar-resizing * {
   }
   .server-list-section .desktop-sidebar-resizer {
     position: absolute;
-    top: 50%;
+    top: 0;
+    bottom: 0;
     left: 0;
     z-index: 8;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 14px;
-    height: 104px;
+    width: 16px;
+    height: auto;
     padding: 0;
     border: 0;
-    border-radius: 0 10px 10px 0;
+    border-radius: var(--radius-xl) 0 0 var(--radius-xl);
     background: transparent;
     cursor: col-resize;
     touch-action: none;
-    transform: translateY(-50%);
+    transition: background var(--transition-fast);
   }
   .server-list-section .desktop-sidebar-resizer span {
     width: 3px;
@@ -4596,6 +4597,11 @@ html.sidebar-resizing * {
     height: 58px;
     background: var(--accent-primary);
     opacity: 1;
+  }
+  .server-list-section .desktop-sidebar-resizer:hover,
+  .server-list-section .desktop-sidebar-resizer:focus-visible,
+  .server-list-section .desktop-sidebar-resizer:active {
+    background: linear-gradient(90deg, rgba(var(--accent-primary-rgb), 0.12), transparent);
   }
   .server-list-section .desktop-sidebar-resizer:focus-visible {
     outline: 2px solid var(--accent-primary);
@@ -4611,8 +4617,19 @@ html.sidebar-resizing * {
   .home-view.sidebar-resizing {
     grid-template-columns: minmax(0, 1fr) var(--server-sidebar-width, 420px);
   }
+  .server-list-section.is-double-column .server-table-wrap {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
 }
 @media screen and (max-width: 1023px) {
+  .home-view {
+    grid-template-rows: minmax(0, 1fr) !important;
+  }
+  .home-view .globe-section {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
   .status-bar .status-group {
     width: auto;
     min-width: 0;
@@ -4653,6 +4670,9 @@ html.sidebar-resizing * {
   }
   .globe-stats-floating .stats-count-text strong {
     font-size: 13px;
+  }
+  .globe-stats-floating {
+    bottom: 76px !important;
   }
   .globe-stats-floating .globe-stats-controls {
     padding-top: 7px;
@@ -4770,6 +4790,9 @@ html.sidebar-resizing * {
   }
 }
 @media screen and (max-width: 420px) {
+  .globe-stats-floating {
+    bottom: 72px !important;
+  }
   .status-bar .status-group {
     width: auto;
     min-width: 0;
@@ -4862,6 +4885,58 @@ html.sidebar-resizing * {
   }
 }
 /* ===== 服务器详情抽屉 ===== */
+.detail-drawer-backdrop {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s ease, backdrop-filter 0.28s ease;
+}
+.detail-drawer-backdrop.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+.detail-drawer {
+  transform: translate3d(100%, 0, 0);
+  transition: transform 0.42s cubic-bezier(0.16, 1, 0.3, 1), filter var(--transition-normal);
+}
+.detail-drawer.is-visible {
+  transform: translate3d(0, 0, 0);
+}
+.detail-drawer__header,
+.detail-drawer__body {
+  opacity: 0;
+  transform: translateX(18px);
+  transition: opacity 0.28s ease, transform 0.36s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.detail-drawer.is-visible .detail-drawer__header,
+.detail-drawer.is-visible .detail-drawer__body {
+  opacity: 1;
+  transform: translateX(0);
+}
+.detail-drawer.is-visible .detail-drawer__header {
+  transition-delay: 0.08s;
+}
+.detail-drawer.is-visible .detail-drawer__body {
+  transition-delay: 0.13s;
+}
+.detail-drawer .detail-content-stack > * {
+  animation: detail-content-enter 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.detail-drawer .detail-content-stack > :nth-child(2) { animation-delay: 0.04s; }
+.detail-drawer .detail-content-stack > :nth-child(3) { animation-delay: 0.08s; }
+.detail-drawer .detail-content-stack > :nth-child(4) { animation-delay: 0.12s; }
+.detail-drawer .detail-content-stack > :nth-child(5) { animation-delay: 0.16s; }
+.detail-drawer .detail-content-stack > :nth-child(n + 6) { animation-delay: 0.2s; }
+
+@keyframes detail-content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 .detail-drawer:focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: -2px;
@@ -4959,14 +5034,110 @@ html.sidebar-resizing * {
 @media screen and (max-width: 1000px) {
 }
 
-/* The desktop sidebar is user-resizable, so its own width controls the card grid. */
-@media screen and (min-width: 1024px) {
+/* React overlays stay mounted briefly so both entering and leaving can animate. */
+.app-modal-overlay {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s ease, backdrop-filter 0.28s ease;
+}
+.app-modal-overlay.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+.stats-modal-card,
+.all-hosts-modal {
+  opacity: 0;
+  transform: translateY(20px) scale(0.975);
+  transition: opacity 0.24s ease, transform 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.app-modal-overlay.is-visible .stats-modal-card,
+.app-modal-overlay.is-visible .all-hosts-modal {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+.stats-modal-overlay.is-visible .stats-modal-body > *,
+.all-hosts-overlay.is-visible .host-group {
+  animation: modal-content-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.stats-modal-overlay.is-visible .stats-modal-body > :nth-child(2) { animation-delay: 0.05s; }
+.stats-modal-overlay.is-visible .stats-modal-body > :nth-child(3) { animation-delay: 0.1s; }
+.all-hosts-overlay.is-visible .host-group {
+  animation-delay: min(calc(var(--enter-index, 0) * 45ms), 225ms);
+}
 
-  @container server-list (min-width: 680px) {
-    .server-table-wrap {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
-    }
+@keyframes modal-content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Live resource values move just enough to make updates legible without shifting layout. */
+.server-detail-status .resource-card,
+.server-detail-resource-history .history-card-enter {
+  animation: resource-card-enter 0.48s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: min(calc(var(--resource-index, 0) * 45ms), 225ms);
+}
+.server-detail-status .resource-progress-bar {
+  width: 100%;
+  min-width: 0;
+  transform: scaleX(var(--resource-ratio, 0));
+  transform-origin: left center;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: resource-progress-enter 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.live-value-update {
+  animation: live-value-update 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes resource-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes resource-progress-enter {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(var(--resource-ratio, 0)); }
+}
+@keyframes live-value-update {
+  from {
+    opacity: 0.35;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detail-drawer-backdrop,
+  .detail-drawer,
+  .detail-drawer__header,
+  .detail-drawer__body,
+  .app-modal-overlay,
+  .stats-modal-card,
+  .all-hosts-modal,
+  .server-detail-status .resource-progress-bar {
+    transition-duration: 0.01ms !important;
+  }
+  .detail-drawer .detail-content-stack > *,
+  .stats-modal-overlay.is-visible .stats-modal-body > *,
+  .all-hosts-overlay.is-visible .host-group,
+  .server-detail-status .resource-card,
+  .server-detail-status .resource-progress-bar,
+  .server-detail-resource-history .history-card-enter,
+  .live-value-update {
+    animation: none !important;
   }
 }
 }

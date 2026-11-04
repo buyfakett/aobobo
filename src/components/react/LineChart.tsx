@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { AnyCallback } from '@/types/ui';
+import useMediaQuery from '@/hooks/useMediaQuery';
 
 type LineChartProps = {
   series?: any[];
@@ -19,6 +20,7 @@ export default function LineChart({
   tooltipFormatter,
   className = '',
 }: LineChartProps) {
+  const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const option = useMemo(() => {
     const timestamps = series.flatMap((item) => (item.data || []))
       .map((point) => Number(Array.isArray(point) ? point[0] : point?.value?.[0]))
@@ -40,7 +42,11 @@ export default function LineChart({
     };
 
     return {
-    animation: false,
+    animation: !reduceMotion,
+    animationDuration: 520,
+    animationDurationUpdate: 360,
+    animationEasing: 'cubicOut',
+    animationEasingUpdate: 'cubicOut',
     color: series.map((item) => item.color || item.lineStyle?.color).filter(Boolean),
     grid: {
       top: 12,
@@ -92,14 +98,14 @@ export default function LineChart({
       emphasis: { focus: 'series' },
     })),
     };
-  }, [connectNulls, series, tooltipFormatter, yAxis]);
+  }, [connectNulls, reduceMotion, series, tooltipFormatter, yAxis]);
 
   return (
     <div className={`line-box w-full ${className}`.trim()} style={{ height }}>
       <ReactECharts
         className="chart h-full w-full"
         option={option}
-        notMerge
+        notMerge={false}
         lazyUpdate
         opts={{ renderer: 'canvas' }}
         style={{ height: '100%', width: '100%' }}

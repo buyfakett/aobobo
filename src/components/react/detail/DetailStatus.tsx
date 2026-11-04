@@ -31,7 +31,7 @@ function RealtimeItem({ icon, label, value, unit, className = '' }: {
   className?: string;
 }) {
   const fullValue = `${value}${unit || ''}`;
-  return <div className={`real-time-item ${className}`.trim()}><i className={icon} /><div><span className="real-time-label">{label}</span><strong title={fullValue}>{value}<small>{unit}</small></strong></div></div>;
+  return <div className={`real-time-item ${className}`.trim()}><i className={icon} /><div><span className="real-time-label">{label}</span><strong key={fullValue} className="live-value-update" title={fullValue}>{value}<small>{unit}</small></strong></div></div>;
 }
 
 export default function DetailStatus({ info }) {
@@ -51,12 +51,12 @@ export default function DetailStatus({ info }) {
       <div className="status-section">
         <h3 className="section-title"><i className="ri-dashboard-3-line" />资源使用</h3>
         <div className={`resource-grid resource-count--${items.length}`}>
-          {items.map((item) => (
-            <div key={item.type} className={`resource-card resource-card--${item.type}`}>
+          {items.map((item, index) => (
+            <div key={item.type} className={`resource-card resource-card--${item.type}`} style={{ '--resource-index': index }}>
               <div className="resource-icon"><i className={item.icon} /></div>
               <div className="resource-body">
-                <div className="resource-main"><div className="resource-value"><span className="resource-main-value">{item.value}</span><span className="resource-label">{item.label}</span></div><div className="resource-capacity"><span className="resource-total">{item.detail}</span></div></div>
-                <div className="resource-progress"><div className="resource-progress-bar" style={{ width: `${item.used}%`, backgroundColor: item.color }} /></div>
+                <div className="resource-main"><div className="resource-value"><span key={item.value} className="resource-main-value live-value-update">{item.value}</span><span className="resource-label">{item.label}</span></div><div className="resource-capacity"><span className="resource-total">{item.detail}</span></div></div>
+                <div className="resource-progress"><div className="resource-progress-bar" style={{ '--resource-ratio': Math.max(0.02, item.used / 100), backgroundColor: item.color }} /></div>
               </div>
             </div>
           ))}

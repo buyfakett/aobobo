@@ -24,6 +24,7 @@ import {
   persistGlobeRotation,
 } from '@/utils/globe-rotation';
 import useMediaQuery from '@/hooks/useMediaQuery';
+import useAnimatedPresence from '@/hooks/useAnimatedPresence';
 import {
   AppFooter,
   CurrentTime,
@@ -40,6 +41,7 @@ import DetailContent from '@/components/react/detail/DetailContent';
 const SIDEBAR_MIN_WIDTH = 380;
 const SIDEBAR_MAX_WIDTH = 760;
 const SIDEBAR_DEFAULT_WIDTH = 420;
+const SIDEBAR_DOUBLE_COLUMN_WIDTH = 680;
 const SIDEBAR_STORAGE_KEY = 'aobobo-server-sidebar-width';
 
 function initialSidebarWidth() {
@@ -241,6 +243,10 @@ export default function Home() {
   const detailId = routeServerId || legacyDetailId;
   const detailServer = appState.serverList.find((server) => String(server.ID) === detailId);
   const detailOpen = Boolean(detailServer);
+  const detailPresence = useAnimatedPresence(detailOpen, 320);
+  const lastDetailServerRef = useRef(null);
+  if (detailServer) lastDetailServerRef.current = detailServer;
+  const visibleDetailServer = detailServer || lastDetailServerRef.current;
 
   useEffect(() => {
     if (appState.init && routeServerId && !detailServer) navigate('/', { replace: true });
@@ -278,7 +284,22 @@ export default function Home() {
     resizeRef.current = { startX: event.clientX, startWidth: sidebarWidth };
     setSidebarResizing(true);
     document.documentElement.classList.add('sidebar-resizing');
+    event.preventDefault();
     event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+  const resizeWithKeyboard = (event) => {
+    if (!isWide || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    if (event.key === 'Home') {
+      setSidebarWidth(SIDEBAR_MIN_WIDTH);
+      return;
+    }
+    if (event.key === 'End') {
+      setSidebarWidth(SIDEBAR_MAX_WIDTH);
+      return;
+    }
+    const step = event.shiftKey ? 40 : 16;
+    setSidebarWidth((width) => Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, width + (event.key === 'ArrowLeft' ? step : -step))));
   };
   useEffect(() => {
     if (!sidebarResizing) return undefined;
@@ -327,8 +348,8 @@ export default function Home() {
 
       <button type="button" className={`mobile-drawer-backdrop [display:none] max-[1023px]:[display:block] max-[1023px]:[position:fixed] max-[1023px]:[inset:0] max-[1023px]:[z-index:24] max-[1023px]:[border:none] max-[1023px]:[padding:0] max-[1023px]:[background:linear-gradient(180deg,_rgba(4,_10,_18,_0.12),_rgba(4,_10,_18,_0.42))] max-[1023px]:[opacity:0] max-[1023px]:[visibility:hidden] max-[1023px]:[pointer-events:none] max-[1023px]:[transition:opacity_var(--transition-normal),_visibility_var(--transition-normal)]${effectiveSidebarOpen ? ' visible' : ''}`} aria-label="关闭服务器列表" onClick={() => setSidebarOpen(false)} />
       {!effectiveSidebarOpen && !isWide && <button type="button" className="sidebar-expand-handle [position:absolute] [top:50%] [right:0] [z-index:15] [display:flex] [align-items:center] [justify-content:center] [width:36px] [height:72px] [padding:0] [border:1px_solid_var(--border-color)] [border-right:none] [border-radius:14px_0_0_14px] [background:var(--section-bg)] [color:var(--text-secondary)] [cursor:pointer] [transform:translateY(-50%)] [box-shadow:var(--shadow-sm)] [transition:color_var(--transition-fast),_background_var(--transition-fast),_border-color_var(--transition-fast),_box-shadow_var(--transition-fast)] max-[1023px]:[display:none]" aria-label="展开服务器列表" onClick={() => setSidebarOpen(true)}><i className="ri-server-line" /></button>}
-      <div className={`server-list-section [position:relative] [min-height:0] [min-width:0] [border-radius:var(--radius-xl)] [border:1px_solid_var(--border-color)] [background:var(--section-bg)] [backdrop-filter:blur(18px)_saturate(150%)] [box-shadow:var(--shadow-sm),_inset_0_1px_0_var(--surface-highlight)] [overflow:hidden] [display:flex] [flex-direction:column] [transition:opacity_var(--transition-normal),_visibility_var(--transition-normal)] min-[1024px]:[grid-column:2/3] min-[1024px]:[grid-row:2/3] max-[1023px]:[position:fixed] max-[1023px]:[inset:10px_10px_10px_auto] max-[1023px]:[width:min(420px,_100vw_-_20px)] max-[1023px]:[height:auto] max-[1023px]:[z-index:30] max-[1023px]:[border-radius:28px_0_0_28px] max-[1023px]:[transform:translateX(0)] max-[1023px]:[transition:transform_var(--transition-normal),_opacity_var(--transition-normal),_visibility_var(--transition-normal)] max-[768px]:[inset:auto_10px_10px_10px] max-[768px]:[width:auto] max-[768px]:[height:min(72dvh,_660px)] max-[768px]:[border-radius:28px] max-[768px]:[transform:translateY(0)] max-[768px]:[transition:transform_var(--transition-normal),_height_var(--transition-normal),_opacity_var(--transition-normal),_visibility_var(--transition-normal)] max-[420px]:[inset:auto_8px_8px_8px] max-[420px]:[height:min(76dvh,_680px)] min-[1024px]:[container-name:server-list] min-[1024px]:[container-type:inline-size]${effectiveSidebarOpen ? '' : ' collapsed'}`}>
-        {isWide && <div className="desktop-sidebar-resizer [display:none]" role="separator" tabIndex={0} onPointerDown={beginResize} onDoubleClick={() => setSidebarWidth(SIDEBAR_DEFAULT_WIDTH)}><span /></div>}
+      <div className={`server-list-section [position:relative] [min-height:0] [min-width:0] [border-radius:var(--radius-xl)] [border:1px_solid_var(--border-color)] [background:var(--section-bg)] [backdrop-filter:blur(18px)_saturate(150%)] [box-shadow:var(--shadow-sm),_inset_0_1px_0_var(--surface-highlight)] [overflow:hidden] [display:flex] [flex-direction:column] [transition:opacity_var(--transition-normal),_visibility_var(--transition-normal)] min-[1024px]:[grid-column:2/3] min-[1024px]:[grid-row:2/3] max-[1023px]:[position:fixed] max-[1023px]:[inset:10px_10px_10px_auto] max-[1023px]:[width:min(420px,_100vw_-_20px)] max-[1023px]:[height:auto] max-[1023px]:[z-index:30] max-[1023px]:[border-radius:28px_0_0_28px] max-[1023px]:[transform:translateX(0)] max-[1023px]:[transition:transform_var(--transition-normal),_opacity_var(--transition-normal),_visibility_var(--transition-normal)] max-[768px]:[inset:auto_10px_10px_10px] max-[768px]:[width:auto] max-[768px]:[height:min(72dvh,_660px)] max-[768px]:[border-radius:28px] max-[768px]:[transform:translateY(0)] max-[768px]:[transition:transform_var(--transition-normal),_height_var(--transition-normal),_opacity_var(--transition-normal),_visibility_var(--transition-normal)] max-[420px]:[inset:auto_8px_8px_8px] max-[420px]:[height:min(76dvh,_680px)]${effectiveSidebarOpen ? '' : ' collapsed'}${sidebarWidth >= SIDEBAR_DOUBLE_COLUMN_WIDTH ? ' is-double-column' : ''}`}>
+        {isWide && <div className="desktop-sidebar-resizer" role="separator" aria-label="调整服务器列表宽度" aria-orientation="vertical" aria-valuemin={SIDEBAR_MIN_WIDTH} aria-valuemax={SIDEBAR_MAX_WIDTH} aria-valuenow={Math.round(sidebarWidth)} tabIndex={0} title="拖动调整宽度，双击恢复默认" onKeyDown={resizeWithKeyboard} onPointerDown={beginResize} onDoubleClick={() => setSidebarWidth(SIDEBAR_DEFAULT_WIDTH)}><span /></div>}
         <div className="tech-frame" aria-hidden="true" />
         <div className="section-header">
           {!isWide && <div className="section-title-row"><button type="button" className="close-sidebar" onClick={() => setSidebarOpen(false)}><i className="ri-arrow-right-s-line" /></button></div>}
@@ -345,7 +366,7 @@ export default function Home() {
       <AllHostsModal open={allHostsOpen} servers={appState.serverList} groups={appState.serverGroup} serverCount={appState.serverCount} cycleTransferMap={cycleTransferMap} onClose={() => setAllHostsOpen(false)} onSelect={(server) => { setAllHostsOpen(false); selectServer(server); }} />
       <AppFooter className="app-footer--absolute [min-height:18px] [margin:0_0_6px] [padding:0_18px] max-[768px]:[position:absolute] max-[768px]:[bottom:10px] max-[768px]:[left:0] max-[768px]:[right:0] max-[768px]:[z-index:20] max-[768px]:[margin:0] max-[768px]:[min-height:auto] max-[768px]:[padding:8px] max-[768px]:[text-shadow:0_1px_2px_rgba(0,_0,_0,_0.1)] min-[1024px]:[grid-column:2/3] min-[1024px]:[grid-row:3/4] max-[1023px]:[position:absolute] max-[1023px]:[bottom:10px] max-[1023px]:[left:0] max-[1023px]:[right:0] max-[1023px]:[z-index:20] max-[1023px]:[margin:0] max-[1023px]:[min-height:auto] max-[1023px]:[padding:8px] max-[1023px]:[text-shadow:0_1px_2px_rgba(0,_0,_0,_0.1)]" />
 
-      {detailOpen && <><div className="detail-drawer-backdrop [position:fixed] [inset:0] [z-index:200] [background:rgba(0,_0,_0,_0.35)] [backdrop-filter:blur(2px)] [will-change:opacity]" onClick={closeDetail} /><aside className={`detail-drawer [position:fixed] [top:0] [right:0] [bottom:0] [z-index:201] [display:flex] [flex-direction:column] [width:900px] [max-width:100%] [background:var(--page-bg)] [box-shadow:var(--shadow-lg)] [outline:none] [will-change:transform] max-[1000px]:[width:100%]${detailServer.online === 1 ? '' : ' server--offline'}`} role="dialog" aria-modal="true" aria-label={`${detailServer.Name} 详情`}><div className="detail-drawer__header [display:flex] [align-items:center] [justify-content:space-between] [gap:12px] [flex-shrink:0] [padding:14px_18px] [background:var(--section-header-bg)] [border-bottom:1px_solid_var(--border-color)]"><h2 className="detail-drawer__title [min-width:0] [margin:0] [font-size:16px] [font-weight:700] [color:var(--text-primary)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">{detailServer.Name || '服务器详情'}</h2><button type="button" className="detail-drawer__close [display:inline-flex] [align-items:center] [justify-content:center] [width:34px] [height:34px] [flex-shrink:0] [border-radius:999px] [border:1px_solid_var(--button-subtle-border)] [background:var(--button-subtle-bg)] [color:var(--text-secondary)] [font-size:18px] [cursor:pointer] [transition:color_var(--transition-fast),_background_var(--transition-fast),_border-color_var(--transition-fast),_box-shadow_var(--transition-fast),_transform_var(--transition-fast)]" aria-label="关闭详情" onClick={closeDetail}><i className="ri-close-line" /></button></div><div className="detail-drawer__body [flex:1] [min-height:0] [overflow-y:auto] [padding:14px_16px_20px]"><div className="detail-drawer__stack [display:flex] [flex-direction:column] [gap:14px] [max-width:var(--detail-container-width)] [margin:0_auto] [width:100%]"><DetailContent key={detailServer.ID} info={detailServer} /></div></div></aside></>}
+      {detailPresence.rendered && visibleDetailServer && <><div className={`detail-drawer-backdrop [position:fixed] [inset:0] [z-index:200] [background:rgba(0,_0,_0,_0.35)] [backdrop-filter:blur(2px)] [will-change:opacity]${detailPresence.visible ? ' is-visible' : ''}`} onClick={closeDetail} /><aside className={`detail-drawer [position:fixed] [top:0] [right:0] [bottom:0] [z-index:201] [display:flex] [flex-direction:column] [width:900px] [max-width:100%] [background:var(--page-bg)] [box-shadow:var(--shadow-lg)] [outline:none] [will-change:transform] max-[1000px]:[width:100%]${detailPresence.visible ? ' is-visible' : ''}${visibleDetailServer.online === 1 ? '' : ' server--offline'}`} role="dialog" aria-modal="true" aria-label={`${visibleDetailServer.Name} 详情`}><div className="detail-drawer__header [display:flex] [align-items:center] [justify-content:space-between] [gap:12px] [flex-shrink:0] [padding:14px_18px] [background:var(--section-header-bg)] [border-bottom:1px_solid_var(--border-color)]"><h2 className="detail-drawer__title [min-width:0] [margin:0] [font-size:16px] [font-weight:700] [color:var(--text-primary)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">{visibleDetailServer.Name || '服务器详情'}</h2><button type="button" className="detail-drawer__close [display:inline-flex] [align-items:center] [justify-content:center] [width:34px] [height:34px] [flex-shrink:0] [border-radius:999px] [border:1px_solid_var(--button-subtle-border)] [background:var(--button-subtle-bg)] [color:var(--text-secondary)] [font-size:18px] [cursor:pointer] [transition:color_var(--transition-fast),_background_var(--transition-fast),_border-color_var(--transition-fast),_box-shadow_var(--transition-fast),_transform_var(--transition-fast)]" aria-label="关闭详情" onClick={closeDetail}><i className="ri-close-line" /></button></div><div className="detail-drawer__body [flex:1] [min-height:0] [overflow-y:auto] [padding:14px_16px_20px]"><div className="detail-drawer__stack [display:flex] [flex-direction:column] [gap:14px] [max-width:var(--detail-container-width)] [margin:0_auto] [width:100%]"><DetailContent key={visibleDetailServer.ID} info={visibleDetailServer} /></div></div></aside></>}
     </div>
   );
 }
