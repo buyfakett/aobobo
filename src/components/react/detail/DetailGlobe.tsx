@@ -117,7 +117,7 @@ export default function DetailGlobe({ location, theme = 'dark' }) {
   const validLocation = Number.isFinite(Number(location?.lat)) && Number.isFinite(Number(location?.lng));
   const option = useMemo(
     () => (validLocation ? buildOption(location, theme) : null),
-    [location?.lat, location?.lng, theme, validLocation],
+    [location, theme, validLocation],
   );
 
   useEffect(() => {
@@ -149,8 +149,8 @@ export default function DetailGlobe({ location, theme = 'dark' }) {
   }, [option]);
 
   return (
-    <span className="server-detail-globe" aria-hidden="true">
-      {validLocation ? <span ref={chartRef} className="server-detail-globe__chart" /> : <span className="server-detail-globe__placeholder"><i className="ri-earth-line" /></span>}
+    <span className="server-detail-globe [position:relative] [display:block] [width:100%] [height:100%] [min-width:0] [overflow:visible] [border-radius:0] [pointer-events:none]" aria-hidden="true">
+      {validLocation ? <span ref={chartRef} className="server-detail-globe__chart [filter:drop-shadow(0_10px_18px_rgba(var(--accent-primary-rgb),_0.18))] max-[768px]:[filter:drop-shadow(0_8px_14px_rgba(var(--accent-primary-rgb),_0.14))]" /> : <span className="server-detail-globe__placeholder [display:flex] [align-items:center] [justify-content:center] [color:var(--globe-marker-active)] [background:transparent]"><i className="ri-earth-line" /></span>}
     </span>
   );
 }

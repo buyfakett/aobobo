@@ -82,7 +82,7 @@ export default function DetailHeader({ info }) {
     : availability >= 95 ? 'availability-status--warning' : 'availability-status--danger';
 
   return (
-    <div className="server-detail-header">
+    <div className="server-detail-header [display:flex] [align-items:center] [justify-content:space-between] [gap:12px] [padding:12px_18px] [transition:0.3s] max-[768px]:[display:grid] max-[768px]:[grid-template-columns:minmax(0,_1fr)_auto] max-[768px]:[align-items:start] max-[768px]:[gap:8px] max-[768px]:[padding:8px_12px] max-[480px]:[gap:8px] max-[480px]:[padding:8px_10px]">
       <div className="server-identity">
         <div className="server-flag-box">
           {info?.Host?.CountryCode
@@ -103,7 +103,7 @@ export default function DetailHeader({ info }) {
               <span className="cpu-model">{cpuInfo.model}</span><span className="cpu-model-num">{cpuInfo.modelNum}</span>
             </div>
           )}
-          {tags.length > 0 && <div className="meta-tag-row">{tags.map((tag, index) => <span key={`${tag.text}-${index}`} className={`meta-tag ${tag.className}`} title={tag.text}><i className={tag.icon} />{tag.text}</span>)}</div>}
+          {tags.length > 0 && <div className="meta-tag-row">{tags.map((tag, index) => <span key={`${tag.text}-${index}`} className={`meta-tag [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_9px] [border-radius:6px] [border:1px_solid_var(--list-tag-border)] [background:var(--list-tag-bg)] [color:var(--list-tag-text)] [font-size:11px] [font-weight:600] [line-height:1.2] [font-family:var(--font-sans)] [white-space:nowrap] [max-width:100%] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[min-height:19px] max-[768px]:[padding:0_6px] max-[768px]:[font-size:10px] max-[768px]:[border-radius:5px] ${tag.className}`} title={tag.text}><i className={tag.icon} />{tag.text}</span>)}</div>}
         </div>
       </div>
       {location?.code && (

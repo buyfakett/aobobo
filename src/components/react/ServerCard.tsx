@@ -134,51 +134,51 @@ export default function ServerCard({
   return (
     <button
       type="button"
-      className={`server-list-item${server.online === 1 ? '' : ' offline'}`}
+      className={`server-list-item [position:relative] [width:100%] [display:block] [padding:11px_14px] [appearance:none] [border:1px_solid_var(--panel-row-border)] [border-radius:14px] [background:var(--panel-row-bg)] [color:inherit] [font:inherit] [text-align:left] [cursor:pointer] [overflow:visible] [transition:border-color_var(--transition-fast),_background_var(--transition-fast),_box-shadow_var(--transition-fast)] max-[768px]:[padding:9px_11px] max-[768px]:[border-radius:12px]${server.online === 1 ? '' : ' offline'}`}
       onClick={() => onSelect?.(server)}
       onMouseEnter={() => onHover?.(server)}
       onMouseLeave={() => onHover?.(null)}
       onFocus={() => onHover?.(server)}
       onBlur={() => onHover?.(null)}
     >
-      <div className="server-list-item__content">
-        <div className="server-list-item__head">
-          <div className="server-list-item__name-group">
+      <div className="server-list-item__content [display:grid] [gap:7px] [min-width:0]">
+        <div className="server-list-item__head [display:flex] [align-items:center] [justify-content:space-between] [gap:10px] [min-width:0]">
+          <div className="server-list-item__name-group [min-width:0] [display:flex] [align-items:center] [gap:8px] [flex:1]">
             {!compact && (server.Host?.CountryCode
               ? <span className={`fi fi-${server.Host.CountryCode.toLowerCase()}`} />
               : <span className="flag-placeholder"><i className="ri-global-line" /></span>)}
-            <span className="server-list-item__name" title={server.Name}>{server.Name || '-'}</span>
+            <span className="server-list-item__name [min-width:0] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap] [font-size:14px] [font-weight:700] [color:var(--text-primary)] max-[768px]:[font-size:13px]" title={server.Name}>{server.Name || '-'}</span>
           </div>
-          {serverSpec && <span className="server-list-item__head-spec"><i className={getPlatformLogoIconClassName(server?.Host?.Platform)} /><span>{serverSpec}</span></span>}
+          {serverSpec && <span className="server-list-item__head-spec [display:inline-flex] [align-items:center] [gap:5px] [flex:0_0_auto] [font-size:11px] [font-weight:600] [color:var(--text-secondary)] [white-space:nowrap] [font-family:var(--font-mono)] [font-variant-numeric:tabular-nums] max-[768px]:[font-size:10px]"><i className={getPlatformLogoIconClassName(server?.Host?.Platform)} /><span>{serverSpec}</span></span>}
         </div>
 
         {compact ? (
-          <div className="server-list-item__tags">
-            <span className={`meta-tag meta-tag--status ${server.online === 1 ? 'online' : 'offline'}`}>{server.online === 1 ? '在线' : '离线'}</span>
-            {company && <span className="meta-tag meta-tag--cpu">{company}</span>}
-            {trafficText && <span className="meta-tag">{trafficText}</span>}
-            {uptime && <span className="meta-tag">{uptime}</span>}
+          <div className="server-list-item__tags [display:flex] [flex-wrap:wrap] [gap:5px] [min-width:0] [min-height:22px] max-[768px]:[gap:4px]">
+            <span className={`meta-tag [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_9px] [border-radius:6px] [border:1px_solid_var(--list-tag-border)] [background:var(--list-tag-bg)] [color:var(--list-tag-text)] [font-size:11px] [font-weight:600] [line-height:1.2] [font-family:var(--font-sans)] [white-space:nowrap] [max-width:100%] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[min-height:19px] max-[768px]:[padding:0_6px] max-[768px]:[font-size:10px] max-[768px]:[border-radius:5px] meta-tag--status ${server.online === 1 ? 'online' : 'offline'}`}>{server.online === 1 ? '在线' : '离线'}</span>
+            {company && <span className="meta-tag [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_9px] [border-radius:6px] [border:1px_solid_var(--list-tag-border)] [background:var(--list-tag-bg)] [color:var(--list-tag-text)] [font-size:11px] [font-weight:600] [line-height:1.2] [font-family:var(--font-sans)] [white-space:nowrap] [max-width:100%] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[min-height:19px] max-[768px]:[padding:0_6px] max-[768px]:[font-size:10px] max-[768px]:[border-radius:5px] meta-tag--cpu">{company}</span>}
+            {trafficText && <span className="meta-tag [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_9px] [border-radius:6px] [border:1px_solid_var(--list-tag-border)] [background:var(--list-tag-bg)] [color:var(--list-tag-text)] [font-size:11px] [font-weight:600] [line-height:1.2] [font-family:var(--font-sans)] [white-space:nowrap] [max-width:100%] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[min-height:19px] max-[768px]:[padding:0_6px] max-[768px]:[font-size:10px] max-[768px]:[border-radius:5px]">{trafficText}</span>}
+            {uptime && <span className="meta-tag [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_9px] [border-radius:6px] [border:1px_solid_var(--list-tag-border)] [background:var(--list-tag-bg)] [color:var(--list-tag-text)] [font-size:11px] [font-weight:600] [line-height:1.2] [font-family:var(--font-sans)] [white-space:nowrap] [max-width:100%] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[min-height:19px] max-[768px]:[padding:0_6px] max-[768px]:[font-size:10px] max-[768px]:[border-radius:5px]">{uptime}</span>}
           </div>
         ) : (
           <>
             {(company || model || trafficText) && (
-              <div className="server-list-item__resource">
-                {company && <span className="meta-tag meta-tag--cpu">{company}</span>}
+              <div className="server-list-item__resource [display:flex] [align-items:center] [flex-wrap:wrap] [gap:8px] [min-width:0]">
+                {company && <span className="meta-tag [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_9px] [border-radius:6px] [border:1px_solid_var(--list-tag-border)] [background:var(--list-tag-bg)] [color:var(--list-tag-text)] [font-size:11px] [font-weight:600] [line-height:1.2] [font-family:var(--font-sans)] [white-space:nowrap] [max-width:100%] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[min-height:19px] max-[768px]:[padding:0_6px] max-[768px]:[font-size:10px] max-[768px]:[border-radius:5px] meta-tag--cpu">{company}</span>}
                 {model && <span className="resource-text resource-text--cpu">{model}</span>}
                 {trafficText && <span className="resource-text resource-text--traffic"><i className="ri-arrow-up-down-line" /><span>{trafficText}</span></span>}
               </div>
             )}
             {(hasAvailability || uptime || bill || remainingItem || tags.length > 0) && (
-              <div className="server-list-item__tags server-list-item__tags--bill">
-                {hasAvailability && <span className={`meta-tag meta-tag--availability ${availabilityClass(availability)}`}><i className="ri-shield-check-line" /><span>可用 {truncateDecimal(availability, 2)}%</span></span>}
-                {uptime && <span className="meta-tag meta-tag--uptime"><i className="ri-time-line" /><span>在线 {uptime}</span></span>}
-                {bill && <span className="meta-tag meta-tag--billing"><i className="ri-price-tag-3-line" /><span>{bill}</span></span>}
-                {remainingItem && <span className={`meta-tag meta-tag--remaining ${remainingClass(remainingItem)}`}><i className="ri-hourglass-line" /><span>{remainingItem.label} {remainingItem.value}</span></span>}
-                {tags.map((tag) => <span key={tag} className="meta-tag meta-tag--plan">{tag}</span>)}
+              <div className="server-list-item__tags [display:flex] [flex-wrap:wrap] [gap:5px] [min-width:0] [min-height:22px] max-[768px]:[gap:4px] server-list-item__tags--bill [margin-top:2px]">
+                {hasAvailability && <span className={`meta-tag [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_9px] [border-radius:6px] [border:1px_solid_var(--list-tag-border)] [background:var(--list-tag-bg)] [color:var(--list-tag-text)] [font-size:11px] [font-weight:600] [line-height:1.2] [font-family:var(--font-sans)] [white-space:nowrap] [max-width:100%] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[min-height:19px] max-[768px]:[padding:0_6px] max-[768px]:[font-size:10px] max-[768px]:[border-radius:5px] meta-tag--availability [gap:4px] [padding-left:7px] ${availabilityClass(availability)}`}><i className="ri-shield-check-line" /><span>可用 {truncateDecimal(availability, 2)}%</span></span>}
+                {uptime && <span className="meta-tag [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_9px] [border-radius:6px] [border:1px_solid_var(--list-tag-border)] [background:var(--list-tag-bg)] [color:var(--list-tag-text)] [font-size:11px] [font-weight:600] [line-height:1.2] [font-family:var(--font-sans)] [white-space:nowrap] [max-width:100%] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[min-height:19px] max-[768px]:[padding:0_6px] max-[768px]:[font-size:10px] max-[768px]:[border-radius:5px] meta-tag--uptime [color:var(--duration-color)] [border-color:rgba(var(--accent-primary-rgb),_0.22)] [background:rgba(var(--accent-primary-rgb),_0.08)]"><i className="ri-time-line" /><span>在线 {uptime}</span></span>}
+                {bill && <span className="meta-tag [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_9px] [border-radius:6px] [border:1px_solid_var(--list-tag-border)] [background:var(--list-tag-bg)] [color:var(--list-tag-text)] [font-size:11px] [font-weight:600] [line-height:1.2] [font-family:var(--font-sans)] [white-space:nowrap] [max-width:100%] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[min-height:19px] max-[768px]:[padding:0_6px] max-[768px]:[font-size:10px] max-[768px]:[border-radius:5px] meta-tag--billing"><i className="ri-price-tag-3-line" /><span>{bill}</span></span>}
+                {remainingItem && <span className={`meta-tag [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_9px] [border-radius:6px] [border:1px_solid_var(--list-tag-border)] [background:var(--list-tag-bg)] [color:var(--list-tag-text)] [font-size:11px] [font-weight:600] [line-height:1.2] [font-family:var(--font-sans)] [white-space:nowrap] [max-width:100%] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[min-height:19px] max-[768px]:[padding:0_6px] max-[768px]:[font-size:10px] max-[768px]:[border-radius:5px] meta-tag--remaining ${remainingClass(remainingItem)}`}><i className="ri-hourglass-line" /><span>{remainingItem.label} {remainingItem.value}</span></span>}
+                {tags.map((tag) => <span key={tag} className="meta-tag [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_9px] [border-radius:6px] [border:1px_solid_var(--list-tag-border)] [background:var(--list-tag-bg)] [color:var(--list-tag-text)] [font-size:11px] [font-weight:600] [line-height:1.2] [font-family:var(--font-sans)] [white-space:nowrap] [max-width:100%] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[min-height:19px] max-[768px]:[padding:0_6px] max-[768px]:[font-size:10px] max-[768px]:[border-radius:5px] meta-tag--plan [color:var(--text-secondary)] [border-color:var(--panel-chip-border)] [background:var(--panel-chip-bg)] [font-weight:500]">{tag}</span>)}
               </div>
             )}
             {(tcp || udp || speedUp || speedDown) && (
-              <div className="server-list-item__network">
+              <div className="server-list-item__network [display:flex] [align-items:center] [justify-content:space-between] [gap:10px] [margin-top:4px] [padding-top:8px] [border-top:1px_solid_var(--panel-stat-border)] [font-size:12px] [font-weight:600] [line-height:1.2]">
                 {(tcp || udp) ? <span className="network-stat network-stat--conn"><i className="ri-link-m" /><span>连接 {tcp}/{udp}</span></span> : <span />}
                 {(speedUp || speedDown) && <span className="network-stat network-stat--speed">{speedUp && <span className="speed-up">↑ {speedUp}</span>}<span className="speed-sep">|</span>{speedDown && <span className="speed-down">↓ {speedDown}</span>}</span>}
               </div>
@@ -197,7 +197,7 @@ export function ServerTable({ servers, cycleTransferMap, onSelect, onHover }: {
   onHover?: AnyCallback;
 }) {
   return (
-    <div className="server-table-wrap">
+    <div className="server-table-wrap [flex:1] [min-height:0] [display:grid] [align-content:start] [gap:6px] [overflow-y:auto] [overflow-x:hidden] [padding:10px_12px_14px] [color:var(--text-primary)] [scrollbar-gutter:stable] max-[768px]:[grid-template-columns:minmax(0,_1fr)] max-[768px]:[padding:12px] max-[768px]:[gap:6px] max-[768px]:[padding-bottom:24px]">
       {servers.map((server) => (
         <ServerCard key={server.ID} server={server} cycleTransferMap={cycleTransferMap} onSelect={onSelect} onHover={onHover} />
       ))}

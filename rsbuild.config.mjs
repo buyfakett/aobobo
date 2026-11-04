@@ -9,7 +9,8 @@ import { createAoboboDevProxy } from './rsbuild.dev-proxy.js';
 const isDevelopment = process.env.NODE_ENV === 'development';
 if (isDevelopment) dotenv.config({ path: '.env.development.local' });
 
-const assetPrefix = process.env.VITE_BASE_PATH || '/';
+const basePath = process.env.VITE_BASE_PATH || '/';
+const assetPrefix = basePath.endsWith('/') ? basePath : `${basePath}/`;
 
 export default defineConfig({
   plugins: [pluginReact(), pluginTailwindcss()],
@@ -23,20 +24,21 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(import.meta.dirname, './src'),
-      '~@': path.resolve(import.meta.dirname, './src'),
     },
   },
-  html: { template: './index.html' },
+  html: {
+    template: './index.html',
+    favicon: './public/favicon.svg',
+  },
   server: {
+    base: assetPrefix,
     host: '0.0.0.0',
     port: 3000,
     proxy: isDevelopment ? createAoboboDevProxy(process.env) : undefined,
   },
   output: {
     assetPrefix,
-    distPath: { root: 'dist' },
     dataUriLimit: 8192,
-    sourceMap: { js: false, css: false },
   },
   performance: {
     chunkSplit: {

@@ -1,15 +1,33 @@
-import { defineConfig, js, reactPlugin } from '@rslint/core';
+import {
+  defineConfig,
+  globalIgnores,
+  globals,
+  js,
+  reactHooksPlugin,
+  reactPlugin,
+} from '@rslint/core';
 
 export default defineConfig([
   {
-    ignores: ['node_modules/**', 'dist/**', '**/*.local', '**/*.d.ts'],
+    ...globalIgnores(['node_modules/**', 'dist/**', '**/*.local', '**/*.d.ts']),
   },
   js.configs.recommended,
   reactPlugin.configs.recommended,
+  reactHooksPlugin.configs.recommended,
+  {
+    files: ['src/**/*.{js,jsx,ts,tsx}'],
+    languageOptions: {
+      globals: globals.browser,
+    },
+  },
+  {
+    files: ['*.{js,mjs,cjs}', 'rsbuild.*.js'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
   {
     rules: {
-      // Rslint does not yet model browser globals or intrinsic JSX elements.
-      'no-undef': 'off',
       'react/jsx-uses-react': 'off',
       'react/prop-types': 'off',
       'react/react-in-jsx-scope': 'off',

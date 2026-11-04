@@ -101,16 +101,16 @@ function MetricCard({ title, summary, details = [], series, yAxis = {}, loading,
 }) {
   const hasData = series.some((item) => item.data.length > 0);
   return (
-    <article className="history-card">
-      <div className={`history-card__head history-card__head--${details.length ? 'metrics' : 'summary'}`}>
-        <h3 className="history-card__title">{title}</h3>
+    <article className="history-card [display:grid] [grid-template-rows:52px_180px] [gap:8px] [min-width:0] [padding:12px] [border-radius:var(--radius-md)] [border:1px_solid_var(--panel-stat-border)] [background:var(--resource-history-card-bg)] [box-shadow:inset_0_1px_0_var(--surface-highlight)] max-[768px]:[grid-template-rows:50px_140px] max-[768px]:[padding:10px] max-[768px]:[gap:7px]">
+      <div className={`history-card__head [display:flex] [align-items:center] [justify-content:space-between] [gap:12px] [min-height:52px] [min-width:0] max-[768px]:[gap:10px] max-[768px]:[min-height:50px] history-card__head--${details.length ? 'metrics' : 'summary'}`}>
+        <h3 className="history-card__title [flex:1_1_auto] [margin:0] [min-width:0] [font-size:17px] [font-weight:700] [line-height:1.2] [white-space:nowrap] [overflow:hidden] [text-overflow:ellipsis] [color:var(--text-primary)] max-[768px]:[font-size:15px]">{title}</h3>
         {details.length ? (
-          <div className="history-card__metrics">{details.map((detail) => <div key={detail.label} className="history-card__metric-row" style={{ '--metric-color': detail.color }}><span className="history-card__metric-dot" /><span className="history-card__metric-label">{detail.label}</span><span className="history-card__metric-value">{detail.value}</span><span className="history-card__metric-detail">{detail.detail}</span></div>)}</div>
-        ) : <span className="history-card__summary">{summary}</span>}
+          <div className="history-card__metrics [display:flex] [flex-direction:column] [gap:4px] [min-width:0] [width:100%] [flex:0_1_110px] [max-width:30%]">{details.map((detail) => <div key={detail.label} className="history-card__metric-row [display:grid] [grid-template-columns:auto_auto_auto_minmax(0,_1fr)] [align-items:center] [column-gap:6px] [min-width:0] [min-height:22px] [padding:0_8px] [border-radius:999px] [border:1px_solid_var(--panel-chip-border)] [background:var(--panel-chip-bg)] [box-shadow:inset_0_1px_0_var(--surface-highlight)] [overflow:hidden] max-[768px]:[min-height:20px] max-[768px]:[padding:0_7px] max-[768px]:[column-gap:5px]" style={{ '--metric-color': detail.color }}><span className="history-card__metric-dot [width:6px] [height:6px] [border-radius:999px] [background:var(--metric-color)] [box-shadow:0_0_0_3px_var(--surface-subtle)]" /><span className="history-card__metric-label [color:var(--text-secondary)] [font-size:11px] [line-height:1] [white-space:nowrap]">{detail.label}</span><span className="history-card__metric-value [color:var(--text-primary)] [font-family:var(--font-mono)] [font-variant-numeric:tabular-nums] [font-size:11px] [font-weight:700] [line-height:1] [white-space:nowrap]">{detail.value}</span><span className="history-card__metric-detail [min-width:0] [justify-self:end] [color:var(--text-secondary)] [font-size:10px] [font-family:var(--font-mono)] [font-variant-numeric:tabular-nums] [line-height:1] [white-space:nowrap] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[font-size:9px]">{detail.detail}</span></div>)}</div>
+        ) : <span className="history-card__summary [color:var(--text-primary)] [font-family:var(--font-mono)] [font-size:17px] [font-weight:700] [font-variant-numeric:tabular-nums] [line-height:1.2] [white-space:nowrap] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[font-size:15px]">{summary}</span>}
       </div>
-      <div className="history-card__chart-shell">
-        {hasData ? <LineChart series={series} height={170} yAxis={yAxis} /> : <div className="history-card__empty">{emptyText}</div>}
-        {loading && <div className="history-card__loading"><i className="ri-loader-4-line spin history-card__loading-icon" /></div>}
+      <div className="history-card__chart-shell [position:relative] [display:flex] [align-items:stretch] [height:180px] [min-height:0] [border-radius:12px] [border:1px_solid_var(--panel-stat-border)] [background:rgba(255,_255,_255,_0.016)] [overflow:hidden] max-[768px]:[height:140px] max-[768px]:[min-height:0]">
+        {hasData ? <LineChart series={series} height={170} yAxis={yAxis} /> : <div className="history-card__empty [flex:1] [display:flex] [align-items:center] [justify-content:center] [padding:12px] [color:var(--text-muted)] [font-size:12px] [text-align:center]">{emptyText}</div>}
+        {loading && <div className="history-card__loading [position:absolute] [inset:0] [display:flex] [align-items:center] [justify-content:center] [background:var(--resource-history-card-bg)] [z-index:2]"><i className="ri-loader-4-line spin history-card__loading-icon [font-size:24px] [color:var(--accent-primary)]" /></div>}
       </div>
     </article>
   );
@@ -206,12 +206,12 @@ export default function ResourceHistory({ info }) {
   ], [active, info]);
 
   return (
-    <DetailPanel className="server-detail-resource-history">
-      <div className="module-head-group">
-        <span className="module-title"><i className="ri-line-chart-line" />资源历史</span>
-        <div className="time-range-group"><span className="time-range-label">范围</span><div className="time-range-options">{ranges.map((item) => <button key={item.value} type="button" className={`time-range-item${range === item.value ? ' active' : ''}`} onClick={() => setRange(item.value)}>{item.label}</button>)}</div></div>
+    <DetailPanel className="server-detail-resource-history [padding:16px_18px_18px] max-[768px]:[padding:12px_14px]">
+      <div className="module-head-group [display:flex] [flex-wrap:wrap] [align-items:center] [justify-content:space-between] [gap:12px] [margin-bottom:12px]">
+        <span className="module-title [min-height:28px] [font-size:15px]"><i className="ri-line-chart-line" />资源历史</span>
+        <div className="time-range-group [display:flex] [align-items:center] [gap:6px] [min-height:30px] [min-width:0] max-[768px]:[width:100%]"><span className="time-range-label">范围</span><div className="time-range-options">{ranges.map((item) => <button key={item.value} type="button" className={`time-range-item${range === item.value ? ' active' : ''}`} onClick={() => setRange(item.value)}>{item.label}</button>)}</div></div>
       </div>
-      <div className="history-grid">{cards.map((card) => <MetricCard key={card.title} {...card} loading={loading} emptyText={range === REALTIME ? '等待实时数据' : '暂无历史数据'} />)}</div>
+      <div className="history-grid [display:grid] [gap:12px] [grid-template-columns:repeat(2,_minmax(0,_1fr))] max-[768px]:[gap:8px] max-[768px]:[grid-template-columns:1fr]">{cards.map((card) => <MetricCard key={card.title} {...card} loading={loading} emptyText={range === REALTIME ? '等待实时数据' : '暂无历史数据'} />)}</div>
     </DetailPanel>
   );
 }

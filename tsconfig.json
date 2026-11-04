@@ -14,8 +14,7 @@
     "strict": false,
     "target": "ES2022",
     "paths": {
-      "@/*": ["./src/*"],
-      "~@/*": ["./src/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src", "rsbuild.config.mjs"]

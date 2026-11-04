@@ -228,11 +228,15 @@ importers:
         specifier: ^18.0.9
         version: 18.0.9
       tailwindcss:
-        specifier: ^4.3.3
-        version: 4.3.3
+        specifier: ^4.3.4
+        version: 4.3.4
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
+    optionalDependencies:
+      '@rslint/native-linux-x64-gnu':
+        specifier: 0.10.0
+        version: 0.10.0
 
 packages:
 
@@ -327,6 +331,12 @@ packages:
     cpu: [arm64]
     os: [linux]
     libc: [musl]
+
+  '@rslint/native-linux-x64-gnu@0.10.0':
+    resolution: {integrity: sha512-Hk3SyOS4MxTQozlUkqqaONYDC0WnMuSlBVlCOecKk9GC87I7YWzQvWUH9iiUGLBBUNvk0aL2RLbEVjgpa11azw==}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
 
   '@rslint/native-linux-x64-musl@0.10.0':
     resolution: {integrity: sha512-0/j4GpCTtAyDu7t/vpITv/VPRqDE4bycP+QPLgqojs/AkQyvD7/bxGc/dVxlWMepNzMvX0jrwmF6vDjMDfn1tQ==}
@@ -995,6 +1005,9 @@ packages:
   tailwindcss@4.3.3:
     resolution: {integrity: sha512-gOhV3P7ufE62QDGg1zVaTgCR+EtPv92k2nIhVcVKcLmxT1sUBsQGhnZj175j+MqRt4zLF7ic+sCYjfhxMxj7YQ==}
 
+  tailwindcss@4.3.4:
+    resolution: {integrity: sha512-PCJZTFFdG+sL3gvnP1Do9o6GbkvH2q0p04xSs3f7cSvmAeK+sttG+/7ncK1fdRwKFfC7n+wDDJaOMBSefkI9ow==}
+
   tapable@2.3.3:
     resolution: {integrity: sha512-uxc/zpqFg6x7C8vOE7lh6Lbda8eEL9zmVm/PLeTPBRhh1xCgdWaQ+J1CUieGpIfm2HdtsUpRv+HshiasBMcc6A==}
     engines: {node: '>=6'}
@@ -1090,6 +1103,7 @@ snapshots:
       '@rslint/native-darwin-x64': 0.10.0
       '@rslint/native-linux-arm64-gnu': 0.10.0
       '@rslint/native-linux-arm64-musl': 0.10.0
+      '@rslint/native-linux-x64-gnu': 0.10.0
       '@rslint/native-linux-x64-musl': 0.10.0
       '@rslint/native-win32-arm64-msvc': 0.10.0
       '@rslint/native-win32-x64-msvc': 0.10.0
@@ -1105,6 +1119,9 @@ snapshots:
     optional: true
 
   '@rslint/native-linux-arm64-musl@0.10.0':
+    optional: true
+
+  '@rslint/native-linux-x64-gnu@0.10.0':
     optional: true
 
   '@rslint/native-linux-x64-musl@0.10.0':
@@ -1607,6 +1624,8 @@ snapshots:
     optional: true
 
   tailwindcss@4.3.3: {}
+
+  tailwindcss@4.3.4: {}
 
   tapable@2.3.3: {}
 

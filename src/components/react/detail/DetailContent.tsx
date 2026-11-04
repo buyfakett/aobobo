@@ -24,7 +24,7 @@ export default function DetailContent({ info, initialTab = 'overview', onTabChan
     onTabChange?.(value);
   };
   return (
-    <div className="detail-content-stack">
+    <div className="detail-content-stack [display:flex] [flex-direction:column] [gap:12px] max-[768px]:[gap:8px]">
       <DetailHeader info={info} />
       <div className="detail-view-switch" role="tablist" aria-label="服务器详情视图">
         {TABS.map((item) => <button key={item.value} type="button" role="tab" className={`detail-view-switch__item${tab === item.value ? ' active' : ''}`} aria-selected={tab === item.value} onClick={() => selectTab(item.value)}><i className={item.icon} /><span>{item.label}</span></button>)}

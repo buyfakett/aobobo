@@ -46,8 +46,8 @@ export default function CycleTransfer({ info }) {
 
   if (config.aobobo.hideDetailCycleTransfer || viewItems.length === 0) return null;
   return (
-    <DetailPanel className="server-detail-cycle-transfer">
-      <div className="module-head-group"><span className="module-title"><i className="ri-exchange-funds-line" />周期流量</span>{refreshSeconds > 0 && <span className="refresh-tip">{refreshSeconds}s 自动刷新</span>}</div>
+    <DetailPanel className="server-detail-cycle-transfer [padding:12px_18px]">
+      <div className="module-head-group [display:flex] [flex-wrap:wrap] [align-items:center] [justify-content:space-between] [gap:12px] [margin-bottom:12px]"><span className="module-title [min-height:28px] [font-size:15px]"><i className="ri-exchange-funds-line" />周期流量</span>{refreshSeconds > 0 && <span className="refresh-tip">{refreshSeconds}s 自动刷新</span>}</div>
       <div className="cycle-transfer-list">
         {viewItems.map((item) => (
           <div key={`${item.source}_${item.ruleId}_${item.serverKey}`} className={`cycle-transfer-item status--${item.statusLevel}`}>

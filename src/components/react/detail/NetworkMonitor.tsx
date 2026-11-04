@@ -87,18 +87,18 @@ export default function NetworkMonitor({ info }) {
     window.localStorage.setItem(key, String(value));
   };
   return (
-    <DetailPanel className={`server-detail-monitor chart-type--${chartType}`}>
-      <div className="module-head-group">
-        <span className="module-title"><i className="ri-pulse-line" />网络监控</span>
+    <DetailPanel className={`server-detail-monitor [padding:16px_18px_18px] max-[768px]:[padding:12px_14px] chart-type--${chartType}`}>
+      <div className="module-head-group [display:flex] [flex-wrap:wrap] [align-items:center] [justify-content:space-between] [gap:12px] [margin-bottom:12px]">
+        <span className="module-title [min-height:28px] [font-size:15px]"><i className="ri-pulse-line" />网络监控</span>
         <div className="right-box">
           {config.aobobo.monitorChartTypeToggle && <button type="button" className="control-switch" onClick={() => toggle(setChartType, 'aobobo_monitor_chart_type', chartType === 'multi' ? 'single' : 'multi')}><span className="label-text">聚合</span><span className={`switch-box${chartType === 'multi' ? ' active' : ''}`}><span className="switch-dot" /></span></button>}
           <button type="button" className="control-switch" onClick={() => toggle(setRefresh, 'aobobo_monitor_refresh_data', !refresh)}><span className="label-text">刷新</span><span className={`switch-box${refresh ? ' active' : ''}`}><span className="switch-dot" /></span></button>
           <button type="button" className="control-switch" onClick={() => toggle(setPeakShaving, 'aobobo_monitor_peak_shaving', !peakShaving)}><span className="label-text">削峰</span><span className={`switch-box${peakShaving ? ' active' : ''}`}><span className="switch-dot" /></span></button>
-          <div className="time-range-group"><span className="time-range-label">最近</span><div className="time-range-options">{ranges.map((item) => <button type="button" key={item.value} className={`time-range-item${range === item.value ? ' active' : ''}`} onClick={() => setRange(item.value)}>{item.label}</button>)}</div></div>
+          <div className="time-range-group [display:flex] [align-items:center] [gap:6px] [min-height:30px] [min-width:0] max-[768px]:[width:100%]"><span className="time-range-label">最近</span><div className="time-range-options">{ranges.map((item) => <button type="button" key={item.value} className={`time-range-item${range === item.value ? ' active' : ''}`} onClick={() => setRange(item.value)}>{item.label}</button>)}</div></div>
         </div>
       </div>
-      <div className="monitor-cate-group">{chartData.map((item) => <button key={item.id} type="button" className={`monitor-cate-item${hidden[item.id] ? ' disabled' : ''}`} style={{ '--cate-color': item.color }} title={`${item.name}\n平均延迟：${item.average}ms\n成功率：${item.success}%`} onClick={() => setHidden((state) => ({ ...state, [item.id]: !state[item.id] }))}><span className="cate-legend" /><span className="cate-name">{item.name}</span>{item.average > 0 && <span className="cate-avg-ms">{item.average}ms</span>}</button>)}</div>
-      {chartType === 'single' ? <div className="monitor-chart-group">{visible.map((item) => <div key={item.id} className="monitor-chart-item"><div className="cate-name-box"><span className="cate-name">{item.name}</span></div><LineChart series={[item]} height={240} /></div>)}</div> : <LineChart series={visible} height={280} />}
+      <div className="monitor-cate-group [margin:8px_0_12px] [display:flex] [flex-wrap:wrap] [gap:7px]">{chartData.map((item) => <button key={item.id} type="button" className={`monitor-cate-item${hidden[item.id] ? ' disabled' : ''}`} style={{ '--cate-color': item.color }} title={`${item.name}\n平均延迟：${item.average}ms\n成功率：${item.success}%`} onClick={() => setHidden((state) => ({ ...state, [item.id]: !state[item.id] }))}><span className="cate-legend" /><span className="cate-name">{item.name}</span>{item.average > 0 && <span className="cate-avg-ms">{item.average}ms</span>}</button>)}</div>
+      {chartType === 'single' ? <div className="monitor-chart-group [display:flex] [flex-wrap:wrap] [gap:12px]">{visible.map((item) => <div key={item.id} className="monitor-chart-item"><div className="cate-name-box"><span className="cate-name">{item.name}</span></div><LineChart series={[item]} height={240} /></div>)}</div> : <LineChart series={visible} height={280} />}
     </DetailPanel>
   );
 }

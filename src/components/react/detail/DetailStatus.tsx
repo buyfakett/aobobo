@@ -48,7 +48,7 @@ export default function DetailStatus({ info }) {
     : '-';
   const availability = Number(info?.availability);
   return (
-    <DetailPanel className="server-detail-status">
+    <DetailPanel className="server-detail-status [display:flex] [flex-direction:column] [gap:14px] [padding:14px_18px] max-[768px]:[padding:10px_12px] max-[768px]:[gap:10px]">
       <div className="status-section">
         <h3 className="section-title"><i className="ri-dashboard-3-line" />资源使用</h3>
         <div className={`resource-grid resource-count--${items.length}`}>
