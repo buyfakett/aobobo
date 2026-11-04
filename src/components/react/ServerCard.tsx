@@ -4,9 +4,9 @@ import {
   formatDiskSize,
   getCPUInfo,
   getPlatformLogoIconClassName,
+  truncateDecimal,
 } from '@/utils/host';
 import { duration } from '@/utils/date';
-import truncateDecimal from '@/utils/number';
 import { getCycleTransferSummaryByServer } from '@/utils/cycle-transfer';
 import { getBillAndPlanByServer } from '@/composables/server-bill-and-plan';
 import type { AnyCallback } from '@/types/ui';

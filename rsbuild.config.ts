@@ -4,7 +4,7 @@ import { defineConfig } from '@rsbuild/core';
 import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginTailwindcss } from '@rsbuild/plugin-tailwindcss';
 import packageJson from './package.json' with { type: 'json' };
-import { createAoboboDevProxy } from './rsbuild.dev-proxy.js';
+import { createAoboboDevProxy } from './rsbuild.dev-proxy';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 if (isDevelopment) dotenv.config({ path: '.env.development.local' });

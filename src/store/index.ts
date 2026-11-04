@@ -2,11 +2,11 @@ import { useSyncExternalStore } from 'react';
 import dayjs from 'dayjs';
 import config from '@/config';
 import {
+  loadAvailability,
   loadServerGroup as loadNezhaV1ServerGroup,
   loadSetting as loadNezhaV1Setting,
   loadProfile as loadNezhaV1Profile,
-} from '@/utils/load-nezha-v1-config';
-import loadAvailability from '@/utils/load-availability';
+} from '@/utils/api';
 import { msg } from '@/ws';
 import {
   THEME_MODES,
@@ -18,7 +18,7 @@ import {
   resolveTheme,
 } from '@/utils/theme';
 
-const state = {
+const state: any = {
   init: false,
   serverTime: 0,
   serverGroup: [],
@@ -34,7 +34,7 @@ const state = {
   globeFocus: null,
 };
 
-const listeners = new Set();
+const listeners = new Set<() => void>();
 let version = 0;
 let firstSetServers = true;
 let removeThemeListener = null;
@@ -45,16 +45,16 @@ function emitChange() {
   listeners.forEach((listener) => listener());
 }
 
-function isOnline(lastActive, currentTime = Date.now()) {
+function isOnline(lastActive: any, currentTime = Date.now()) {
   const lastActiveTime = dayjs(lastActive)?.valueOf?.() || 0;
   return currentTime - lastActiveTime > 10 * 1000 ? -1 : 1;
 }
 
-function resolveOnline(server, currentTime = Date.now()) {
+function resolveOnline(server: any, currentTime = Date.now()) {
   return isOnline(server?.LastActive, currentTime);
 }
 
-function handleServerCount(servers) {
+function handleServerCount(servers: any[]) {
   return {
     total: servers.length,
     online: servers.filter((item) => item.online === 1).length,
@@ -62,7 +62,7 @@ function handleServerCount(servers) {
   };
 }
 
-function mergeAvailability(servers, availabilityMap, enabled) {
+function mergeAvailability(servers: any[], availabilityMap: Record<string, number>, enabled: boolean) {
   return servers.map((server) => {
     if (!enabled) {
       if (!Object.prototype.hasOwnProperty.call(server, 'availability')) return server;
@@ -75,7 +75,7 @@ function mergeAvailability(servers, availabilityMap, enabled) {
   });
 }
 
-const mutations = {
+const mutations: Record<string, (_payload?: any) => void> = {
   SET_SERVER_TIME(time) { state.serverTime = time; },
   SET_SERVER_GROUP(serverGroup) { state.serverGroup = serverGroup || []; },
   SET_SERVERS(servers) {
@@ -86,7 +86,7 @@ const mutations = {
     state.init = true;
   },
   UPDATE_SERVERS(servers) {
-    const previous = new Map(state.serverList.map((server) => [server.ID, server]));
+    const previous = new Map<any, any>(state.serverList.map((server) => [server.ID, server]));
     const next = servers.map((server) => ({
       ...server,
       ...(previous.get(server.ID)?.PublicNote ? { PublicNote: previous.get(server.ID).PublicNote } : {}),
@@ -109,14 +109,14 @@ const mutations = {
   CLEAR_GLOBE_FOCUS() { state.globeFocus = null; },
 };
 
-function commit(type, payload) {
+function commit(type: string, payload?: any) {
   const mutation = mutations[type];
   if (!mutation) throw new Error(`Unknown store mutation: ${type}`);
   mutation(payload);
   emitChange();
 }
 
-const actions = {
+const actions: Record<string, (_payload?: any) => any> = {
   initTheme() {
     commit('SET_THEME_MODE', loadThemeMode());
     actions.syncTheme();
@@ -191,19 +191,19 @@ const actions = {
 const store = {
   state,
   commit,
-  dispatch(type, payload) {
+  dispatch(type: string, payload?: any) {
     const action = actions[type];
     if (!action) return Promise.reject(new Error(`Unknown store action: ${type}`));
     return action(payload);
   },
-  subscribe(listener) {
+  subscribe(listener: () => void) {
     listeners.add(listener);
     return () => listeners.delete(listener);
   },
   getVersion: () => version,
 };
 
-export function useStore(selector = (currentState) => currentState) {
+export function useStore<T = any>(selector: (_currentState: any) => T = ((currentState) => currentState) as any): T {
   useSyncExternalStore(store.subscribe, store.getVersion, store.getVersion);
   return selector(state);
 }

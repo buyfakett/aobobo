@@ -56,7 +56,7 @@ export function getCPUInfo(text = '') {
   return cpuInfo;
 }
 
-export function calcBinary(bytes) {
+export function calcBinary(bytes: number) {
   const k = bytes / 1024;
   const m = k / 1024;
   const g = m / 1024;
@@ -66,20 +66,22 @@ export function calcBinary(bytes) {
   return { k, m, g, t, p };
 }
 
-export function calcTransfer(bytes) {
+export function calcTransfer(bytes: number) {
   const stats = calcBinary(bytes);
-  const result = { value: '', unit: '', stats };
+  const result: { value: number | string; unit: string; stats: ReturnType<typeof calcBinary> } = {
+    value: '', unit: '', stats,
+  };
   if (stats.t > 1) {
-    result.value = (stats.t).toFixed(2) * 1;
+    result.value = Number((stats.t).toFixed(2));
     result.unit = 'T';
   } else if (stats.g > 1) {
-    result.value = (stats.g).toFixed(2) * 1;
+    result.value = Number((stats.g).toFixed(2));
     result.unit = 'G';
   } else if (stats.m > 1) {
-    result.value = (stats.m).toFixed(1) * 1;
+    result.value = Number((stats.m).toFixed(1));
     result.unit = 'M';
   } else {
-    result.value = (stats.k).toFixed(1) * 1;
+    result.value = Number((stats.k).toFixed(1));
     result.unit = 'K';
   }
   return result;
@@ -141,4 +143,12 @@ export function getPlatformLogoIconClassName(platform) {
     return `fl-${platformStr}`;
   }
   return 'ri-server-line';
+}
+
+/** 截断数字到指定小数位数，不做四舍五入。 */
+export function truncateDecimal(value: number | string, digits = 1) {
+  const number = Number(value);
+  if (Number.isNaN(number)) return NaN;
+  const multiplier = 10 ** digits;
+  return Math.trunc(number * multiplier) / multiplier;
 }

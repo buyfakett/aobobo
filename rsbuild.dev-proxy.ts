@@ -62,7 +62,7 @@ function isAccessLoginRedirect(status, location) {
 }
 
 function accessHeaders(env) {
-  const headers = {};
+  const headers: Record<string, string> = {};
   const accessId = env.CF_ACCESS_CLIENT_ID?.trim();
   const accessSecret = env.CF_ACCESS_CLIENT_SECRET?.trim();
   if (accessId && accessSecret) {

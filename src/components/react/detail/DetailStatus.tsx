@@ -1,6 +1,5 @@
-import { calcBinary, calcTransfer, formatDiskSize } from '@/utils/host';
+import { calcBinary, calcTransfer, formatDiskSize, truncateDecimal } from '@/utils/host';
 import { duration } from '@/utils/date';
-import truncateDecimal from '@/utils/number';
 import { useStore } from '@/store';
 import { DetailPanel } from '@/components/react/Common';
 

@@ -1,8 +1,18 @@
 import store from '@/store';
 import validate from '@/utils/validate';
-import { Mapping } from '@/utils/object-mapping';
 
-export const SERVER_FIELD_MAPS = {
+function getPathValue(object: any, path: string) {
+  if (!object || !path) return undefined;
+  return path.split('.').reduce((value, key) => value?.[key], object);
+}
+
+function mapFields(maps: Record<string, string>, object: any) {
+  return Object.fromEntries(
+    Object.entries(maps).map(([key, path]) => [key, getPathValue(object, path)]),
+  );
+}
+
+const SERVER_FIELD_MAPS = {
   ID: 'id',
   Name: 'name',
   Tag: '_$function|queryGroup|id',
@@ -12,7 +22,7 @@ export const SERVER_FIELD_MAPS = {
   LastActive: 'last_active',
 };
 
-export const HOST_FIELD_MAPS = {
+const HOST_FIELD_MAPS = {
   Platform: 'host.platform',
   PlatformVersion: 'host.platform_version',
   CPU: 'host.cpu',
@@ -27,7 +37,7 @@ export const HOST_FIELD_MAPS = {
   GPU: 'host.gpu',
 };
 
-export const STATE_FIELD_MAPS = {
+const STATE_FIELD_MAPS = {
   CPU: 'state.cpu',
   MemUsed: 'state.mem_used',
   SwapUsed: 'state.swap_used',
@@ -47,7 +57,7 @@ export const STATE_FIELD_MAPS = {
   GPU: 'state.gpu',
 };
 
-const magics = {
+const magics: Record<string, any> = {
   HOST_FIELD_MAPS,
   STATE_FIELD_MAPS,
   queryGroup: (id) => {
@@ -61,8 +71,8 @@ const magics = {
   },
 };
 
-export default function (v1Data) {
-  const normalizedData = {};
+export default function (v1Data: any) {
+  const normalizedData: Record<string, any> = {};
   Object.keys(SERVER_FIELD_MAPS).forEach((key) => {
     if (SERVER_FIELD_MAPS[key] === undefined) return;
     if (SERVER_FIELD_MAPS[key].includes('_$')) {
@@ -70,13 +80,13 @@ export default function (v1Data) {
       switch ($magic[0]) {
         case '_$function':
           if ($magic.length >= 3 && magics[$magic[1]]) {
-            normalizedData[key] = magics[$magic[1]](Mapping.mapping(v1Data, $magic[2]));
+            normalizedData[key] = magics[$magic[1]](getPathValue(v1Data, $magic[2]));
           } else {
             normalizedData[key] = undefined;
           }
           break;
         case '_$mapping':
-          normalizedData[key] = Mapping.each(magics[$magic[1]], v1Data);
+          normalizedData[key] = mapFields(magics[$magic[1]], v1Data);
           if (key === 'State') {
             ['Load1', 'Load5', 'Load15', 'NetInTransfer', 'NetOutTransfer', 'NetInSpeed', 'NetOutSpeed']
               .forEach((k) => {
@@ -91,7 +101,7 @@ export default function (v1Data) {
       }
       return;
     }
-    normalizedData[key] = Mapping.mapping(v1Data, SERVER_FIELD_MAPS[key]);
+    normalizedData[key] = getPathValue(v1Data, SERVER_FIELD_MAPS[key]);
   });
   if (v1Data.public_note) {
     try {

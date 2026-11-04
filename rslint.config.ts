@@ -15,19 +15,20 @@ export default defineConfig([
   reactPlugin.configs.recommended,
   reactHooksPlugin.configs.recommended,
   {
-    files: ['src/**/*.{js,jsx,ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}'],
     languageOptions: {
       globals: globals.browser,
     },
   },
   {
-    files: ['*.{js,mjs,cjs}', 'rsbuild.*.js'],
+    files: ['*.{ts,mts,cts}', 'rsbuild.*.ts'],
     languageOptions: {
       globals: globals.node,
     },
   },
   {
     rules: {
+      'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       'react/jsx-uses-react': 'off',
       'react/prop-types': 'off',
       'react/react-in-jsx-scope': 'off',

@@ -1,13 +1,28 @@
-import { getLandPolygonsData } from './globe-land-polygons.js';
+import worldLandData from '@/assets/globe/world-land.json';
 
 const BASE_TEXTURE_WIDTH = 4096;
 const MIN_TEXTURE_WIDTH = 2048;
-const BUMP_TEXTURE_WIDTH = 2048;
-const BUMP_TEXTURE_HEIGHT = 1024;
 // A full-screen Retina WebGL canvas at DPR 2 contains four times as many pixels
 // as its CSS size. This cap keeps the globe sharp without redrawing an oversized
 // multi-megapixel surface on every animated frame.
 const MAX_RENDERER_PIXEL_RATIO = 1.5;
+
+let cachedLandPolygons: any[] | null = null;
+
+export function getLandPolygonsData() {
+  if (cachedLandPolygons) {
+    return cachedLandPolygons;
+  }
+  const coordinates = worldLandData.features[0]?.geometry?.coordinates || [];
+  cachedLandPolygons = coordinates.map((polygonCoordinates, index) => ({
+    id: index,
+    geometry: {
+      type: 'Polygon',
+      coordinates: polygonCoordinates,
+    },
+  }));
+  return cachedLandPolygons;
+}
 
 let cachedMaxTextureSize = null;
 
@@ -66,7 +81,8 @@ function getMaxTextureSize() {
   }
 
   const canvas = document.createElement('canvas');
-  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  const gl = (canvas.getContext('webgl')
+    || canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null;
 
   if (!gl) {
     cachedMaxTextureSize = BASE_TEXTURE_WIDTH;
@@ -92,7 +108,7 @@ export function getGlobeRendererPixelRatio() {
   return Math.min(Math.max(dpr, 1), MAX_RENDERER_PIXEL_RATIO);
 }
 
-export function getPreferredGlobeTextureSize(options = {}) {
+export function getPreferredGlobeTextureSize(options: { maxWidth?: number } = {}) {
   const {
     maxWidth = BASE_TEXTURE_WIDTH,
   } = options;
@@ -111,48 +127,6 @@ function projectGeoToCanvas(lng, lat, width, height) {
   const x = ((lng + 180) / 360) * width;
   const y = ((90 - lat) / 180) * height;
   return { x, y };
-}
-
-function drawLandForBump(ctx, width, height) {
-  const polygons = getLandPolygonsData();
-  ctx.fillStyle = '#ffffff';
-  ctx.filter = 'blur(3px)';
-
-  polygons.forEach((polygon) => {
-    const rings = polygon.geometry.coordinates;
-    if (!rings || rings.length === 0) {
-      return;
-    }
-
-    ctx.beginPath();
-    rings.forEach((ring) => {
-      ring.forEach(([lng, lat], index) => {
-        const { x, y } = projectGeoToCanvas(lng, lat, width, height);
-        if (index === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
-      });
-    });
-    ctx.closePath();
-    ctx.fill();
-  });
-
-  ctx.filter = 'none';
-}
-
-export function createGlobeBumpMap() {
-  const canvas = document.createElement('canvas');
-  canvas.width = BUMP_TEXTURE_WIDTH;
-  canvas.height = BUMP_TEXTURE_HEIGHT;
-  const ctx = canvas.getContext('2d');
-
-  ctx.fillStyle = '#000000';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  drawLandForBump(ctx, canvas.width, canvas.height);
-
-  return canvas;
 }
 
 function drawLightOcean(ctx) {
@@ -315,74 +289,3 @@ export function createGlobeOceanMap(theme = 'dark', textureSize = getPreferredGl
 
   return canvas;
 }
-
-const SCENE_BG_SIZE = 1024;
-
-export function createSceneBackgroundTexture(theme = 'dark') {
-  if (theme !== 'dark') {
-    return null;
-  }
-
-  const canvas = document.createElement('canvas');
-  canvas.width = SCENE_BG_SIZE;
-  canvas.height = SCENE_BG_SIZE;
-  const ctx = canvas.getContext('2d');
-
-  const base = ctx.createLinearGradient(0, 0, 0, canvas.height);
-  base.addColorStop(0, '#07162b');
-  base.addColorStop(0.48, '#031020');
-  base.addColorStop(1, '#010814');
-  ctx.fillStyle = base;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  const topGlow = ctx.createRadialGradient(
-    canvas.width * 0.5,
-    canvas.height * 0.30,
-    0,
-    canvas.width * 0.5,
-    canvas.height * 0.30,
-    canvas.height * 0.92,
-  );
-  topGlow.addColorStop(0, 'rgba(56, 128, 220, 0.16)');
-  topGlow.addColorStop(0.46, 'rgba(56, 128, 220, 0.06)');
-  topGlow.addColorStop(1, 'rgba(56, 128, 220, 0)');
-  ctx.fillStyle = topGlow;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  const bottomGlow = ctx.createRadialGradient(
-    canvas.width * 0.5,
-    canvas.height * 0.74,
-    0,
-    canvas.width * 0.5,
-    canvas.height * 0.74,
-    canvas.height * 0.78,
-  );
-  bottomGlow.addColorStop(0, 'rgba(25, 74, 150, 0.12)');
-  bottomGlow.addColorStop(1, 'rgba(25, 74, 150, 0)');
-  ctx.fillStyle = bottomGlow;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  const centerGlow = ctx.createRadialGradient(
-    canvas.width * 0.5,
-    canvas.height * 0.50,
-    0,
-    canvas.width * 0.5,
-    canvas.height * 0.50,
-    canvas.height * 0.80,
-  );
-  centerGlow.addColorStop(0, 'rgba(28, 132, 140, 0.035)');
-  centerGlow.addColorStop(0.58, 'rgba(56, 128, 220, 0.014)');
-  centerGlow.addColorStop(1, 'rgba(56, 128, 220, 0)');
-  ctx.fillStyle = centerGlow;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  return canvas;
-}
-
-export function createGlobeMaps(theme = 'dark') {
-  return {
-    colorMap: createGlobeOceanMap(theme),
-  };
-}
-
-export default createGlobeMaps;

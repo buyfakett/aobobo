@@ -1,19 +1,19 @@
 /**
  * 简易消息订阅类
  */
-export default class MessageSubscribe {
-  constructor() {
-    this.events = {};
-  }
+type Listener = (..._args: any[]) => void;
 
-  on(event, callback) {
+export default class MessageSubscribe {
+  private events: Record<string, Listener[]> = {};
+
+  on(event: string, callback: Listener) {
     if (!this.events[event]) {
       this.events[event] = [];
     }
     this.events[event].push(callback);
   }
 
-  once(event, callback) {
+  once(event: string, callback: Listener) {
     const onceCallback = (...args) => {
       callback(...args);
       this.off(event, onceCallback);
@@ -21,12 +21,12 @@ export default class MessageSubscribe {
     this.on(event, onceCallback);
   }
 
-  off(event, callback) {
+  off(event: string, callback: Listener) {
     if (!this.events[event]) return;
     this.events[event] = this.events[event].filter((cb) => cb !== callback);
   }
 
-  emit(event, ...args) {
+  emit(event: string, ...args: any[]) {
     if (!this.events[event]) return;
     this.events[event].forEach((callback) => callback(...args));
   }

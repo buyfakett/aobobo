@@ -30,7 +30,7 @@ function nextDate(date) {
     .slice(0, 10);
 }
 
-export function panelNextDayStart(date, tz) {
+function panelNextDayStart(date, tz) {
   return panelDay(nextDate(date), tz);
 }
 
@@ -66,7 +66,7 @@ function wallClockPercent(value) {
   return (seconds / DAY_SECONDS) * 100;
 }
 
-export function buildDayWindow(date, windowStart, windowEnd, tz) {
+function buildDayWindow(date, windowStart, windowEnd, tz) {
   const dayStart = panelDay(date, tz);
   const dayEnd = panelNextDayStart(date, tz);
   const start = panelDay(windowStart, tz);

@@ -1,7 +1,7 @@
 // 优先读取 $$aoboboConfig，同时兼容 nazhua-front 的 $$nazhuaConfig
-const runtimeConfig = window.$$aoboboConfig || window.$$nazhuaConfig || {};
+const runtimeConfig: Record<string, any> = window.$$aoboboConfig || window.$$nazhuaConfig || {};
 
-const config = {
+const config: { aobobo: Record<string, any> } = {
   aobobo: {
     title: '哪吒监控',
     showAvailability: false,
@@ -35,7 +35,7 @@ const config = {
   },
 };
 
-export function mergeAoboboConfig(customConfig) {
+export function mergeAoboboConfig(customConfig: Record<string, any>) {
   Object.keys(customConfig).forEach((key) => {
     config.aobobo[key] = customConfig[key];
   });

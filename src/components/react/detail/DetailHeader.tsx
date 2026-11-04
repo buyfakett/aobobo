@@ -10,9 +10,9 @@ import {
   getCPUInfo,
   getPlatformLogoIconClassName,
   getSystemOSLabel,
+  truncateDecimal,
 } from '@/utils/host';
 import { resolveServerLocation } from '@/utils/world-map';
-import truncateDecimal from '@/utils/number';
 import { getBillAndPlanByServer } from '@/composables/server-bill-and-plan';
 import DetailGlobe from '@/components/react/detail/DetailGlobe';
 

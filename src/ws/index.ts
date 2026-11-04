@@ -11,7 +11,7 @@ function getWsApiPath() {
 }
 
 const msg = new MessageSubscribe();
-let wsService;
+let wsService: WSService | undefined;
 
 function createWsService() {
   return new WSService({
@@ -54,7 +54,7 @@ export function restart() {
 
 export { msg };
 
-export default (actived) => {
+export default (actived?: () => void) => {
   const service = ensureWsService();
   if (service.connected === WS_CONNECTION_STATUS.CONNECTED) {
     if (actived) actived();

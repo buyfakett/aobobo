@@ -32,7 +32,7 @@ function sortByRuleId(a, b) {
   return String(a.ruleId).localeCompare(String(b.ruleId), 'zh-CN');
 }
 
-export function sortCycleTransferList(list) {
+function sortCycleTransferList(list) {
   return [...list].sort((a, b) => {
     const severity = STATUS_LEVELS[a.statusLevel] - STATUS_LEVELS[b.statusLevel];
     if (severity !== 0) {
@@ -87,7 +87,7 @@ function getRemainingPercent(used, max) {
   return Math.max(percent, 0);
 }
 
-export function getCycleTransferStatusLevel(remainingPercent) {
+function getCycleTransferStatusLevel(remainingPercent) {
   if (!Number.isFinite(remainingPercent)) {
     return 'neutral';
   }
@@ -145,8 +145,8 @@ function buildCycleTransferItem(ruleId, stats, serverKey, usedValue) {
   };
 }
 
-function normalizeV1CycleTransferMap(cycleTransferStats) {
-  const byServerId = {};
+function normalizeV1CycleTransferMap(cycleTransferStats: Record<string, any>) {
+  const byServerId: Record<string, any[]> = {};
 
   Object.entries(cycleTransferStats || {}).forEach(([ruleId, stats]) => {
     const transferMap = stats?.transfer || stats?.Transfer || {};
@@ -184,7 +184,7 @@ function decorateCycleTransferSummary(summaryItem) {
   };
 }
 
-export function getCycleTransferSummary(list) {
+function getCycleTransferSummary(list) {
   if (!Array.isArray(list) || list.length === 0) {
     return null;
   }

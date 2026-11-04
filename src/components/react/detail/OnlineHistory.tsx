@@ -9,7 +9,7 @@ import {
   panelNow,
   windowDurationSeconds,
 } from '@/utils/online-history';
-import { isOnlineHistorySupported, loadServerOnlineHistory } from '@/utils/load-online-history';
+import { isOnlineHistorySupported, loadServerOnlineHistory } from '@/utils/api';
 import { DetailPanel } from '@/components/react/Common';
 
 const DAY_OPTIONS = [1, 7, 30];

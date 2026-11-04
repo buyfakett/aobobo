@@ -162,8 +162,8 @@ src/
 ├── store/                # 响应式外部状态仓库
 ├── ws/                   # WebSocket 入口与服务
 ├── utils/                # 请求、数据转换、工具函数
-│   ├── globe-projection.js  # 经纬度到屏幕坐标投影
-│   └── globe-textures.js    # 自定义地球纹理生成
+│   ├── api.ts            # v1 接口加载与响应归一化
+│   └── globe-textures.ts # 地理数据与自定义地球纹理生成
 ├── data/                 # 地理位置码表
 ├── config/               # 运行时默认配置
 ├── assets/               # Tailwind 入口、主题变量与组件样式层

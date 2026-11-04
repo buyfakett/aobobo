@@ -8,8 +8,15 @@ const MAX_ARC_SEGMENTS = 48;
 const MAX_CONNECTIONS_DESKTOP = 160;
 const MAX_CONNECTIONS_MOBILE = 80;
 
-export const GLOBE_ALTITUDE_ANCHOR_SERIES_ID = 'globe-effect-altitude-anchor';
-export const GLOBE_ACTIVITY_SERIES_IDS = [SERVER_CONNECTION_SERIES_ID];
+type ActivitySeriesOptions = {
+  locations?: any[];
+  colors?: { connection?: string };
+  isMobile?: boolean;
+  enabled?: boolean;
+  theme?: string;
+};
+
+const GLOBE_ALTITUDE_ANCHOR_SERIES_ID = 'globe-effect-altitude-anchor';
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -264,27 +271,13 @@ export function buildActivitySeriesOptions({
   isMobile = false,
   enabled = true,
   theme = 'dark',
-} = {}) {
+}: ActivitySeriesOptions = {}) {
   const color = colors?.connection
     || (theme === 'light' ? '#5278d7' : '#89c3eb');
   const data = enabled && Array.isArray(locations)
     ? buildServerConnectionData(locations, isMobile)
     : [];
   return [createServerConnectionSeries(color, data, theme, isMobile)];
-}
-
-export function buildServerConnectionSignature(locations) {
-  const serverLocations = getServerLocations(locations);
-  if (serverLocations.length === 0) {
-    return 'empty';
-  }
-  return serverLocations.map((location) => (
-    `${location.country}:${location.key}@${location.lat.toFixed(5)},${location.lng.toFixed(5)}`
-  )).join('|');
-}
-
-export function isGlobeActivitySeriesId(id) {
-  return GLOBE_ACTIVITY_SERIES_IDS.includes(id);
 }
 
 export default buildActivitySeriesOptions;

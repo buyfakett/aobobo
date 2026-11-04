@@ -3,10 +3,48 @@ export const WS_CONNECTION_STATUS = {
   CONNECTING: 1,
   CONNECTED: 2,
   CLOSED: -1,
+} as const;
+
+type WsStatus = (typeof WS_CONNECTION_STATUS)[keyof typeof WS_CONNECTION_STATUS];
+type WsOptions = {
+  wsUrl: string;
+  debug?: boolean;
+  onConnect?: (_event?: Event) => void;
+  onClose?: (_event?: CloseEvent) => void;
+  onError?: (_error: Event | Error) => void;
+  onMessage?: (_data: any, _event?: MessageEvent) => void;
+  onMessageError?: (_error: unknown, _event?: MessageEvent) => void;
+};
+type WsCallbacks = {
+  close: (_event?: CloseEvent) => void;
+  error: (_error: Event | Error) => void;
+  connect: (_event?: Event) => void;
+  message: (_data: any, _event?: MessageEvent) => void;
+  messageError: (_error: unknown, _event?: MessageEvent) => void;
 };
 
 class WSService {
-  constructor(options) {
+  static instance: WSService | null = null;
+
+  debug = false;
+
+  $wsUrl = '';
+
+  connected: WsStatus = WS_CONNECTION_STATUS.DISCONNECTED;
+
+  ws?: WebSocket;
+
+  $on: WsCallbacks = {
+    close: () => {},
+    error: () => {},
+    connect: () => {},
+    message: () => {},
+    messageError: () => {},
+  };
+
+  evt: (_event: MessageEvent) => void;
+
+  constructor(options: WsOptions) {
     const {
       wsUrl, onConnect, onClose, onError, onMessage, onMessageError,
     } = options || {};
@@ -30,8 +68,6 @@ class WSService {
     }
 
     WSService.instance = this;
-    this.connected = WS_CONNECTION_STATUS.DISCONNECTED;
-    this.ws = undefined;
     this.evt = (event) => {
       if (this.debug) console.log('Message from server ', event.data);
       try {
@@ -75,7 +111,7 @@ class WSService {
     });
   }
 
-  send(data) {
+  send(data: unknown) {
     this?.ws?.send?.(JSON.stringify(data));
   }
 

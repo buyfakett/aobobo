@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
-    "allowJs": true,
-    "checkJs": false,
+    "allowJs": false,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "jsx": "react-jsx",
@@ -17,5 +16,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "rsbuild.config.mjs"]
+  "include": ["src", "rsbuild.config.ts", "rsbuild.dev-proxy.ts", "rslint.config.ts"]
 }

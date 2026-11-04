@@ -1,14 +1,14 @@
 import config from '@/config';
 import CODE_MAPS, { countryCodeMapping, aliasMapping } from '@/data/code-maps';
 
-export const ALIAS_CODE = {
+const ALIAS_CODE = {
   ...aliasMapping,
   ...countryCodeMapping,
 };
 
-export const alias2code = (code) => ALIAS_CODE[code];
+const alias2code = (code) => ALIAS_CODE[code];
 
-export const locationCode2Info = (code) => {
+const locationCode2Info = (code) => {
   const maps = {
     ...CODE_MAPS,
     ...(config.aobobo.customCodeMap || {}),
@@ -19,12 +19,6 @@ export const locationCode2Info = (code) => {
     info = maps[aliasCode];
   }
   return info;
-};
-
-export const count2size = (count) => {
-  if (count < 3) return 4;
-  if (count < 5) return 6;
-  return 8;
 };
 
 function parseLatLng(value) {

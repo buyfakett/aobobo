@@ -12,9 +12,9 @@ import {
   createGlobeOceanMap,
   getGlobeRendererPixelRatio,
   getPreferredGlobeTextureSize,
+  getLandPolygonsData,
   THEME_COLORS,
 } from '@/utils/globe-textures';
-import { getLandPolygonsData } from '@/utils/globe-land-polygons';
 import {
   buildActivitySeriesOptions,
   createAltitudeAnchorSeries,

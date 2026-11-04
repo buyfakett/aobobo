@@ -1,7 +1,7 @@
 // Persists homepage globe rotation and connection-display preferences.
 
-export const GLOBE_ROTATION_STORAGE_KEY = 'aobobo_globe_rotation';
-export const GLOBE_ROTATION_STORAGE_VERSION = 4;
+const GLOBE_ROTATION_STORAGE_KEY = 'aobobo_globe_rotation';
+const GLOBE_ROTATION_STORAGE_VERSION = 4;
 
 export const DEFAULT_AUTO_ROTATE = true;
 export const DEFAULT_ROTATE_SPEED = 0.5;

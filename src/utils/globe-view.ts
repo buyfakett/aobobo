@@ -3,8 +3,8 @@
 // by the theme mode and monitor preferences (`aobobo-*` keys, try/catch guarded,
 // SSR safe). Only the data needed to reproduce a view is stored.
 
-export const GLOBE_VIEW_STORAGE_KEY = 'aobobo_globe_view';
-export const GLOBE_VIEW_STORAGE_VERSION = 1;
+const GLOBE_VIEW_STORAGE_KEY = 'aobobo_globe_view';
+const GLOBE_VIEW_STORAGE_VERSION = 1;
 
 // Tolerances are intentionally loose: the values come straight from the
 // OrbitControl camera angles and only need to round-trip back into it.
@@ -62,16 +62,5 @@ export function persistGlobeView(view) {
     );
   } catch {
     // ignore storage write failures (e.g. private mode / quota)
-  }
-}
-
-export function clearGlobeView() {
-  if (typeof window === 'undefined') {
-    return;
-  }
-  try {
-    window.localStorage.removeItem(GLOBE_VIEW_STORAGE_KEY);
-  } catch {
-    // ignore storage write failures
   }
 }

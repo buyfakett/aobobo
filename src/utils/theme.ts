@@ -1,4 +1,4 @@
-export const THEME_STORAGE_KEY = 'aobobo-theme-mode';
+const THEME_STORAGE_KEY = 'aobobo-theme-mode';
 
 export const THEME_MODES = Object.freeze({
   AUTO: 'auto',
@@ -6,7 +6,7 @@ export const THEME_MODES = Object.freeze({
   DARK: 'dark',
 });
 
-export const RESOLVED_THEMES = Object.freeze({
+const RESOLVED_THEMES = Object.freeze({
   LIGHT: 'light',
   DARK: 'dark',
 });
@@ -18,7 +18,7 @@ export function normalizeThemeMode(mode) {
   return THEME_MODES.AUTO;
 }
 
-export function getSystemTheme() {
+function getSystemTheme() {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
     return RESOLVED_THEMES.DARK;
   }
