@@ -12,7 +12,8 @@
     "build": "rsbuild build",
     "preview": "rsbuild preview",
     "lint": "rslint",
-    "lint:fix": "rslint --fix"
+    "lint:fix": "rslint --fix",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "axios": "^1.21.0",
@@ -35,11 +36,12 @@
   "devDependencies": {
     "@rsbuild/core": "^2.3.1",
     "@rsbuild/plugin-react": "^2.1.1",
-    "@rsbuild/plugin-sass": "^2.0.1",
+    "@rsbuild/plugin-tailwindcss": "^2.0.3",
     "@rslint/core": "^0.10.0",
-    "@tailwindcss/postcss": "^4.3.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "dotenv": "^18.0.9",
-    "sass": "^1.107.1",
-    "tailwindcss": "^4.3.3"
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2"
   }
 }

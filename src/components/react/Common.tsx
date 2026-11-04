@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import config from '@/config';
 import store, { useStore } from '@/store';
 import { THEME_MODES } from '@/utils/theme';
@@ -63,7 +63,7 @@ export function DashboardButton() {
   );
 }
 
-export function AppFooter({ className = '' }) {
+export function AppFooter({ className = '' }: { className?: string }) {
   const poweredName = config.aobobo.poweredByName || '哪吒监控';
   const poweredUrl = config.aobobo.poweredByUrl || 'https://nezha.wiki';
   const version = config.aobobo.aoboboVersion || packageJson.version;
@@ -83,7 +83,7 @@ export function AppFooter({ className = '' }) {
 
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
-export function CurrentTime({ panelWidth }) {
+export function CurrentTime({ panelWidth }: { panelWidth?: number | string }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
@@ -91,7 +91,7 @@ export function CurrentTime({ panelWidth }) {
   }, []);
 
   const pad = (value) => String(value).padStart(2, '0');
-  const style = {
+  const style: CSSProperties = {
     '--current-time-second-progress': `${Math.round((now.getSeconds() / 59) * 100)}%`,
     ...(panelWidth ? { '--current-time-panel-width': typeof panelWidth === 'number' ? `${panelWidth}px` : panelWidth } : {}),
   };
@@ -116,7 +116,15 @@ export function CurrentTime({ panelWidth }) {
   );
 }
 
-export function DetailPanel({ title, icon, actions, children, className = '' }) {
+type DetailPanelProps = {
+  title?: ReactNode;
+  icon?: string;
+  actions?: ReactNode;
+  children: ReactNode;
+  className?: string;
+};
+
+export function DetailPanel({ title, icon, actions, children, className = '' }: DetailPanelProps) {
   return (
     <section className={`detail-panel detail-panel--flat ${className}`.trim()}>
       {(title || actions) && (
@@ -130,7 +138,15 @@ export function DetailPanel({ title, icon, actions, children, className = '' }) 
   );
 }
 
-export function Modal({ open, title, onClose, className = '', children }) {
+type ModalProps = {
+  open: boolean;
+  title: string;
+  onClose?: () => void;
+  className?: string;
+  children: ReactNode;
+};
+
+export function Modal({ open, title, onClose, className = '', children }: ModalProps) {
   useEffect(() => {
     if (!open) return undefined;
     const onKeyDown = (event) => event.key === 'Escape' && onClose?.();
@@ -152,6 +168,6 @@ export function Modal({ open, title, onClose, className = '', children }) {
   );
 }
 
-export function EmptyState({ icon = 'ri-inbox-line', children }) {
+export function EmptyState({ icon = 'ri-inbox-line', children }: { icon?: string; children: ReactNode }) {
   return <div className="empty-list"><i className={`${icon} empty-icon`} /><span>{children}</span></div>;
 }

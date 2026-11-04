@@ -8,6 +8,7 @@ import { duration } from '@/utils/date';
 import truncateDecimal from '@/utils/number';
 import { getCycleTransferSummaryByServer } from '@/utils/cycle-transfer';
 import { getBillAndPlanByServer } from '@/composables/server-bill-and-plan';
+import type { AnyCallback } from '@/types/ui';
 
 function cpuCompany(server) {
   return getCPUInfo(server?.Host?.CPU?.[0] || '').company || '';
@@ -103,6 +104,12 @@ export default function ServerCard({
   compact = false,
   onSelect,
   onHover,
+}: {
+  server: any;
+  cycleTransferMap?: Record<string, any>;
+  compact?: boolean;
+  onSelect?: AnyCallback;
+  onHover?: AnyCallback;
 }) {
   const showAvailability = useStore((state) => state.showAvailability);
   const serverTime = useStore((state) => state.serverTime);
@@ -183,7 +190,12 @@ export default function ServerCard({
   );
 }
 
-export function ServerTable({ servers, cycleTransferMap, onSelect, onHover }) {
+export function ServerTable({ servers, cycleTransferMap, onSelect, onHover }: {
+  servers: any[];
+  cycleTransferMap?: Record<string, any>;
+  onSelect?: AnyCallback;
+  onHover?: AnyCallback;
+}) {
   return (
     <div className="server-table-wrap">
       {servers.map((server) => (

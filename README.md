@@ -1,6 +1,6 @@
 # AoBoBo
 
-AoBoBo 是一个为 [哪吒监控](https://nezha.wiki/) 设计的纯前端 3D 可视化主题，基于 **React 19 + Rsbuild + echarts-gl** 构建，在全球 3D 地球上直观展示各地 VPS 的实时运行状态。
+AoBoBo 是一个为 [哪吒监控](https://nezha.wiki/) 设计的纯前端 3D 可视化主题，基于 **React 19 + TypeScript + Rsbuild + Tailwind CSS 4 + echarts-gl** 构建，在全球 3D 地球上直观展示各地 VPS 的实时运行状态。
 
 > AoBoBo 仅包含前端展示，不包含哪吒 Dashboard 或 Agent。
 >
@@ -149,6 +149,7 @@ CF_ACCESS_CLIENT_SECRET=
 | `pnpm run preview` | 预览生产构建 |
 | `pnpm run lint` | 运行 Rslint |
 | `pnpm run lint:fix` | 自动修复 Rslint 问题 |
+| `pnpm run typecheck` | 运行 TypeScript 类型检查 |
 
 ## 项目结构
 
@@ -156,8 +157,8 @@ CF_ACCESS_CLIENT_SECRET=
 src/
 ├── components/react/     # React 公共组件与 3D 地球、图表、详情组件
 ├── views/                # 页面
-│   ├── Home.jsx          # 主页面（地球 + 列表）
-│   └── Detail.jsx        # 服务器详情页
+│   ├── Home.tsx          # 主页面（地球 + 列表）
+│   └── Detail.tsx        # 服务器详情页
 ├── hooks/                # React Hooks
 ├── store/                # 响应式外部状态仓库
 ├── ws/                   # WebSocket 入口与服务
@@ -166,8 +167,8 @@ src/
 │   └── globe-textures.js    # 自定义地球纹理生成
 ├── data/                 # 地理位置码表
 ├── config/               # 运行时默认配置
-├── assets/               # 静态资源与全局样式
-└── main.jsx              # 应用入口
+├── assets/               # Tailwind 入口、主题变量与组件样式层
+└── main.tsx              # 应用入口
 ```
 
 ## 公开备注

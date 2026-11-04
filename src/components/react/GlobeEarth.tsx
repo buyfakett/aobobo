@@ -23,11 +23,22 @@ import { formatLocationLocalTime } from '@/utils/location-time';
 import { loadGlobeView, persistGlobeView } from '@/utils/globe-view';
 import useMediaQuery from '@/hooks/useMediaQuery';
 import ServerCard from '@/components/react/ServerCard';
+import type { AnyCallback, GlobeEarthHandle } from '@/types/ui';
 
 const textureCache = new Map();
 let coastlineCache = null;
 const GLOBE_RADIUS = 100;
 const VIEW_PERSIST_DELAY = 800;
+
+type GlobeEarthProps = {
+  locations: any[];
+  theme?: string;
+  cycleTransferMap?: Record<string, any>;
+  autoRotate?: boolean;
+  rotateSpeed?: number;
+  showServerConnections?: boolean;
+  onSelectServer?: AnyCallback;
+};
 
 function normalizeLongitude(value) {
   return ((value + 180) % 360 + 360) % 360 - 180;
@@ -103,7 +114,7 @@ function buildOption({ locations, theme, autoRotate, rotateSpeed, showServerConn
       },
     };
   });
-  const activity = buildActivitySeriesOptions({
+  const activity = (buildActivitySeriesOptions as any)({
     locations,
     colors: { connection: theme === 'light' ? '#5278d7' : '#89c3eb' },
     isMobile,
@@ -172,7 +183,7 @@ function buildOption({ locations, theme, autoRotate, rotateSpeed, showServerConn
   };
 }
 
-const GlobeEarth = forwardRef(function GlobeEarth({
+const GlobeEarth = forwardRef<GlobeEarthHandle, GlobeEarthProps>(function GlobeEarth({
   locations,
   theme = 'dark',
   cycleTransferMap = {},
@@ -188,12 +199,14 @@ const GlobeEarth = forwardRef(function GlobeEarth({
   const viewRef = useRef(loadGlobeView());
   const persistTimerRef = useRef(null);
   const locationsRef = useRef(locations);
+  const onSelectServerRef = useRef(onSelectServer);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState(false);
   const [selected, setSelected] = useState(null);
   const [clock, setClock] = useState(Date.now());
   const isMobile = useMediaQuery('(max-width: 768px)');
   locationsRef.current = locations;
+  onSelectServerRef.current = onSelectServer;
   const globeDataKey = buildGlobeDataKey(locations);
 
   const option = useMemo(() => buildOption({
@@ -260,7 +273,7 @@ const GlobeEarth = forwardRef(function GlobeEarth({
           (item.key || item.code) === locationKey
         ));
         if (!location) return;
-        if (location.servers?.length === 1) onSelectServer?.(location.servers[0]);
+        if (location.servers?.length === 1) onSelectServerRef.current?.(location.servers[0]);
         else setSelected(location);
       });
       const observer = new ResizeObserver(() => chart.resize());
@@ -279,7 +292,7 @@ const GlobeEarth = forwardRef(function GlobeEarth({
       setError(true);
       return undefined;
     }
-  }, [onSelectServer]);
+  }, []);
 
   useEffect(() => {
     setSelected((current) => {

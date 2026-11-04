@@ -6,13 +6,18 @@ import CycleTransfer from '@/components/react/detail/CycleTransfer';
 import ServerInfo from '@/components/react/detail/ServerInfo';
 import NetworkMonitor from '@/components/react/detail/NetworkMonitor';
 import OnlineHistory from '@/components/react/detail/OnlineHistory';
+import type { AnyCallback } from '@/types/ui';
 
 const TABS = [
   { value: 'overview', label: '概览', icon: 'ri-dashboard-3-line' },
   { value: 'online', label: '在线历史', icon: 'ri-history-line' },
 ];
 
-export default function DetailContent({ info, initialTab = 'overview', onTabChange }) {
+export default function DetailContent({ info, initialTab = 'overview', onTabChange }: {
+  info: any;
+  initialTab?: string;
+  onTabChange?: AnyCallback;
+}) {
   const [tab, setTab] = useState(initialTab);
   const selectTab = (value) => {
     setTab(value);

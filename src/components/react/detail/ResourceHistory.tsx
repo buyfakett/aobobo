@@ -25,7 +25,10 @@ const COLORS = {
   tcp_conn: '#89c3eb', udp_conn: '#4e90ff',
 };
 
-function emptyHistory() {
+type MetricPoint = { ts: number; value: number };
+type MetricHistory = Record<string, MetricPoint[]>;
+
+function emptyHistory(): MetricHistory {
   return Object.fromEntries(METRICS.map((metric) => [metric, []]));
 }
 
@@ -87,7 +90,15 @@ function buildSeries(history, ...definitions) {
   }));
 }
 
-function MetricCard({ title, summary, details = [], series, yAxis, loading, emptyText }) {
+function MetricCard({ title, summary, details = [], series, yAxis = {}, loading, emptyText }: {
+  title: string;
+  summary?: string;
+  details?: Array<{ label: string; value: string; detail?: string; color: string }>;
+  series: any[];
+  yAxis?: Record<string, any>;
+  loading: boolean;
+  emptyText: string;
+}) {
   const hasData = series.some((item) => item.data.length > 0);
   return (
     <article className="history-card">
@@ -161,7 +172,8 @@ export default function ResourceHistory({ info }) {
     const period = periodFor(range);
     const task = Promise.all(METRICS.map(async (metric) => [metric, await loadV1Metric(info.ID, metric, period, metricInfo)]))
       .then(Object.fromEntries);
-    task.then((result) => {
+    task.then((rawResult) => {
+      const result = rawResult as MetricHistory;
       if (serial !== requestRef.current) return;
       if (Number(range) <= 1440) {
         const latest = Math.max(...Object.values(result).flat().map((point) => point.ts), 0);

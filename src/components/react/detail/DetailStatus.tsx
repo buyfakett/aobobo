@@ -24,7 +24,13 @@ function resourceItems(info) {
   ].filter(Boolean);
 }
 
-function RealtimeItem({ icon, label, value, unit, className = '' }) {
+function RealtimeItem({ icon, label, value, unit, className = '' }: {
+  icon: string;
+  label: string;
+  value: string | number;
+  unit?: string;
+  className?: string;
+}) {
   const fullValue = `${value}${unit || ''}`;
   return <div className={`real-time-item ${className}`.trim()}><i className={icon} /><div><span className="real-time-label">{label}</span><strong title={fullValue}>{value}<small>{unit}</small></strong></div></div>;
 }

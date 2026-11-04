@@ -2,7 +2,7 @@ import { defineConfig, js, reactPlugin } from '@rslint/core';
 
 export default defineConfig([
   {
-    ignores: ['node_modules/**', 'dist/**', '**/*.local'],
+    ignores: ['node_modules/**', 'dist/**', '**/*.local', '**/*.d.ts'],
   },
   js.configs.recommended,
   reactPlugin.configs.recommended,

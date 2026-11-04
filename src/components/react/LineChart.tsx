@@ -1,5 +1,15 @@
 import { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
+import type { AnyCallback } from '@/types/ui';
+
+type LineChartProps = {
+  series?: any[];
+  height?: number;
+  connectNulls?: boolean;
+  yAxis?: Record<string, any>;
+  tooltipFormatter?: AnyCallback;
+  className?: string;
+};
 
 export default function LineChart({
   series = [],
@@ -8,7 +18,7 @@ export default function LineChart({
   yAxis = {},
   tooltipFormatter,
   className = '',
-}) {
+}: LineChartProps) {
   const option = useMemo(() => {
     const timestamps = series.flatMap((item) => (item.data || []))
       .map((point) => Number(Array.isArray(point) ? point[0] : point?.value?.[0]))

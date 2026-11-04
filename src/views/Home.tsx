@@ -31,6 +31,7 @@ import {
 } from '@/components/react/Common';
 import { ServerTable } from '@/components/react/ServerCard';
 import GlobeEarth from '@/components/react/GlobeEarth';
+import type { GlobeEarthHandle } from '@/types/ui';
 import { GlobeControls, SortSelect, StatusFilter } from '@/components/react/HomeControls';
 import { AllHostsModal, StatsModal } from '@/components/react/HomeModals';
 import DetailContent from '@/components/react/detail/DetailContent';
@@ -76,7 +77,7 @@ function aggregateStats(servers, groups, serverCount) {
   let outgoing = 0;
   let cores = 0;
   let monthlyCost = 0;
-  const brands = {};
+  const brands: Record<string, number> = {};
   const targetCurrency = config.aobobo.statsCostCurrency || 'CNY';
   servers.forEach((server) => {
     memory += Number(server.Host?.MemTotal) || 0;
@@ -120,7 +121,7 @@ export default function Home() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const isWide = useMediaQuery('(min-width: 1001px)');
-  const globeRef = useRef(null);
+  const globeRef = useRef<GlobeEarthHandle>(null);
   const hoverTimerRef = useRef(null);
   const resizeRef = useRef(null);
   const [search, setSearch] = useState('');
@@ -208,7 +209,7 @@ export default function Home() {
     return [...result].sort((a, b) => {
       const onlineOrder = Number(a.online !== 1) - Number(b.online !== 1);
       if (onlineOrder) return onlineOrder;
-      return sort.prop === 'DisplayIndex' && sort.order === 'desc' ? 0 : serverSortHandler(a, b, sort.prop, sort.order);
+      return sort.prop === 'DisplayIndex' && sort.order === 'desc' ? 0 : serverSortHandler(a, b, sort.prop, sort.order as 'asc' | 'desc');
     });
   }, [appState.serverGroup, appState.serverList, group, search, sort, status]);
 
