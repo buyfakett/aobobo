@@ -47,18 +47,17 @@ export function ThemeModeSwitch() {
 }
 
 export function DashboardButton() {
-  const username = useStore((state) => state.profile?.username);
   if (config.aobobo.v1HideNezhaDashboardBtn === true) return null;
   return (
     <a
       href={config.aobobo.v1DashboardUrl || '/dashboard'}
       className="v1-dashboard-btn [display:inline-flex] [align-items:center] [justify-content:center] [gap:5px] [min-height:40px] [padding:0_14px] [border-radius:999px] [border:1px_solid_var(--button-subtle-border)] [background:var(--button-subtle-bg)] [color:var(--text-secondary)] [font-size:12px] [font-weight:600] [line-height:1] [text-decoration:none] [cursor:pointer] [transition:color_var(--transition-fast),_background_var(--transition-fast),_border-color_var(--transition-fast),_box-shadow_var(--transition-fast),_transform_var(--transition-fast)] max-[768px]:[min-height:32px] max-[768px]:[padding:0_10px] max-[420px]:[width:32px] max-[420px]:[height:32px] max-[420px]:[min-width:32px] max-[420px]:[padding:0]"
-      title={username ? '访问管理后台' : '登录管理后台'}
+      title="访问管理后台"
       target="_blank"
       rel="noopener noreferrer"
     >
-      <i className={username ? 'ri-dashboard-3-line' : 'ri-user-line'} />
-      <span className="btn-text">{username ? '管理后台' : '登录'}</span>
+      <i className="ri-dashboard-3-line" />
+      <span className="btn-text">管理后台</span>
     </a>
   );
 }
@@ -126,7 +125,7 @@ type DetailPanelProps = {
 
 export function DetailPanel({ title, icon, actions, children, className = '' }: DetailPanelProps) {
   return (
-    <section className={`detail-panel detail-panel--flat [border:1px_solid_var(--border-color)] [border-radius:var(--radius-lg)] [background:var(--section-bg)] [box-shadow:var(--shadow-sm),_inset_0_1px_0_var(--surface-highlight)] [padding:16px_0] [overflow:hidden] max-[768px]:[border-radius:var(--radius-md)] ${className}`.trim()}>
+    <section className={`detail-panel detail-panel--flat [border:1px_solid_var(--border-color)] [border-radius:var(--radius-lg)] [background:var(--section-bg)] [box-shadow:var(--shadow-sm),_inset_0_1px_0_var(--surface-highlight)] [overflow:hidden] max-[768px]:[border-radius:var(--radius-md)] ${className}`.trim()}>
       {(title || actions) && (
         <header className="detail-panel__header module-head-group [display:flex] [flex-wrap:wrap] [align-items:center] [justify-content:space-between] [gap:12px] [margin-bottom:12px]">
           {title && <h2 className="module-title [min-height:28px] [font-size:15px]">{icon && <i className={icon} />}<span>{title}</span></h2>}
