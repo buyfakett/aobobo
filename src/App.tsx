@@ -8,7 +8,6 @@ import store from '@/store';
 import wsInit from '@/ws';
 
 const Home = lazy(() => import('@/views/Home'));
-const Detail = lazy(() => import('@/views/Detail'));
 let bootPromise;
 
 function bootApplication() {
@@ -34,7 +33,7 @@ function AppRoutes() {
     <Suspense fallback={<div className="grid h-full w-full place-items-center text-[28px] text-[var(--accent-primary)]"><i className="ri-loader-4-line animate-spin" /></div>}>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/server/:id" element={<Detail />} />
+        <Route path="/server/:id" element={<Home />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>

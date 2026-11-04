@@ -157,8 +157,7 @@ CF_ACCESS_CLIENT_SECRET=
 src/
 ├── components/react/     # React 公共组件与 3D 地球、图表、详情组件
 ├── views/                # 页面
-│   ├── Home.tsx          # 主页面（地球 + 列表）
-│   └── Detail.tsx        # 服务器详情页
+│   └── Home.tsx          # 主页面（地球 + 列表、服务器详情）
 ├── hooks/                # React Hooks
 ├── store/                # 响应式外部状态仓库
 ├── ws/                   # WebSocket 入口与服务

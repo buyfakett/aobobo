@@ -5,7 +5,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import config from '@/config';
 import store, { useStore } from '@/store';
 import { resolveServerLocation, clusterLocations } from '@/utils/world-map';
@@ -119,6 +119,7 @@ function aggregateStats(servers, groups, serverCount) {
 export default function Home() {
   const appState = useStore((state) => state);
   const navigate = useNavigate();
+  const { id: routeServerId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const isWide = useMediaQuery('(min-width: 1001px)');
   const globeRef = useRef<GlobeEarthHandle>(null);
@@ -143,6 +144,15 @@ export default function Home() {
   useEffect(() => {
     document.title = config.aobobo.title || '哪吒监控';
   }, []);
+
+  const legacyDetailId = searchParams.get('detail');
+  useEffect(() => {
+    if (routeServerId || !legacyDetailId) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('detail');
+    const query = next.toString();
+    navigate(`/server/${encodeURIComponent(legacyDetailId)}${query ? `?${query}` : ''}`, { replace: true });
+  }, [legacyDetailId, navigate, routeServerId, searchParams]);
 
   useEffect(() => {
     persistGlobeRotation({ autoRotate, rotateSpeed, showServerConnections: connections });
@@ -227,23 +237,27 @@ export default function Home() {
   }, [appState.serverList]);
   const detailStats = useMemo(() => aggregateStats(appState.serverList, appState.serverGroup, appState.serverCount), [appState.serverCount, appState.serverGroup, appState.serverList]);
 
-  const detailId = searchParams.get('detail');
+  const detailId = routeServerId || legacyDetailId;
   const detailServer = appState.serverList.find((server) => String(server.ID) === detailId);
-  const detailOpen = Boolean(isWide && detailServer);
+  const detailOpen = Boolean(detailServer);
+
+  useEffect(() => {
+    if (appState.init && routeServerId && !detailServer) navigate('/', { replace: true });
+  }, [appState.init, detailServer, navigate, routeServerId]);
 
   const selectServer = useCallback((server) => {
-    if (isWide) {
-      const next = new URLSearchParams(searchParams);
-      next.set('detail', server.ID);
-      setSearchParams(next);
-    } else navigate(`/server/${server.ID}`);
-  }, [isWide, navigate, searchParams, setSearchParams]);
+    navigate(`/server/${encodeURIComponent(server.ID)}`);
+  }, [navigate]);
 
   const closeDetail = useCallback(() => {
+    if (routeServerId) {
+      navigate('/', { replace: true });
+      return;
+    }
     const next = new URLSearchParams(searchParams);
     next.delete('detail');
     setSearchParams(next, { replace: true });
-  }, [searchParams, setSearchParams]);
+  }, [navigate, routeServerId, searchParams, setSearchParams]);
 
   const hoverServer = useCallback((server) => {
     window.clearTimeout(hoverTimerRef.current);

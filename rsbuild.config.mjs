@@ -34,6 +34,7 @@ export default defineConfig({
     base: assetPrefix,
     host: '0.0.0.0',
     port: 3000,
+    historyApiFallback: true,
     proxy: isDevelopment ? createAoboboDevProxy(process.env) : undefined,
   },
   output: {
