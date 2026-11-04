@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { compareServerOnlineStatus } from '@/composables/server-sort';
 import { getSystemOSLabel } from '@/utils/host';
 import ServerCard from '@/components/react/ServerCard';
 
@@ -50,7 +51,7 @@ export function AllHostsModal({ open, servers, groups, serverCount, cycleTransfe
       if (status && String(server.online) !== status) return false;
       const text = [server.Name, server.Host?.CountryCode, server.PublicNote?.customData?.location, getSystemOSLabel(server.Host?.Platform), server.Host?.Platform].filter(Boolean).join(' ').toLowerCase();
       return !keyword || text.includes(keyword);
-    });
+    }).sort(compareServerOnlineStatus);
   }, [search, servers, status]);
   const displayGroups = useMemo(() => {
     const assigned = new Set();

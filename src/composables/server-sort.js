@@ -127,6 +127,13 @@ function compareServerSortValue(aValue, bValue, order) {
 }
 
 /**
+ * 在线服务器优先，状态相同时保留原有顺序。
+ */
+export function compareServerOnlineStatus(a, b) {
+  return Number(a?.online !== 1) - Number(b?.online !== 1);
+}
+
+/**
  * 服务器排序比较函数
  * @param {Object} a
  * @param {Object} b

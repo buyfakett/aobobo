@@ -14,6 +14,7 @@ import { loadCycleTransferMap } from '@/utils/cycle-transfer';
 import billing from '@/utils/billing';
 import { formatCurrencyValue, parseBillingCostAmount } from '@/utils/exchange-rate';
 import {
+  compareServerOnlineStatus,
   defaultServerSortConfig,
   serverSortHandler,
   serverSortOptions,
@@ -217,7 +218,7 @@ export default function Home() {
       result = result.filter((server) => ids.has(String(server.ID)));
     }
     return [...result].sort((a, b) => {
-      const onlineOrder = Number(a.online !== 1) - Number(b.online !== 1);
+      const onlineOrder = compareServerOnlineStatus(a, b);
       if (onlineOrder) return onlineOrder;
       return sort.prop === 'DisplayIndex' && sort.order === 'desc' ? 0 : serverSortHandler(a, b, sort.prop, sort.order as 'asc' | 'desc');
     });

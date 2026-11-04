@@ -21,6 +21,7 @@ import {
 } from '@/utils/globe-activity-effects';
 import { formatLocationLocalTime } from '@/utils/location-time';
 import { loadGlobeView, persistGlobeView } from '@/utils/globe-view';
+import { DEFAULT_AUTO_ROTATE, DEFAULT_ROTATE_SPEED } from '@/utils/globe-rotation';
 import useMediaQuery from '@/hooks/useMediaQuery';
 import ServerCard from '@/components/react/ServerCard';
 import type { AnyCallback, GlobeEarthHandle } from '@/types/ui';
@@ -173,8 +174,8 @@ const GlobeEarth = forwardRef<GlobeEarthHandle, GlobeEarthProps>(function GlobeE
   locations,
   theme = 'dark',
   cycleTransferMap = {},
-  autoRotate = false,
-  rotateSpeed = 0.5,
+  autoRotate = DEFAULT_AUTO_ROTATE,
+  rotateSpeed = DEFAULT_ROTATE_SPEED,
   showServerConnections = true,
   onSelectServer,
 }, ref) {
