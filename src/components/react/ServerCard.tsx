@@ -1,6 +1,7 @@
 import { useStore } from '@/store';
 import {
   calcTransfer,
+  formatDiskSize,
   getCPUInfo,
   getPlatformLogoIconClassName,
 } from '@/utils/host';
@@ -24,12 +25,6 @@ function formatMemorySize(bytes) {
   if (!Number.isFinite(value) || value <= 0) return '';
   const step = value > 1 ? 0.5 : 0.25;
   return String(Math.round(value / step) * step);
-}
-
-function formatDiskSize(bytes) {
-  const value = Number(bytes) / 1024 ** 3;
-  if (!Number.isFinite(value) || value <= 0) return '';
-  return value >= 1000 ? `${Number((value / 1024).toFixed(1))}T` : `${Math.round(value)}G`;
 }
 
 function spec(server) {

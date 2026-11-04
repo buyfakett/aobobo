@@ -9,7 +9,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import config from '@/config';
 import store, { useStore } from '@/store';
 import { resolveServerLocation, clusterLocations } from '@/utils/world-map';
-import { calcTransfer, getCPUInfo, getSystemOSLabel } from '@/utils/host';
+import { calcDiskDisplay, calcTransfer, getCPUInfo, getSystemOSLabel } from '@/utils/host';
 import { loadCycleTransferMap } from '@/utils/cycle-transfer';
 import billing from '@/utils/billing';
 import { formatCurrencyValue, parseBillingCostAmount } from '@/utils/exchange-rate';
@@ -106,7 +106,7 @@ function aggregateStats(servers, groups, serverCount) {
     totalCores: cores,
     cpuBrandCores: Object.entries(brands).map(([brand, count]) => ({ brand, cores: count })).sort((a, b) => b.cores - a.cores),
     totalMemory: calcTransfer(memory),
-    totalDisk: calcTransfer(disk),
+    totalDisk: calcDiskDisplay(disk),
     netInTransfer: calcTransfer(incoming),
     netOutTransfer: calcTransfer(outgoing),
     totalTransfer: calcTransfer(incoming + outgoing),

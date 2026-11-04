@@ -1,4 +1,4 @@
-import { calcBinary, calcTransfer } from '@/utils/host';
+import { calcBinary, calcTransfer, formatDiskSize } from '@/utils/host';
 import { duration } from '@/utils/date';
 import truncateDecimal from '@/utils/number';
 import { useStore } from '@/store';
@@ -20,7 +20,7 @@ function resourceItems(info) {
     { type: 'cpu', icon: 'ri-cpu-line', label: 'CPU', value: `${Number(state.CPU || 0).toFixed(1)}%`, detail: cores ? `${cores} 核` : '', used: Number(state.CPU || 0), color: '#4e90ff' },
     { type: 'mem', icon: 'ri-server-line', label: '内存', value: format(state.MemUsed), detail: format(host.MemTotal), used: percent(state.MemUsed, host.MemTotal), color: '#27c975' },
     host.SwapTotal > 0 && { type: 'swap', icon: 'ri-hard-drive-2-line', label: '交换', value: format(state.SwapUsed), detail: format(host.SwapTotal), used: percent(state.SwapUsed, host.SwapTotal), color: '#f59e0b' },
-    { type: 'disk', icon: 'ri-database-2-line', label: '磁盘', value: format(state.DiskUsed), detail: format(host.DiskTotal), used: percent(state.DiskUsed, host.DiskTotal), color: '#22d3ee' },
+    { type: 'disk', icon: 'ri-database-2-line', label: '磁盘', value: formatDiskSize(state.DiskUsed) || '-', detail: formatDiskSize(host.DiskTotal) || '-', used: percent(state.DiskUsed, host.DiskTotal), color: '#22d3ee' },
   ].filter(Boolean);
 }
 

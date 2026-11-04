@@ -3,7 +3,7 @@ import config from '@/config';
 import store, { useStore } from '@/store';
 import request from '@/utils/request';
 import { hasTsdb, isTsdbEnabled } from '@/utils/tsdb';
-import { calcTransfer } from '@/utils/host';
+import { calcTransfer, formatDiskSize } from '@/utils/host';
 import { DetailPanel } from '@/components/react/Common';
 import LineChart from '@/components/react/LineChart';
 
@@ -106,7 +106,7 @@ function MetricCard({ title, summary, details = [], series, yAxis = {}, loading,
         <h3 className="history-card__title [flex:1_1_auto] [margin:0] [min-width:0] [font-size:17px] [font-weight:700] [line-height:1.2] [white-space:nowrap] [overflow:hidden] [text-overflow:ellipsis] [color:var(--text-primary)] max-[768px]:[font-size:15px]">{title}</h3>
         {details.length ? (
           <div className="history-card__metrics [display:flex] [flex-direction:column] [gap:4px] [min-width:0] [width:100%] [flex:0_1_110px] [max-width:30%]">{details.map((detail) => <div key={detail.label} className="history-card__metric-row [display:grid] [grid-template-columns:auto_auto_auto_minmax(0,_1fr)] [align-items:center] [column-gap:6px] [min-width:0] [min-height:22px] [padding:0_8px] [border-radius:999px] [border:1px_solid_var(--panel-chip-border)] [background:var(--panel-chip-bg)] [box-shadow:inset_0_1px_0_var(--surface-highlight)] [overflow:hidden] max-[768px]:[min-height:20px] max-[768px]:[padding:0_7px] max-[768px]:[column-gap:5px]" style={{ '--metric-color': detail.color }}><span className="history-card__metric-dot [width:6px] [height:6px] [border-radius:999px] [background:var(--metric-color)] [box-shadow:0_0_0_3px_var(--surface-subtle)]" /><span className="history-card__metric-label [color:var(--text-secondary)] [font-size:11px] [line-height:1] [white-space:nowrap]">{detail.label}</span><span className="history-card__metric-value [color:var(--text-primary)] [font-family:var(--font-mono)] [font-variant-numeric:tabular-nums] [font-size:11px] [font-weight:700] [line-height:1] [white-space:nowrap]">{detail.value}</span><span className="history-card__metric-detail [min-width:0] [justify-self:end] [color:var(--text-secondary)] [font-size:10px] [font-family:var(--font-mono)] [font-variant-numeric:tabular-nums] [line-height:1] [white-space:nowrap] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[font-size:9px]">{detail.detail}</span></div>)}</div>
-        ) : <span className="history-card__summary [color:var(--text-primary)] [font-family:var(--font-mono)] [font-size:17px] [font-weight:700] [font-variant-numeric:tabular-nums] [line-height:1.2] [white-space:nowrap] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[font-size:15px]">{summary}</span>}
+        ) : <span className="history-card__summary [display:inline-flex] [align-items:center] [min-height:24px] [max-width:100%] [padding:0_9px] [border-radius:999px] [border:1px_solid_var(--panel-chip-border)] [background:var(--panel-chip-bg)] [box-shadow:inset_0_1px_0_var(--surface-highlight)] [color:var(--text-primary)] [font-family:var(--font-mono)] [font-size:12px] [font-weight:700] [font-variant-numeric:tabular-nums] [line-height:1] [white-space:nowrap] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[min-height:22px] max-[768px]:[padding:0_8px] max-[768px]:[font-size:11px]">{summary}</span>}
       </div>
       <div className="history-card__chart-shell [position:relative] [display:flex] [align-items:stretch] [height:180px] [min-height:0] [border-radius:12px] [border:1px_solid_var(--panel-stat-border)] [background:rgba(255,_255,_255,_0.016)] [overflow:hidden] max-[768px]:[height:140px] max-[768px]:[min-height:0]">
         {hasData ? <LineChart series={series} height={170} yAxis={yAxis} /> : <div className="history-card__empty [flex:1] [display:flex] [align-items:center] [justify-content:center] [padding:12px] [color:var(--text-muted)] [font-size:12px] [text-align:center]">{emptyText}</div>}
@@ -193,7 +193,7 @@ export default function ResourceHistory({ info }) {
       { label: '内存', value: formatBytes(info?.State?.MemUsed), detail: `/ ${formatBytes(info?.Host?.MemTotal)}`, color: COLORS.memory },
       { label: '交换', value: info?.Host?.SwapTotal ? formatBytes(info?.State?.SwapUsed) : 'no swap', detail: info?.Host?.SwapTotal ? `/ ${formatBytes(info?.Host?.SwapTotal)}` : '', color: COLORS.swap },
     ], series: buildSeries(active, ['memory', '内存'], ['swap', '交换']), yAxis: { max: 100 } },
-    { title: '磁盘', summary: `${formatBytes(info?.State?.DiskUsed)} / ${formatBytes(info?.Host?.DiskTotal)}`, series: buildSeries(active, ['disk', '磁盘']), yAxis: { max: 100 } },
+    { title: '磁盘', summary: `${formatDiskSize(info?.State?.DiskUsed) || '-'} / ${formatDiskSize(info?.Host?.DiskTotal) || '-'}`, series: buildSeries(active, ['disk', '磁盘']), yAxis: { max: 100 } },
     { title: '进程数', summary: formatNumber(info?.State?.ProcessCount), series: buildSeries(active, ['process_count', '进程']) },
     { title: '上传 / 下载', details: [
       { label: '上传', value: `${formatBytes(info?.State?.NetInSpeed)}/s`, color: COLORS.net_in_speed },

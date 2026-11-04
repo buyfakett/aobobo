@@ -114,14 +114,16 @@ function buildOption(location, theme) {
 export default function DetailGlobe({ location, theme = 'dark' }) {
   const chartRef = useRef(null);
   const instanceRef = useRef(null);
-  const validLocation = Number.isFinite(Number(location?.lat)) && Number.isFinite(Number(location?.lng));
+  const lat = Number(location?.lat);
+  const lng = Number(location?.lng);
+  const validLocation = Number.isFinite(lat) && Number.isFinite(lng);
   const option = useMemo(
-    () => (validLocation ? buildOption(location, theme) : null),
-    [location, theme, validLocation],
+    () => (validLocation ? buildOption({ lat, lng }, theme) : null),
+    [lat, lng, theme, validLocation],
   );
 
   useEffect(() => {
-    if (!chartRef.current || !option) return undefined;
+    if (!chartRef.current || !validLocation) return undefined;
     let chart;
     try {
       chart = echarts.init(chartRef.current, undefined, {
@@ -129,7 +131,6 @@ export default function DetailGlobe({ location, theme = 'dark' }) {
         devicePixelRatio: getGlobeRendererPixelRatio(),
       });
       instanceRef.current = chart;
-      chart.setOption(option, { notMerge: true, lazyUpdate: false });
       const observer = new ResizeObserver(() => chart.resize());
       observer.observe(chartRef.current);
       return () => {
@@ -141,7 +142,7 @@ export default function DetailGlobe({ location, theme = 'dark' }) {
       console.error('Failed to initialize detail globe:', error);
       return undefined;
     }
-  }, [option]);
+  }, [validLocation]);
 
   useEffect(() => {
     if (!instanceRef.current || !option) return;

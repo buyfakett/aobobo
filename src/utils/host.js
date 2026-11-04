@@ -85,6 +85,29 @@ export function calcTransfer(bytes) {
   return result;
 }
 
+const DISK_DISPLAY_STEP = 0.25;
+
+export function calcDiskDisplay(bytes) {
+  const gigabytes = Number(bytes) / 1024 ** 3;
+  if (!Number.isFinite(gigabytes) || gigabytes <= 0) {
+    return { value: 0, unit: 'G' };
+  }
+  const useTerabytes = gigabytes >= 1024;
+  const rawValue = useTerabytes ? gigabytes / 1024 : gigabytes;
+  const value = Math.round(rawValue / DISK_DISPLAY_STEP) * DISK_DISPLAY_STEP;
+  return {
+    value: Number(value.toFixed(2)),
+    unit: useTerabytes ? 'T' : 'G',
+  };
+}
+
+export function formatDiskSize(bytes) {
+  const numericBytes = Number(bytes);
+  if (!Number.isFinite(numericBytes) || numericBytes < 0) return '';
+  const result = calcDiskDisplay(numericBytes);
+  return `${result.value}${result.unit}`;
+}
+
 export function getSystemOSLabel(platform) {
   const platformStr = (platform || '').toLowerCase();
   const map = {

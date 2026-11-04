@@ -5,6 +5,7 @@ import store, { useStore } from '@/store';
 import {
   calcBinary,
   calcTransfer,
+  formatDiskSize,
   formatCPUText,
   getCPUInfo,
   getPlatformLogoIconClassName,
@@ -20,7 +21,7 @@ function capacityLabel(info) {
   const disk = calcBinary(info?.Host?.DiskTotal || 0);
   const parts = [];
   if (mem.g > 0) parts.push(`${mem.g > 10 ? Math.round(mem.g) : Number(mem.g.toFixed(1))}G RAM`);
-  if (disk.g > 0) parts.push(`${disk.t >= 1 ? `${Number(disk.t.toFixed(1))}T` : `${Math.ceil(disk.g)}G`} 磁盘`);
+  if (disk.g > 0) parts.push(`${formatDiskSize(info?.Host?.DiskTotal)} 磁盘`);
   return parts.join(' · ');
 }
 

@@ -3753,8 +3753,11 @@ html, body {
 .switch-option.active {
   color: var(--text-on-accent);
   background: var(--button-active-bg);
-  border-color: var(--button-active-border);
-  box-shadow: var(--button-active-shadow);
+  border-color: rgba(218, 234, 255, 0.72);
+  box-shadow:
+    0 0 0 1px rgba(var(--accent-primary-rgb), 0.34),
+    0 8px 20px rgba(var(--accent-primary-rgb), 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32);
 }
 .theme-mode-switch--compact .switch-option {
   width: 32px;
@@ -3774,10 +3777,13 @@ html, body {
   box-shadow: var(--button-active-shadow);
 }
 .theme-mode-switch--compact .switch-option.active {
-  color: var(--text-secondary);
-  background: var(--button-subtle-bg);
-  border-color: var(--button-subtle-border);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 16px rgba(15, 23, 42, 0.04);
+  color: var(--text-on-accent);
+  background: var(--button-active-bg);
+  border-color: rgba(218, 234, 255, 0.72);
+  box-shadow:
+    0 0 0 1px rgba(var(--accent-primary-rgb), 0.34),
+    0 8px 20px rgba(var(--accent-primary-rgb), 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32);
   transform: none;
 }
 
