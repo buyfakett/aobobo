@@ -2,7 +2,6 @@
 // 同时兼容 nazhua-front 的 window.$$nazhuaConfig
 window.$$aoboboConfig = {
   // title: 'AoBoBo', // 网站标题
-  // nezhaVersion: 'v1', // 后端版本：v1 | santaizi；不填则自动探测
 
   // 监控图表类型：single | multi
   // monitorChartType: 'multi',
@@ -29,6 +28,11 @@ window.$$aoboboConfig = {
   // 首页地球服务器地点连线特效（默认开启，不依赖在线状态或流量数据）
   // globeActivityEffects: true,
 
+  // 地球最大帧率（15–60）；降低可减少持续旋转时的 GPU 开销
+  // globeMaxFps: 30,
+  // 地球渲染像素比上限（0.75–2）；较低值更省 GPU，较高值更清晰
+  // globePixelRatio: 1.25,
+
   // GPU 名称中包含以下关键字时过滤掉
   // filterGPUKeywords: ['Virtual Display'],
 
@@ -49,14 +53,4 @@ window.$$aoboboConfig = {
   // v1DashboardUrl: '/dashboard', // v1 版本管理后台地址
   // v1HideNezhaDashboardBtn: false, // 是否隐藏顶部管理后台/登录入口
 
-  // santaizi（三太子）公开 API 路径配置（nezhaVersion: 'santaizi' 时生效，一般无需修改）
-  // stzBootstrapPath: '/api/v2/public/bootstrap',
-  // stzWsPath: '/ws/v2/public/runtime',
-  // stzApiServersPath: '/api/v2/public/servers',
-  // stzApiNetworkPath: '/api/v2/public/network/{id}',
-  // stzApiMetricsPath: '/api/v2/public/metrics/{id}',
-  // stzApiCycleTransferPath: '/api/v2/public/cycle-transfer',
-  // stzApiAvailabilityPath: '/api/v2/public/servers/{id}/availability',
-  // stzViewPasswordPath: '/api/v2/public/view-password/session',
-  // 可用性默认跟随 bootstrap.show_availability；config.js 显式设置 showAvailability 时优先生效
 };

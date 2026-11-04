@@ -1,6 +1,6 @@
 # AoBoBo
 
-AoBoBo 是一个为 [哪吒监控](https://nezha.wiki/) 设计的纯前端 3D 可视化主题，基于 **Vue 3 + Vite + echarts-gl** 构建，在全球 3D 地球上直观展示各地 VPS 的实时运行状态。
+AoBoBo 是一个为 [哪吒监控](https://nezha.wiki/) 设计的纯前端 3D 可视化主题，基于 **React 19 + TypeScript + Rsbuild + Tailwind CSS 4 + echarts-gl** 构建，在全球 3D 地球上直观展示各地 VPS 的实时运行状态。
 
 > AoBoBo 仅包含前端展示，不包含哪吒 Dashboard 或 Agent。
 >
@@ -11,7 +11,7 @@ AoBoBo 是一个为 [哪吒监控](https://nezha.wiki/) 设计的纯前端 3D �
 - **3D 地球可视化** — 使用 echarts-gl 渲染地球，自定义海洋/陆地纹理与大气轮廓光晕；VPS 位置以状态光点、聚合簇、离线灰点等样式标注。
 - **原生 HTML 标点叠加** — 通过自定义投影将标记点精确叠加在 3D 地球表面，保留状态光点、聚合、离线等视觉风格。
 - **深浅双主题** — 支持浅色 / 深色主题切换，运行时通过 `config.js` 或主题切换按钮切换。
-- **多后端兼容** — 支持哪吒 v1（REST API + WS）与三太子 santaizi（公开 API `/api/v2/public/*`），构建时可通过环境变量指定默认版本，运行时也允许通过 `config.js` 切换。
+- **哪吒 v1** — 专注哪吒 v1 的 REST API 与 WebSocket 实时数据。
 - **实时状态更新** — WebSocket 推送，数据秒级同步。
 - **服务器列表** — 展示状态 / 名称 / 地区 / 系统 / 规格 / 在线时长 / 网速 / 流量 / 连接 / 负载 / CPU / 内存 / 硬盘。
 - **服务器详情页** — 支持进度条 / 文本两种状态展示，支持监控图表与周期流量卡片。
@@ -23,7 +23,6 @@ AoBoBo 是一个为 [哪吒监控](https://nezha.wiki/) 设计的纯前端 3D �
 
 - AoBoBo 只是前端主题，不包含哪吒 Dashboard 或 Agent。
 - v1 部署通常需要代理 `/api` 与 `/api/v1/ws/server`。
-- santaizi 部署通常需要代理 `/api/v2/public/*` 与 `/ws/v2/public/runtime`。站点若启用查看密码，前端会走 `/view-password`。
 - H5 路由模式需要 Web 服务将普通页面路径回退到 `index.html`，但静态资源路径应保留真实 404。
 
 ## 快速开始
@@ -63,7 +62,7 @@ docker build -t aobobo:latest .
 
 | 文件 | 用途 |
 | --- | --- |
-| `config.js` | 运行时配置，例如标题、哪吒版本、接口路径、监控图表类型 |
+| `config.js` | 运行时配置，例如标题、接口路径、监控图表类型 |
 | `style.css` | 自定义样式，例如背景图、主题色、局部样式覆盖 |
 | `favicon.svg` | 自定义站点图标 |
 
@@ -74,7 +73,6 @@ docker build -t aobobo:latest .
 ```js
 window.$$aoboboConfig = {
   title: 'AoBoBo',              // 网站标题
-  nezhaVersion: 'v1',           // 强制指定后端版本：v1 | santaizi；不填则自动探测
   monitorChartType: 'multi',    // 监控图表类型：single | multi
   monitorChartTypeToggle: true, // 是否允许切换监控图表类型
   monitorRefreshTime: 30,       // 监控刷新间隔（秒），0 为不刷新
@@ -89,17 +87,15 @@ window.$$aoboboConfig = {
 
 ## 数据来源
 
-| 数据类型 | v1 | santaizi |
-| --- | --- | --- |
-| 全量配置 | `/api/v1/setting` 等 REST API | `/api/v2/public/bootstrap` + `/api/v2/public/servers` |
-| 实时数据 | `/api/v1/ws/server` | `/ws/v2/public/runtime` |
-| 监控数据 | `/api/v1/server/{id}/service`（兼容 `/api/v1/service/{id}`） | `/api/v2/public/network/{id}` |
-| 资源历史 | `/api/v1/server/{id}/metrics` | `/api/v2/public/metrics/{id}` |
-| 可用性数据 | `/api/v1/server/availability`（可选扩展接口） | `/api/v2/public/servers/{id}/availability` |
-| 周期流量 | `/api/v1/service` | `/api/v2/public/cycle-transfer` |
-| 分组数据 | `/api/v1/server-group` | 服务器 `tag` 字段 |
-| 站点配置 | `config.js` / `/api/v1/setting` 的 `site_name` | `config.js` / `/api/v2/public/bootstrap` 的 `brand` |
-| 查看密码 | 无 | `/api/v2/public/view-password/session` |
+| 数据类型 | 哪吒 v1 接口 |
+| --- | --- |
+| 站点配置 | `/api/v1/setting` |
+| 实时数据 | `/api/v1/ws/server` |
+| 监控数据 | `/api/v1/server/{id}/service`（兼容 `/api/v1/service/{id}`） |
+| 资源历史 | `/api/v1/server/{id}/metrics` |
+| 可用性数据 | `/api/v1/server/availability`（可选扩展接口） |
+| 周期流量 | `/api/v1/service` |
+| 分组数据 | `/api/v1/server-group` |
 
 ## 本地开发
 
@@ -127,14 +123,13 @@ API_HOST=http://your-nezha-host:8080
 WS_HOST=http://your-nezha-host:8080
 ```
 
-`WS_HOST` 填站点 origin，不要带 WebSocket 路径；前端会按后端版本请求对应通道（v1 `/api/v1/ws/server`、santaizi `/ws/v2/public/runtime`）。
+`WS_HOST` 填站点 origin，不要带 WebSocket 路径；前端会连接 `/api/v1/ws/server`。
 
 ### Cloudflare Zero Trust
 
 若上游（如 `dash.cvm.im`）在 Cloudflare Access 后面，在 `.env.development.local` 中配置 Service Token。Access 应用需要单独一条 Action = **Service Auth** 的策略。
 
 ```bash
-VITE_NEZHA_VERSION=santaizi
 API_HOST=https://dash.cvm.im
 WS_HOST=https://dash.cvm.im
 CF_ACCESS_CLIENT_ID=
@@ -149,40 +144,53 @@ CF_ACCESS_CLIENT_SECRET=
 
 | 命令 | 说明 |
 | --- | --- |
-| `pnpm run dev` | 启动 Vite 开发服务 |
-| `pnpm run build` | 构建生产版本（默认自动探测哪吒版本） |
-| `pnpm run build:v1` | 构建默认指向哪吒 v1 的版本 |
+| `pnpm run dev` | 启动 Rsbuild 开发服务 |
+| `pnpm run build` | 构建哪吒 v1 生产版本 |
+| `pnpm run build:analyze` | 构建生产版本并生成 Rsdoctor 离线分析报告 |
 | `pnpm run preview` | 预览生产构建 |
-| `pnpm run lint` | 运行 ESLint |
-| `pnpm run lint:fix` | 自动修复 ESLint 问题 |
+| `pnpm run lint` | 运行 Rslint |
+| `pnpm run lint:fix` | 自动修复 Rslint 问题 |
+| `pnpm run typecheck` | 运行 TypeScript 类型检查 |
+| `pnpm run test` | 运行全部 Rstest 测试 |
+| `pnpm run test:watch` | 监听文件变化并运行 Rstest 测试 |
+| `pnpm run test:coverage` | 运行测试并生成覆盖率报告 |
+| `pnpm run test:ci` | 运行测试并生成 PR 所需的测试与覆盖率报告 |
+
+### 测试与 PR 报告
+
+项目使用 Rstest 测试业务工具、数据转换、状态与 React 交互。运行 `pnpm run test:coverage` 后，可在 `coverage/index.html` 查看覆盖率；测试结果保存在 `rstest-report/results.json` 与 `rstest-report/junit.xml`，同时输出 LCOV 和 JSON 覆盖率摘要，便于 CI 或其他工具读取。
+
+覆盖率包含全部 `src` TypeScript/TSX 文件和开发代理（不含类型声明），门槛为语句、函数、行 95%，分支 90%。地球与图表测试通过模拟渲染器验证配置、交互及生命周期，实际 WebGL 视觉效果仍需浏览器验证。
+
+每个 PR 都会触发 `Rstest and Rsdoctor Reports` 工作流，分别运行测试覆盖率检查和 Rsdoctor 生产构建分析。两个任务独立执行，测试失败不会阻止构建分析；各自结束后仍会尝试保存已生成的报告，失败状态会正常保留。
+
+报告使用官方自动化：Rstest 的 [`github-actions` reporter](https://rstest.rs/guide/basic/reporters#github-actions-reporter) 自动生成测试摘要与失败行注解；[`web-infra-dev/rsdoctor-action`](https://github.com/web-infra-dev/rsdoctor-action) 自动生成构建体积摘要、更新 PR 分析评论，并在基线可用时生成 HTML 差异报告。`main` 分支每次 push 都会更新构建基线，PR 按目标分支比较；首次运行没有基线时仍会生成当前构建报告。来自 fork 的 PR 受 GitHub 只读令牌限制时，保留 Actions 摘要与报告文件。
+
+在 PR 的 **Checks** 中打开该工作流查看自动生成的摘要。从运行页面的 **Artifacts** 下载 `rstest-report`（测试 JSON、JUnit 和覆盖率文件）及 `rsdoctor-report`（构建分析 HTML、JSON），保留 30 天；Rsdoctor Action 生成的基线和差异报告也会出现在 Artifacts 中。解压后用浏览器打开对应 HTML 文件即可查看。该工作流也支持在 Actions 页面手动运行。
+
+### 构建性能分析
+
+运行 `pnpm run build:analyze` 可启用 Rsdoctor，查看构建耗时、产物体积、模块依赖和重复依赖。命令兼容 Windows、macOS 和 Linux，完成后可直接用浏览器打开 `node_modules/.cache/rsdoctor/rsdoctor-report.html`，原始分析数据保存在同目录的 `rsdoctor-data.json`。
+
+分析过程不会自动启动报告服务或打开浏览器，报告也不会混入 `dist` 部署产物。普通 `pnpm run build` 不启用 Rsdoctor。Rsdoctor 分析的是构建过程和打包产物；页面运行时的 GPU 占用需结合浏览器 Performance 工具检查 WebGL 渲染和动画。
 
 ## 项目结构
 
 ```
 src/
-├── components/           # 公共组件
-│   ├── app-footer/       # 页脚
-│   ├── charts/           # 图表组件
-│   ├── globe-earth/      # 3D 地球核心组件
-│   ├── icons/            # 图标组件
-│   ├── server/           # 服务器通用组件
-│   ├── server-detail/    # 服务器详情页组件
-│   ├── server-list/      # 服务器列表
-│   └── server-panel/     # 服务器面板
+├── components/react/     # React 公共组件与 3D 地球、图表、详情组件
 ├── views/                # 页面
-│   ├── home.vue          # 主页面（地球 + 列表）
-│   └── detail.vue        # 服务器详情页
-├── composables/          # 组合式函数
-├── store/                # Vuex 状态管理
+│   └── Home.tsx          # 主页面（地球 + 列表、服务器详情）
+├── hooks/                # React Hooks
+├── store/                # 响应式外部状态仓库
 ├── ws/                   # WebSocket 入口与服务
 ├── utils/                # 请求、数据转换、工具函数
-│   ├── globe-projection.js  # 经纬度到屏幕坐标投影
-│   └── globe-textures.js    # 自定义地球纹理生成
+│   ├── api.ts            # v1 接口加载与响应归一化
+│   └── globe-textures.ts # 地理数据与自定义地球纹理生成
 ├── data/                 # 地理位置码表
 ├── config/               # 运行时默认配置
-├── router/               # 路由配置
-├── assets/               # 静态资源与全局样式
-└── main.js               # 应用入口
+├── assets/               # Tailwind 入口、主题变量与组件样式层
+└── main.tsx              # 应用入口
 ```
 
 ## 公开备注
@@ -238,7 +246,7 @@ src/
 
 | 工作流 | 触发条件 | 说明 |
 | --- | --- | --- |
-| `eslint.yml` | 涉及 `js/ts/vue` 的 Pull Request | 运行 ESLint 检查 |
+| `rslint.yml` | 涉及 `js/jsx/ts/tsx` 的 Pull Request | 运行 Rslint 检查 |
 | `docker-build.yml` | 推送 `v*.*.*` 标签 / 手动触发 | 构建并推送 Docker 镜像到 GHCR |
 | `release.yml` | 推送 `v*.*.*` 标签 / 手动触发 | 构建压缩包并创建 Draft Release |
 
@@ -246,7 +254,7 @@ Release 产物说明：
 
 | 文件名 | 适用场景 |
 | --- | --- |
-| `dist.zip` | 自动检测 v1 或 santaizi 后端 |
+| `dist.zip` | 哪吒 v1 前端静态文件 |
 
 ## 相关链接
 

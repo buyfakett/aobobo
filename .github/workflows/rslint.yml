@@ -1,0 +1,45 @@
+name: Rslint for Pull Requests
+
+on:
+  pull_request:
+    paths:
+      - '**/*.js'
+      - '**/*.jsx'
+      - '**/*.ts'
+      - '**/*.tsx'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/rslint.yml'
+
+concurrency:
+  group: rslint-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Rslint
+        run: pnpm run lint:ci
