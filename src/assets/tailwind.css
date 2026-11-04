@@ -3464,7 +3464,7 @@ html, body {
   justify-content: center;
   width: 1em;
   height: 1em;
-  font-size: 14px;
+  font-size: 12px;
   line-height: 1;
   color: var(--text-muted);
   transition: transform var(--transition-fast);
@@ -4472,14 +4472,15 @@ html, body {
   align-items: center;
 }
 .server-list-section .search-filter-bar .status-filter-trigger {
-  min-height: 38px;
-  padding: 0 6px 0 8px;
+  min-height: 30px;
+  padding: 0 5px 0 7px;
   border: none;
   border-left: 1px solid var(--panel-search-border);
   border-radius: 0 15px 15px 0;
   background: transparent;
   box-shadow: none;
   gap: 2px;
+  font-size: 11px;
 }
 .server-list-section .search-filter-bar .status-filter-trigger:hover, .server-list-section .search-filter-bar .status-filter-trigger.active {
   background: var(--bg-hover);
