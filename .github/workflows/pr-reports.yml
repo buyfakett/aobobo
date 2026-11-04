@@ -1,0 +1,106 @@
+name: Rstest and Rsdoctor Reports
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: pr-reports-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  rstest:
+    name: Rstest coverage report
+    if: github.event_name != 'push'
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests with coverage
+        run: pnpm run test:ci
+
+      - name: Check TypeScript types
+        if: ${{ !cancelled() }}
+        run: pnpm run typecheck
+
+      - name: Upload Rstest reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rstest-report
+          path: |
+            rstest-report/
+            coverage/
+          if-no-files-found: warn
+          retention-days: 30
+
+  rsdoctor:
+    name: Rsdoctor build report
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build with Rsdoctor
+        run: pnpm run build:analyze
+
+      - name: Analyze bundle with the official Rsdoctor action
+        if: ${{ !cancelled() && hashFiles('node_modules/.cache/rsdoctor/rsdoctor-data.json') != '' }}
+        uses: web-infra-dev/rsdoctor-action@d5bda00d0d6e966f75130e0634502ce63dc7b9d8 # v1.2.1
+        with:
+          file_path: node_modules/.cache/rsdoctor/rsdoctor-data.json
+          target_branch: ${{ github.event.pull_request.base.ref || github.event.repository.default_branch }}
+          enable_ai_analysis: 'false'
+
+      - name: Upload Rsdoctor reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rsdoctor-report
+          path: node_modules/.cache/rsdoctor/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 30

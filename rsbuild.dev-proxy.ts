@@ -17,7 +17,7 @@ function normalizeTarget(url) {
 function isLoopback(url) {
   try {
     const { hostname } = new URL(url);
-    return hostname === '127.0.0.1' || hostname === 'localhost' || hostname === '::1';
+    return hostname === '127.0.0.1' || hostname === 'localhost' || hostname === '[::1]';
   } catch {
     return false;
   }

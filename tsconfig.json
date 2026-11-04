@@ -16,5 +16,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "rsbuild.config.ts", "rsbuild.dev-proxy.ts", "rslint.config.ts"]
+  "include": ["src", "tests", "rsbuild.config.ts", "rsbuild.dev-proxy.ts", "rslint.config.ts", "rstest.config.ts"]
 }

@@ -15,7 +15,11 @@
     "lint": "rslint .",
     "lint:ci": "rslint . --format github --max-warnings 0 --no-color",
     "lint:fix": "rslint --fix",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "rstest run",
+    "test:watch": "rstest watch",
+    "test:coverage": "rstest run --coverage",
+    "test:ci": "rstest run --coverage"
   },
   "dependencies": {
     "axios": "^1.21.0",
@@ -41,11 +45,15 @@
     "@rsbuild/plugin-tailwindcss": "^2.0.3",
     "@rsdoctor/core": "^2.0.1",
     "@rslint/core": "^0.10.0",
+    "@rstest/core": "^0.12.6",
+    "@rstest/coverage-v8": "^0.12.6",
+    "@testing-library/react": "^16.3.3",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "cross-env": "^10.1.0",
     "dotenv": "^18.0.9",
+    "happy-dom": "^20.14.6",
     "tailwindcss": "^4.3.4",
     "typescript": "^7.0.2"
   },

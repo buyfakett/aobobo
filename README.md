@@ -151,6 +151,22 @@ CF_ACCESS_CLIENT_SECRET=
 | `pnpm run lint` | 运行 Rslint |
 | `pnpm run lint:fix` | 自动修复 Rslint 问题 |
 | `pnpm run typecheck` | 运行 TypeScript 类型检查 |
+| `pnpm run test` | 运行全部 Rstest 测试 |
+| `pnpm run test:watch` | 监听文件变化并运行 Rstest 测试 |
+| `pnpm run test:coverage` | 运行测试并生成覆盖率报告 |
+| `pnpm run test:ci` | 运行测试并生成 PR 所需的测试与覆盖率报告 |
+
+### 测试与 PR 报告
+
+项目使用 Rstest 测试业务工具、数据转换、状态与 React 交互。运行 `pnpm run test:coverage` 后，可在 `coverage/index.html` 查看覆盖率；测试结果保存在 `rstest-report/results.json` 与 `rstest-report/junit.xml`，同时输出 LCOV 和 JSON 覆盖率摘要，便于 CI 或其他工具读取。
+
+覆盖率包含全部 `src` TypeScript/TSX 文件和开发代理（不含类型声明），门槛为语句、函数、行 95%，分支 90%。地球与图表测试通过模拟渲染器验证配置、交互及生命周期，实际 WebGL 视觉效果仍需浏览器验证。
+
+每个 PR 都会触发 `Rstest and Rsdoctor Reports` 工作流，分别运行测试覆盖率检查和 Rsdoctor 生产构建分析。两个任务独立执行，测试失败不会阻止构建分析；各自结束后仍会尝试保存已生成的报告，失败状态会正常保留。
+
+报告使用官方自动化：Rstest 的 [`github-actions` reporter](https://rstest.rs/guide/basic/reporters#github-actions-reporter) 自动生成测试摘要与失败行注解；[`web-infra-dev/rsdoctor-action`](https://github.com/web-infra-dev/rsdoctor-action) 自动生成构建体积摘要、更新 PR 分析评论，并在基线可用时生成 HTML 差异报告。`main` 分支每次 push 都会更新构建基线，PR 按目标分支比较；首次运行没有基线时仍会生成当前构建报告。来自 fork 的 PR 受 GitHub 只读令牌限制时，保留 Actions 摘要与报告文件。
+
+在 PR 的 **Checks** 中打开该工作流查看自动生成的摘要。从运行页面的 **Artifacts** 下载 `rstest-report`（测试 JSON、JUnit 和覆盖率文件）及 `rsdoctor-report`（构建分析 HTML、JSON），保留 30 天；Rsdoctor Action 生成的基线和差异报告也会出现在 Artifacts 中。解压后用浏览器打开对应 HTML 文件即可查看。该工作流也支持在 Actions 页面手动运行。
 
 ### 构建性能分析
 

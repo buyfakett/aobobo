@@ -9,13 +9,13 @@ import {
 
 export default defineConfig([
   {
-    ...globalIgnores(['node_modules/**', 'dist/**', '**/*.local', '**/*.d.ts']),
+    ...globalIgnores(['node_modules/**', 'dist/**', 'coverage/**', 'rstest-report/**', '**/*.local', '**/*.d.ts']),
   },
   js.configs.recommended,
   reactPlugin.configs.recommended,
   reactHooksPlugin.configs.recommended,
   {
-    files: ['src/**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}', 'tests/**/*.{ts,tsx}'],
     languageOptions: {
       globals: globals.browser,
     },
