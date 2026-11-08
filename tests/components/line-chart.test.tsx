@@ -18,6 +18,7 @@ describe('LineChart', () => {
     const { container } = render(<LineChart />);
     expect(option().animation).toBe(false);
     expect(option().series).toEqual([]);
+    expect(rstest.mocked(ReactECharts).mock.calls.at(-1)[0].replaceMerge).toEqual(['series']);
     expect(container.firstElementChild.getAttribute('style')).toContain('220px');
   });
 
