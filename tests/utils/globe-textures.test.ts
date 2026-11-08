@@ -5,7 +5,7 @@ import {
   getPreferredGlobeTextureSize, THEME_COLORS,
 } from '@/utils/globe-textures';
 
-afterEach(() => { rs.restoreAllMocks(); rs.unstubAllGlobals(); config.aobobo.globePixelRatio = 1.25; });
+afterEach(() => { rs.restoreAllMocks(); rs.unstubAllGlobals(); config.aobobo.globePixelRatio = 1; });
 
 describe('globe rendering budgets', () => {
   it.each([[1, 1.25, 1], [2, 1.25, 1.25], [3, 10, 2], [2, 0.5, 0.75], [2, 0, 1.25], [0, 'bad', 1]])(

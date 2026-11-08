@@ -18,7 +18,7 @@ rs.mock('@/hooks/useMediaQuery', () => ({ default: rs.fn() }));
 rs.mock('@/components/react/ServerCard', () => ({ default: ({ server, onSelect }) => <button onClick={() => onSelect?.(server)}>{server.Name}</button> }));
 rs.mock('@/utils/globe-textures', () => ({
   createGlobeOceanMap: rs.fn(() => ({ toDataURL: () => 'data:image/png;base64,test-texture' })),
-  getGlobeRendererPixelRatio: () => 1.25,
+  getGlobeRendererPixelRatio: () => 1,
   getPreferredGlobeTextureSize: () => ({ width: 2048, height: 1024 }),
   getLandPolygonsData: () => [{ geometry: { coordinates: [[[0, 0], [10, 10], [0, 0]]] } }],
   THEME_COLORS: {
@@ -69,9 +69,10 @@ describe('homepage globe', () => {
     rs.mocked(loadGlobeView).mockReturnValue({ lat: 20, lng: 30, distance: 180 });
     const many = [1, 2, 5, 10].map((count, index) => ({ ...locations[0], key: `${index}`, servers: Array.from({ length: count }, () => ({ online: index === 0 ? -1 : 1 })) }));
     const { rerender, unmount } = render(<GlobeEarth locations={many} />);
-    expect(echarts.init).toHaveBeenCalledWith(expect.any(HTMLElement), undefined, { renderer: 'canvas', devicePixelRatio: 1.25 });
+    expect(echarts.init).toHaveBeenCalledWith(expect.any(HTMLElement), undefined, { renderer: 'canvas', devicePixelRatio: 1 });
     const firstOption = f.chart.setOption.mock.calls[0][0];
     expect(firstOption.globe.viewControl).toMatchObject({ targetCoord: [30, 20], distance: 180, autoRotate: true, autoRotateSpeed: 1 });
+    expect(firstOption.globe.atmosphere.show).toBe(false);
     const markers = firstOption.series.find((series) => series.id === 'server-markers');
     expect(markers.data.map((marker) => marker.symbolSize)).toEqual([10, 13, 16, 20]);
     expect(markers.symbolSize([], { data: markers.data[3] })).toBe(20);
@@ -82,9 +83,10 @@ describe('homepage globe', () => {
     f.chart.setOption.mockClear();
     rerender(<GlobeEarth locations={many.map((location) => ({ ...location, servers: location.servers.map((server) => ({ ...server, State: { CPU: 99 } })) }))} />);
     expect(f.chart.setOption).not.toHaveBeenCalled();
-    rerender(<GlobeEarth locations={many} theme="light" rotateSpeed={1.2} showServerConnections={false} />);
+    rerender(<GlobeEarth locations={many} theme="light" rotateSpeed={1.2} autoRotate={false} showServerConnections={false} />);
     const light = f.chart.setOption.mock.calls.at(-1)[0];
     expect(light.globe.viewControl.autoRotateSpeed).toBe(2.4);
+    expect(light.globe.atmosphere.show).toBe(true);
     expect(light.series.find((series) => series.id === 'globe-server-connections').data).toEqual([]);
     expect(light.series.find((series) => series.id === 'server-markers').data[1].itemStyle.color).toBe('#ffae00');
     expect(echarts.init).toHaveBeenCalledTimes(1);
