@@ -126,7 +126,10 @@ function buildOption({ theme, autoRotate, rotateSpeed, isMobile, view }) {
       shading: 'color',
       silent: false,
       atmosphere: {
-        show: true,
+        // The atmosphere is a second sphere rendered by echarts-gl. It adds a
+        // full-screen fragment pass on every frame, so keep it for the idle
+        // view and hide it while the globe is continuously rotating.
+        show: !autoRotate,
         offset: isMobile ? 1.2 : 3,
         color: theme === 'light' ? '#a8d8ff' : '#9bd2ff',
         glowPower: isMobile ? 3 : 5,

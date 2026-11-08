@@ -3,7 +3,12 @@ import type { EChartsType } from 'echarts';
 import config from '@/config';
 import { manageGlobeRendering } from '@/utils/globe-renderer';
 
-afterEach(() => { rs.restoreAllMocks(); rs.unstubAllGlobals(); config.aobobo.globeMaxFps = 30; });
+afterEach(() => {
+  rs.restoreAllMocks();
+  rs.unstubAllGlobals();
+  config.aobobo.globeMaxFps = 30;
+  config.aobobo.globeAutoRotateFps = 24;
+});
 
 function createFixture(enabled = true) {
   let intersect: (_entries: any[]) => void;
@@ -82,6 +87,22 @@ describe('globe rendering lifecycle', () => {
     f.controller.dispose();
   });
 
+  it('uses a lower frame budget for auto rotation and restores interactive cadence while dragging', () => {
+    const now = rs.spyOn(performance, 'now');
+    const f = createFixture();
+    f.controller.setAutoRotate(true);
+    now.mockReturnValue(0); f.animation.update(false);
+    now.mockReturnValue(34); f.animation.update(false);
+    expect(f.originalUpdate).toHaveBeenCalledTimes(1);
+    f.element.dispatchEvent(new Event('pointerdown'));
+    now.mockReturnValue(50); f.animation.update(false);
+    expect(f.originalUpdate).toHaveBeenCalledTimes(2);
+    f.element.dispatchEvent(new Event('pointerup'));
+    now.mockReturnValue(60); f.animation.update(false);
+    expect(f.originalUpdate).toHaveBeenCalledTimes(3);
+    f.controller.dispose();
+  });
+
   it.each([[0, 34], ['bad', 34], [120, 17], [1, 67]])('bounds configured frame rate %s', (fps, nextFrame) => {
     config.aobobo.globeMaxFps = fps;
     const now = rs.spyOn(performance, 'now');
@@ -90,6 +111,17 @@ describe('globe rendering lifecycle', () => {
     now.mockReturnValue(1); f.animation.update(false);
     now.mockReturnValue(Number(nextFrame)); f.animation.update(false);
     expect(f.originalUpdate).toHaveBeenCalledTimes(2);
+    f.controller.dispose();
+  });
+
+  it('bounds the configured auto-rotation frame rate', () => {
+    config.aobobo.globeAutoRotateFps = 0;
+    const now = rs.spyOn(performance, 'now');
+    const f = createFixture();
+    f.controller.setAutoRotate(true);
+    now.mockReturnValue(0); f.animation.update(false);
+    now.mockReturnValue(34); f.animation.update(false);
+    expect(f.originalUpdate).toHaveBeenCalledTimes(1);
     f.controller.dispose();
   });
 

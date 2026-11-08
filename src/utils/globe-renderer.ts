@@ -18,14 +18,19 @@ export function manageGlobeRendering(
   const zr = chart.getZr();
   const animation = zr.animation;
   const originalUpdate = animation.update;
-  const requestedFps = Number(config.aobobo.globeMaxFps);
-  const interval = 1000 / (Number.isFinite(requestedFps) && requestedFps > 0
-    ? Math.min(60, Math.max(15, requestedFps))
-    : 30);
+  const normalizeFps = (value, fallback) => {
+    const requestedFps = Number(value);
+    return Number.isFinite(requestedFps) && requestedFps > 0
+      ? Math.min(60, Math.max(15, requestedFps))
+      : fallback;
+  };
+  const interval = 1000 / normalizeFps(config.aobobo.globeMaxFps, 30);
+  const autoRotateInterval = 1000 / normalizeFps(config.aobobo.globeAutoRotateFps, 24);
   let lastFrame = Number.NEGATIVE_INFINITY;
   let inViewport = true;
   let active = false;
   let autoRotate = false;
+  let interacting = false;
   let resizeFrame = 0;
 
   // ZRender has no FPS option. Gate its public update method before both the
@@ -38,9 +43,10 @@ export function manageGlobeRendering(
     }
     const now = performance.now();
     const elapsed = now - lastFrame;
-    if (elapsed + 0.5 < interval) return;
+    const frameInterval = autoRotate && !interacting ? autoRotateInterval : interval;
+    if (elapsed + 0.5 < frameInterval) return;
     lastFrame = Number.isFinite(elapsed)
-      ? lastFrame + interval * Math.max(1, Math.floor((elapsed + 0.5) / interval))
+      ? lastFrame + frameInterval * Math.max(1, Math.floor((elapsed + 0.5) / frameInterval))
       : now;
     originalUpdate.call(animation, synchronous);
   };
@@ -74,6 +80,16 @@ export function manageGlobeRendering(
   const wakeUp = () => {
     if (active) zr.wakeUp();
   };
+  const beginInteraction = () => {
+    interacting = true;
+    lastFrame = Number.NEGATIVE_INFINITY;
+    wakeUp();
+  };
+  const endInteraction = () => {
+    interacting = false;
+    lastFrame = Number.NEGATIVE_INFINITY;
+    wakeUp();
+  };
   const resizeObserver = new ResizeObserver(() => {
     if (!active || resizeFrame) return;
     resizeFrame = requestAnimationFrame(resize);
@@ -85,7 +101,9 @@ export function manageGlobeRendering(
   });
   intersectionObserver.observe(element);
   document.addEventListener('visibilitychange', syncActivity);
-  element.addEventListener('pointerdown', wakeUp, { passive: true });
+  element.addEventListener('pointerdown', beginInteraction, { passive: true });
+  element.addEventListener('pointerup', endInteraction, { passive: true });
+  element.addEventListener('pointercancel', endInteraction, { passive: true });
   element.addEventListener('pointermove', wakeUp, { passive: true });
   element.addEventListener('wheel', wakeUp, { passive: true });
   zr.on('rendered', restoreSleep);
@@ -101,6 +119,7 @@ export function manageGlobeRendering(
     },
     setAutoRotate(value) {
       autoRotate = value;
+      lastFrame = Number.NEGATIVE_INFINITY;
       restoreSleep();
     },
     dispose() {
@@ -108,7 +127,9 @@ export function manageGlobeRendering(
       resizeObserver.disconnect();
       intersectionObserver.disconnect();
       document.removeEventListener('visibilitychange', syncActivity);
-      element.removeEventListener('pointerdown', wakeUp);
+      element.removeEventListener('pointerdown', beginInteraction);
+      element.removeEventListener('pointerup', endInteraction);
+      element.removeEventListener('pointercancel', endInteraction);
       element.removeEventListener('pointermove', wakeUp);
       element.removeEventListener('wheel', wakeUp);
       zr.off('rendered', restoreSleep);

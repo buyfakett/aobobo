@@ -30,8 +30,10 @@ window.$$aoboboConfig = {
 
   // 地球最大帧率（15–60）；降低可减少持续旋转时的 GPU 开销
   // globeMaxFps: 30,
+  // 地球自转帧率（15–60）；自转时使用更低帧率以降低持续 GPU 占用
+  // globeAutoRotateFps: 24,
   // 地球渲染像素比上限（0.75–2）；较低值更省 GPU，较高值更清晰
-  // globePixelRatio: 1.25,
+  // globePixelRatio: 1,
 
   // GPU 名称中包含以下关键字时过滤掉
   // filterGPUKeywords: ['Virtual Display'],

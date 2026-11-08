@@ -24,9 +24,10 @@ AoBoBo 通过 `config.js` 注入运行时常量，部署时只需替换该文件
 | `hideDetailServerGlobe` | `boolean` | `false` | 是否隐藏服务器详情页头部的微缩 3D 地球。 |
 | `globeActivityEffects` | `boolean` | `true` | 是否显示地图首页服务器地点之间的连线。默认直接连线，不依赖在线状态、网速或流量数据；设为 `false` 可关闭。 |
 | `globeMaxFps` | `number` | `30` | 地球最大动画帧率，范围 `15–60`。降低可减少持续自转时的 GPU 开销，不改变自转速度。 |
-| `globePixelRatio` | `number` | `1.25` | 地球渲染像素比上限，范围 `0.75–2`，同时不超过设备像素比。较低值更省 GPU，较高值更清晰；修改后刷新页面生效。 |
+| `globeAutoRotateFps` | `number` | `24` | 地球自转时的动画帧率，范围 `15–60`。拖拽地球时会恢复到 `globeMaxFps`，保证交互流畅。 |
+| `globePixelRatio` | `number` | `1` | 地球渲染像素比上限，范围 `0.75–2`，同时不超过设备像素比。较低值更省 GPU，较高值更清晰；修改后刷新页面生效。 |
 
-地球会在页面隐藏、离开可视区域时暂停；首页打开详情、资源统计或全部主机弹窗时也会暂停，关闭后恢复。CPU、流量等实时指标变化不会重建地球。低功耗设备可将 `globeMaxFps` 设为 `20`、`globePixelRatio` 设为 `1`，或使用首页自转按钮暂停旋转。
+地球会在页面隐藏、离开可视区域时暂停；首页打开详情、资源统计或全部主机弹窗时也会暂停，关闭后恢复。CPU、流量等实时指标变化不会重建地球。低功耗设备可将 `globeAutoRotateFps` 设为 `20`、`globePixelRatio` 设为 `0.75`，或使用首页自转按钮暂停旋转。
 
 ## 成本与汇率
 
@@ -83,7 +84,8 @@ window.$$aoboboConfig = {
   hideDetailServerGlobe: false,
   globeActivityEffects: true,
   globeMaxFps: 30,
-  globePixelRatio: 1.25,
+  globeAutoRotateFps: 24,
+  globePixelRatio: 1,
 
   statsCostCurrency: 'USD',
   defaultCostCurrency: 'CNY',
