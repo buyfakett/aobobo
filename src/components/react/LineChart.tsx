@@ -121,6 +121,10 @@ const LineChart = memo(function LineChart({
         className="chart h-full w-full"
         option={option}
         notMerge={false}
+        // ECharts merges series by default, so shortening the array would leave
+        // a hidden line rendered. Replace the series collection on each update
+        // to keep the chart in sync with the visible series.
+        replaceMerge={['series']}
         lazyUpdate
         opts={CHART_OPTIONS}
         style={CHART_STYLE}
