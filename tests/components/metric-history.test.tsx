@@ -52,7 +52,7 @@ describe('ResourceHistory', () => {
     localStorage.setItem('aobobo_resource_history_period', '10080');
     render(<ResourceHistory info={{ ID: 1 }} />);
     expect(screen.getAllByText('等待实时数据')).toHaveLength(6);
-    expect(screen.getByText('no swap')).toBeTruthy();
+    expect(screen.getByText('无交换分区')).toBeTruthy();
     await waitFor(() => expect(localStorage.getItem('aobobo_resource_history_period')).toBe('realtime'));
   });
 

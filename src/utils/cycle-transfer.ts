@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import config from '@/config';
 import request from '@/utils/request';
+import { t } from '@/i18n';
 
 const STATUS_LEVELS = {
   over: 0,
@@ -109,15 +110,15 @@ function getCycleTransferStatusLevel(remainingPercent) {
 export function getCycleTransferStatusLabel(statusLevel) {
   switch (statusLevel) {
     case 'fine':
-      return '充足';
+      return t('充足');
     case 'warning':
-      return '注意';
+      return t('注意');
     case 'alert':
-      return '告警';
+      return t('告警');
     case 'over':
-      return '超限';
+      return t('超限');
     default:
-      return '未设置上限';
+      return t('未设置上限');
   }
 }
 
@@ -128,6 +129,7 @@ function buildCycleTransferItem(ruleId, stats, serverKey, usedValue) {
   return {
     ruleId,
     ruleName: stats?.name || stats?.Name || `规则 #${ruleId}`,
+    hasCustomRuleName: Boolean(stats?.name || stats?.Name),
     serverKey: String(serverKey),
     periodStart: formatDateTime(stats?.from || stats?.From),
     periodEnd: formatDateTime(stats?.to || stats?.To),
@@ -143,6 +145,12 @@ function buildCycleTransferItem(ruleId, stats, serverKey, usedValue) {
     statusLevel: getCycleTransferStatusLevel(remainingPercent),
     source: 'v1',
   };
+}
+
+export function getCycleTransferRuleName(item) {
+  return item.hasCustomRuleName === false
+    ? t('规则 #{{id}}', { id: item.ruleId })
+    : item.ruleName;
 }
 
 function normalizeV1CycleTransferMap(cycleTransferStats: Record<string, any>) {
@@ -177,10 +185,11 @@ function decorateCycleTransferSummary(summaryItem) {
   }
   return {
     ...summaryItem,
+    ruleName: getCycleTransferRuleName(summaryItem),
     statusLabel: getCycleTransferStatusLabel(summaryItem.statusLevel),
     remainingPercentText: Number.isFinite(summaryItem.remainingPercent)
       ? `${summaryItem.remainingPercent.toFixed(2)}%`
-      : '未设置上限',
+      : t('未设置上限'),
   };
 }
 

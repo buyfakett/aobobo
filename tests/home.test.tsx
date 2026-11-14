@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, rstest } from '@rstest/core';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import config from '@/config';
+import i18n from '@/i18n';
 import store from '@/store';
 import { loadCycleTransferMap } from '@/utils/cycle-transfer';
 import { loadExchangeRatesForCurrencies } from '@/utils/exchange-rate';
@@ -30,7 +31,7 @@ rstest.mock('@/utils/globe-rotation', () => ({
   loadGlobeRotation: () => ({ autoRotate: true, rotateSpeed: 1, showServerConnections: false }), persistGlobeRotation: rstest.fn(),
 }));
 rstest.mock('@/hooks/useMediaQuery', () => ({ default: rstest.fn() }));
-rstest.mock('@/components/react/Common', () => ({ AppFooter: () => null, CurrentTime: () => null, DashboardButton: () => null, ThemeModeSwitch: () => null }));
+rstest.mock('@/components/react/Common', () => ({ AppFooter: () => null, CurrentTime: () => null, DashboardButton: () => null, LanguageSwitch: () => null, ThemeModeSwitch: () => null }));
 rstest.mock('@/components/react/GlobeEarth', () => ({ default: rstest.fn() }));
 rstest.mock('@/components/react/ServerCard', () => ({ ServerTable: rstest.fn() }));
 rstest.mock('@/components/react/HomeControls', () => ({ GlobeControls: rstest.fn(), SortSelect: rstest.fn(), StatusFilter: rstest.fn() }));
@@ -87,6 +88,48 @@ beforeEach(() => {
 });
 
 describe('Home filtering and navigation', () => {
+  it('updates labels, statistics, locations and sorting when language changes without replacing server data', async () => {
+    config.aobobo.title = '哪吒监控';
+    store.state.serverList[1].PublicNote = { customData: { locationLabel: '我的节点' } };
+    rstest.mocked(resolveServerLocation).mockImplementation((item) => item.ID === 3 ? null : ({
+      code: item.ID === 2 ? 'CUSTOM' : 'TYO', name: item.ID === 2 ? '我的节点' : '东京', country: '日本',
+    } as any));
+    const { container } = render(<Home />);
+    const serverList = store.state.serverList;
+    await waitFor(() => expect(lastProps(GlobeEarth).cycleTransferMap).toEqual({ 1: [{ name: 'cycle' }] }));
+    const summary = () => container.querySelector('.status-summary').textContent;
+    const sortLabel = () => lastProps(SortSelect).options.find((option) => option.value === 'Name').label;
+    const locations = () => lastProps(GlobeEarth).locations.map(({ label, name, country }) => ({ label, name, country }));
+    expect(summary()).toContain('共 3 台服务器');
+    expect(summary()).toContain('有1台离线');
+    expect(sortLabel()).toBe('主机名称');
+    expect(locations()).toEqual([
+      { label: '我的节点, 日本', name: '我的节点', country: '日本' },
+      { label: '东京, 日本', name: '东京', country: '日本' },
+    ]);
+
+    fireEvent.change(screen.getByPlaceholderText('搜索名称 / 地区 / 系统'), { target: { value: 'alpha' } });
+    await act(async () => { await i18n.changeLanguage('en'); });
+    expect(store.state.serverList).toBe(serverList);
+    expect(summary()).toContain('3 servers total');
+    expect(summary()).toContain('1 offline');
+    expect(screen.getByText('1 matches')).toBeTruthy();
+    expect((screen.getByPlaceholderText('Search name / region / OS') as HTMLInputElement).value).toBe('alpha');
+    expect(sortLabel()).toBe('Server name');
+    expect(locations()).toEqual([
+      { label: '我的节点, Japan', name: '我的节点', country: '日本' },
+      { label: 'Tokyo, Japan', name: '东京', country: '日本' },
+    ]);
+    expect(document.title).toBe('Nezha Monitoring');
+
+    await act(async () => { await i18n.changeLanguage('zh-CN'); });
+    expect(summary()).toContain('共 3 台服务器');
+    expect(sortLabel()).toBe('主机名称');
+    expect(locations()[1].label).toBe('东京, 日本');
+    expect(screen.getByText('1 条匹配')).toBeTruthy();
+    expect(document.title).toBe('哪吒监控');
+  });
+
   it('keeps online servers first, filters by text/status/group, and clears all filters', async () => {
     render(<Home />);
     expect(document.title).toBe('Test Dashboard');

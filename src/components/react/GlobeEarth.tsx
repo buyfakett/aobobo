@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import {
   forwardRef,
   useCallback,
@@ -83,7 +84,13 @@ function markerSize(count) {
   return 10;
 }
 
-function buildMarkerSeries(locations, theme) {
+function translateLocationLabel(label, t) {
+  return String(label || '').split(' / ').map((location) => (
+    location.split(', ').map((name) => t(name)).join(', ')
+  )).join(' / ');
+}
+
+function buildMarkerSeries(locations, theme, name) {
   const onlineColor = theme === 'light' ? '#ffae00' : '#eaf4fc';
   const offlineColor = theme === 'light' ? '#9aa3af' : '#6d7888';
   const markerData = locations.map((location) => {
@@ -107,7 +114,7 @@ function buildMarkerSeries(locations, theme) {
     id: 'server-markers',
     type: 'scatter3D',
     coordinateSystem: 'globe',
-    name: '服务器',
+    name,
     symbol: 'circle',
     symbolSize: (_value, params) => params.data.symbolSize,
     emphasis: { itemStyle: { opacity: 1, borderWidth: 4 } },
@@ -182,6 +189,7 @@ const GlobeEarth = forwardRef<GlobeEarthHandle, GlobeEarthProps>(function GlobeE
   active = true,
   onSelectServer,
 }, ref) {
+  const { t } = useTranslation();
   const rootRef = useRef(null);
   const chartRef = useRef(null);
   const instanceRef = useRef(null);
@@ -208,7 +216,7 @@ const GlobeEarth = forwardRef<GlobeEarthHandle, GlobeEarthProps>(function GlobeE
     key: location.key || location.code,
     lat: location.lat,
     lng: location.lng,
-    label: location.label,
+    label: translateLocationLabel(location.label, t),
     count: location.servers.length,
     online: location.servers.some((server) => server.online === 1),
   })));
@@ -219,8 +227,8 @@ const GlobeEarth = forwardRef<GlobeEarthHandle, GlobeEarthProps>(function GlobeE
     lng: location.lng,
   })));
   const markerSeries = useMemo(
-    () => buildMarkerSeries(JSON.parse(markerSnapshot), theme),
-    [markerSnapshot, theme],
+    () => buildMarkerSeries(JSON.parse(markerSnapshot), theme, t('服务器')),
+    [markerSnapshot, theme, t],
   );
   const activitySeries = useMemo(() => buildActivitySeriesOptions({
     locations: JSON.parse(connectionSnapshot),
@@ -396,13 +404,13 @@ const GlobeEarth = forwardRef<GlobeEarthHandle, GlobeEarthProps>(function GlobeE
           <div className={`location-popup [position:relative] [width:min(380px,_100vw_-_32px)] [max-height:min(440px,_100vh_-_64px)] [display:flex] [flex-direction:column] [gap:16px] [padding:18px] [border-radius:24px] [background:var(--globe-popup-bg)] [border:1px_solid_var(--globe-popup-border)] [box-shadow:var(--globe-popup-shadow)] [backdrop-filter:blur(20px)_saturate(150%)] [color:var(--text-primary)] [overflow:hidden] max-[768px]:[width:100%] max-[768px]:[max-height:min(60dvh,_500px)]${isMobile ? ' mobile' : ''}`}>
             <div className="popup-header [display:flex] [align-items:center] [justify-content:space-between] [gap:12px] [position:relative] [z-index:1] max-[768px]:[align-items:flex-start] max-[768px]:[gap:10px]">
               <div className="title-group [min-width:0] [display:flex] [flex-direction:column] [align-items:flex-start] [gap:8px] max-[768px]:[flex:1_1_auto] max-[768px]:[min-width:0] max-[768px]:[align-items:flex-start] max-[768px]:[flex-direction:column] max-[768px]:[gap:6px]">
-                <h3>{selected.label}</h3>
+                <h3>{translateLocationLabel(selected.label, t)}</h3>
                 <div className="popup-stats [display:inline-flex] [flex-wrap:wrap] [align-items:center] [gap:6px] max-[768px]:[gap:5px]">
-                  <span className="stat-chip [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_8px] [border-radius:999px] [border:1px_solid_var(--globe-popup-chip-border)] [background:var(--globe-popup-chip-bg)] [font-size:11px] [font-weight:600] [color:var(--globe-popup-muted)] [white-space:nowrap] [box-shadow:inset_0_1px_0_rgba(255,_255,_255,_0.08)] max-[768px]:[min-height:20px] max-[768px]:[padding:0_7px] max-[768px]:[font-size:10px] total">{selected.servers.length}台</span>
-                  <span className="stat-chip [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_8px] [border-radius:999px] [border:1px_solid_var(--globe-popup-chip-border)] [background:var(--globe-popup-chip-bg)] [font-size:11px] [font-weight:600] [color:var(--globe-popup-muted)] [white-space:nowrap] [box-shadow:inset_0_1px_0_rgba(255,_255,_255,_0.08)] max-[768px]:[min-height:20px] max-[768px]:[padding:0_7px] max-[768px]:[font-size:10px] stat-chip--time">当地 {formatLocationLocalTime(selected, clock)}</span>
+                  <span className="stat-chip [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_8px] [border-radius:999px] [border:1px_solid_var(--globe-popup-chip-border)] [background:var(--globe-popup-chip-bg)] [font-size:11px] [font-weight:600] [color:var(--globe-popup-muted)] [white-space:nowrap] [box-shadow:inset_0_1px_0_rgba(255,_255,_255,_0.08)] max-[768px]:[min-height:20px] max-[768px]:[padding:0_7px] max-[768px]:[font-size:10px] total">{t('{{count}}台', { count: selected.servers.length })}</span>
+                  <span className="stat-chip [display:inline-flex] [align-items:center] [min-height:22px] [padding:0_8px] [border-radius:999px] [border:1px_solid_var(--globe-popup-chip-border)] [background:var(--globe-popup-chip-bg)] [font-size:11px] [font-weight:600] [color:var(--globe-popup-muted)] [white-space:nowrap] [box-shadow:inset_0_1px_0_rgba(255,_255,_255,_0.08)] max-[768px]:[min-height:20px] max-[768px]:[padding:0_7px] max-[768px]:[font-size:10px] stat-chip--time">{t('当地 {{time}}', { time: formatLocationLocalTime(selected, clock) })}</span>
                 </div>
               </div>
-              <button type="button" className="close-btn [width:34px] [height:34px] [flex:0_0_auto] [display:inline-flex] [align-items:center] [justify-content:center] [border:1px_solid_var(--button-subtle-border)] [border-radius:14px] [background:var(--button-subtle-bg)] [color:var(--text-secondary)] [cursor:pointer] [transition:color_var(--transition-fast),_background_var(--transition-fast),_border-color_var(--transition-fast),_box-shadow_var(--transition-fast),_transform_var(--transition-fast)] max-[768px]:[width:30px] max-[768px]:[height:30px] max-[768px]:[border-radius:10px] max-[768px]:[margin-top:-2px]" aria-label="关闭位置弹窗" onClick={() => setSelected(null)}><i className="ri-close-line" /></button>
+              <button type="button" className="close-btn [width:34px] [height:34px] [flex:0_0_auto] [display:inline-flex] [align-items:center] [justify-content:center] [border:1px_solid_var(--button-subtle-border)] [border-radius:14px] [background:var(--button-subtle-bg)] [color:var(--text-secondary)] [cursor:pointer] [transition:color_var(--transition-fast),_background_var(--transition-fast),_border-color_var(--transition-fast),_box-shadow_var(--transition-fast),_transform_var(--transition-fast)] max-[768px]:[width:30px] max-[768px]:[height:30px] max-[768px]:[border-radius:10px] max-[768px]:[margin-top:-2px]" aria-label={t('关闭位置弹窗')} onClick={() => setSelected(null)}><i className="ri-close-line" /></button>
             </div>
             <div className="server-list [display:grid] [gap:6px] [min-height:0] [overflow-y:auto] [padding-right:2px] [position:relative] [z-index:1] max-[768px]:[gap:5px]">
               {selected.servers.map((server) => (
@@ -415,7 +423,7 @@ const GlobeEarth = forwardRef<GlobeEarthHandle, GlobeEarthProps>(function GlobeE
       {!ready && (
         <div className="globe-loading [position:absolute] [inset:0] [z-index:5] [display:flex] [flex-direction:column] [align-items:center] [justify-content:center] [gap:12px] [background-color:var(--bg-primary)] [color:var(--text-secondary)] [font-size:14px] [text-shadow:0_0_24px_rgba(15,_23,_42,_0.08)]">
           <i className={`${error ? 'ri-earth-line' : 'ri-loader-4-line spin'} empty-icon`} />
-          <span>{error ? '地球初始化失败，请刷新重试' : '加载地球中...'}</span>
+          <span>{error ? t('地球初始化失败，请刷新重试') : t('加载地球中...')}</span>
         </div>
       )}
     </div>

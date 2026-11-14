@@ -1,3 +1,5 @@
+import { t } from '@/i18n';
+import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import config from '@/config';
@@ -22,7 +24,7 @@ function capacityLabel(info) {
   const disk = calcBinary(info?.Host?.DiskTotal || 0);
   const parts = [];
   if (mem.g > 0) parts.push(`${mem.g > 10 ? Math.round(mem.g) : Number(mem.g.toFixed(1))}G RAM`);
-  if (disk.g > 0) parts.push(`${formatDiskSize(info?.Host?.DiskTotal)} 磁盘`);
+  if (disk.g > 0) parts.push(t('{{size}} 磁盘', { size: formatDiskSize(info?.Host?.DiskTotal) }));
   return parts.join(' · ');
 }
 
@@ -31,9 +33,9 @@ function planTags(info) {
   const { networkRoute, extra, IPv4, IPv6 } = info?.PublicNote?.planDataMod || {};
   if (networkRoute) values.push(...String(networkRoute).split(','));
   if (extra) values.push(...String(extra).split(','));
-  if (IPv4 === '1' && IPv6 === '1') values.push('双栈IP');
-  else if (IPv4 === '1') values.push('仅IPv4');
-  else if (IPv6 === '1') values.push('仅IPv6');
+  if (IPv4 === '1' && IPv6 === '1') values.push(t('双栈IP'));
+  else if (IPv4 === '1') values.push(t('仅IPv4'));
+  else if (IPv6 === '1') values.push(t('仅IPv6'));
   return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
 }
 
@@ -52,6 +54,7 @@ function remainingClass(item) {
 }
 
 export default function DetailHeader({ info }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const showAvailability = useStore((state) => state.showAvailability);
   const serverTime = useStore((state) => state.serverTime);
@@ -71,18 +74,18 @@ export default function DetailHeader({ info }) {
     ? duration(info.Host.BootTime * 1000, uptimeEnd, true)
     : '';
   const tags = [
-    location && { icon: 'ri-map-pin-line', text: location.name || location.code, className: 'meta-tag--region' },
+    location && { icon: 'ri-map-pin-line', text: t(location.name || location.code), className: 'meta-tag--region' },
     info?.Host?.Platform && { icon: getPlatformLogoIconClassName(info.Host.Platform), text: getSystemOSLabel(info.Host.Platform), className: 'meta-tag--os' },
     info?.Host?.CPU?.[0] && { icon: 'ri-cpu-line', text: formatCPUText(info.Host.CPU[0]), className: 'meta-tag--cpu' },
     capacityLabel(info) && { icon: 'ri-ram-line', text: capacityLabel(info), className: 'meta-tag--storage' },
     info?.Host?.PlatformVersion && { icon: 'ri-information-line', text: info.Host.PlatformVersion, className: 'meta-tag--version' },
-    uptime && { icon: 'ri-time-line', text: `在线 ${uptime}`, className: 'meta-tag--uptime' },
+    uptime && { icon: 'ri-time-line', text: t('在线 {{duration}}', { duration: uptime }), className: 'meta-tag--uptime' },
     billLabel(bill.billing) && { icon: 'ri-wallet-3-line', text: billLabel(bill.billing), className: 'meta-tag--billing' },
     billLabel(bill.remainingTime) && { icon: 'ri-calendar-check-line', text: billLabel(bill.remainingTime), className: `meta-tag--remaining ${remainingClass(bill.remainingTime)}` },
     billLabel(bill.bandwidth) && { icon: 'ri-speed-up-line', text: billLabel(bill.bandwidth), className: 'meta-tag--bandwidth' },
     billLabel(bill.traffic) && { icon: 'ri-bar-chart-box-line', text: billLabel(bill.traffic), className: 'meta-tag--traffic' },
-    load && { icon: 'ri-pulse-line', text: `负载 ${load}`, className: 'meta-tag--load' },
-    hasTransfer && { icon: 'ri-arrow-up-down-line', text: `入 ${incoming.value}${incoming.unit} · 出 ${outgoing.value}${outgoing.unit}`, className: 'meta-tag--transfer' },
+    load && { icon: 'ri-pulse-line', text: t('负载 {{load}}', { load }), className: 'meta-tag--load' },
+    hasTransfer && { icon: 'ri-arrow-up-down-line', text: t('入 {{incoming}} · 出 {{outgoing}}', { incoming: `${incoming.value}${incoming.unit}`, outgoing: `${outgoing.value}${outgoing.unit}` }), className: 'meta-tag--transfer' },
     info?.Host?.BootTime && { icon: 'ri-restart-line', text: dayjs(info.Host.BootTime * 1000).format('MM-DD HH:mm'), className: 'meta-tag--boot' },
     info?.LastActive && { icon: 'ri-time-line', text: dayjs(normalizeTimestamp(info.LastActive)).format('MM-DD HH:mm'), className: 'meta-tag--active' },
     ...planTags(info).map((text) => ({ icon: 'ri-price-tag-3-line', text, className: 'meta-tag--tag' })),
@@ -109,8 +112,8 @@ export default function DetailHeader({ info }) {
         <div className="server-name-and-meta">
           <div className="server-name-row">
             <h2 className="server-name">{info.Name}</h2>
-            <span className="server-status-badge"><span className={`status-dot ${info.online === 1 ? 'online' : 'offline'}`} /><span>{info.online === 1 ? '在线' : '离线'}</span></span>
-            {hasAvailability && <span className={`server-status-badge server-status-badge--availability ${availabilityClass}`}><i className="ri-shield-check-line" /><span>可用 {truncateDecimal(availability, 2)}%</span></span>}
+            <span className="server-status-badge"><span className={`status-dot ${info.online === 1 ? 'online' : 'offline'}`} /><span>{info.online === 1 ? t('在线') : t('离线')}</span></span>
+            {hasAvailability && <span className={`server-status-badge server-status-badge--availability ${availabilityClass}`}><i className="ri-shield-check-line" /><span>{t('可用 {{percent}}%', { percent: truncateDecimal(availability, 2) })}</span></span>}
           </div>
           {info?.PublicNote?.customData?.slogan ? (
             <div className="slogan-content"><span>“{info.PublicNote.customData.slogan}”</span></div>
@@ -124,8 +127,8 @@ export default function DetailHeader({ info }) {
         </div>
       </div>
       {location?.code && (
-        <button type="button" className={`globe-focus-btn ${config.aobobo.hideDetailServerGlobe ? 'globe-focus-btn--text' : 'globe-focus-btn--visual react-detail-globe'}`} aria-label={`在地球上查看 ${info?.Name || '服务器'}`} onClick={viewOnGlobe}>
-          {config.aobobo.hideDetailServerGlobe ? <><span className="react-detail-globe__orb"><i className="ri-earth-line" /></span><span>在地球上查看</span></> : <DetailGlobe location={location} theme={theme} />}
+        <button type="button" className={`globe-focus-btn ${config.aobobo.hideDetailServerGlobe ? 'globe-focus-btn--text' : 'globe-focus-btn--visual react-detail-globe'}`} aria-label={t('在地球上查看 {{name}}', { name: info?.Name || t('服务器') })} onClick={viewOnGlobe}>
+          {config.aobobo.hideDetailServerGlobe ? <><span className="react-detail-globe__orb"><i className="ri-earth-line" /></span><span>{t('在地球上查看')}</span></> : <DetailGlobe location={location} theme={theme} />}
         </button>
       )}
     </div>

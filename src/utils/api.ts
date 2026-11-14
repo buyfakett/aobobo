@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import config from '@/config';
 import request from '@/utils/request';
 
@@ -121,7 +122,7 @@ export async function loadServerOnlineHistory(serverId: string | number, days: n
   });
   const payload = responsePayload(response);
   if (!payload || typeof payload !== 'object') {
-    throw new Error('在线历史数据格式无效');
+    throw new Error(t('在线历史数据格式无效'));
   }
   return payload;
 }

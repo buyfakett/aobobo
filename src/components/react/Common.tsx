@@ -1,4 +1,7 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
+import type { Language } from '@/i18n';
 import config from '@/config';
 import store, { useStore } from '@/store';
 import { THEME_MODES } from '@/utils/theme';
@@ -6,12 +9,139 @@ import useMediaQuery from '@/hooks/useMediaQuery';
 import packageJson from '../../../package.json';
 
 const THEME_OPTIONS = [
-  { value: THEME_MODES.AUTO, label: 'Auto', icon: 'ri-computer-line' },
-  { value: THEME_MODES.LIGHT, label: 'Light', icon: 'ri-sun-line' },
-  { value: THEME_MODES.DARK, label: 'Dark', icon: 'ri-moon-line' },
+  { value: THEME_MODES.AUTO, label: '自动', icon: 'ri-computer-line' },
+  { value: THEME_MODES.LIGHT, label: '浅色', icon: 'ri-sun-line' },
+  { value: THEME_MODES.DARK, label: '深色', icon: 'ri-moon-line' },
 ];
 
+const LANGUAGE_OPTIONS: { value: Language; label: string; shortLabel: string; badge: string }[] = [
+  { value: 'en', label: 'English', shortLabel: 'EN', badge: 'EN' },
+  { value: 'zh-CN', label: '简体中文', shortLabel: '中文', badge: '中' },
+];
+
+export function LanguageSwitch() {
+  const { t, i18n } = useTranslation();
+  const compact = useMediaQuery('(max-width: 420px)');
+  const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState({ top: 0, right: 12 });
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const optionRefs = useRef<HTMLButtonElement[]>([]);
+  const focusIndexRef = useRef(0);
+  const menuId = useId();
+  const language = i18n.resolvedLanguage || i18n.language;
+  const selectedIndex = Math.max(0, LANGUAGE_OPTIONS.findIndex((option) => option.value === language));
+  const selected = LANGUAGE_OPTIONS[selectedIndex];
+
+  function openMenu(index = selectedIndex) {
+    const rect = triggerRef.current.getBoundingClientRect();
+    setPosition({ top: rect.bottom + 8, right: Math.max(12, window.innerWidth - rect.right) });
+    focusIndexRef.current = index;
+    setOpen(true);
+  }
+
+  function closeMenu() {
+    setOpen(false);
+    triggerRef.current?.focus();
+  }
+
+  useEffect(() => {
+    if (!open) return undefined;
+    optionRefs.current[focusIndexRef.current]?.focus();
+    const dismiss = () => setOpen(false);
+    const dismissOutside = (event: Event) => {
+      const target = event.target as Node;
+      if (!triggerRef.current?.contains(target) && !menuRef.current?.contains(target)) dismiss();
+    };
+    document.addEventListener('pointerdown', dismissOutside);
+    document.addEventListener('focusin', dismissOutside);
+    window.addEventListener('resize', dismiss);
+    window.addEventListener('scroll', dismiss, true);
+    return () => {
+      document.removeEventListener('pointerdown', dismissOutside);
+      document.removeEventListener('focusin', dismissOutside);
+      window.removeEventListener('resize', dismiss);
+      window.removeEventListener('scroll', dismiss, true);
+    };
+  }, [open]);
+
+  return (
+    <div className="language-switch">
+      <button
+        ref={triggerRef}
+        type="button"
+        className="language-switch__trigger"
+        aria-label={t('语言')}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={open ? menuId : undefined}
+        title={t('语言')}
+        onClick={() => open ? closeMenu() : openMenu()}
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            openMenu(event.key === 'ArrowDown' ? 0 : LANGUAGE_OPTIONS.length - 1);
+          }
+        }}
+      >
+        <i className="ri-translate-2" aria-hidden="true" />
+        <span lang={selected.value}>{compact ? selected.shortLabel : selected.label}</span>
+        <i className="ri-arrow-down-s-line language-switch__chevron" aria-hidden="true" />
+      </button>
+      {open && createPortal(
+        <div
+          ref={menuRef}
+          id={menuId}
+          className="language-switch__menu"
+          style={position}
+          role="menu"
+          aria-label={t('语言')}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              event.stopPropagation();
+              closeMenu();
+            } else if (event.key === 'Tab') {
+              closeMenu();
+            } else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+              event.preventDefault();
+              const current = optionRefs.current.indexOf(document.activeElement as HTMLButtonElement);
+              const next = event.key === 'Home' ? 0 : event.key === 'End' ? LANGUAGE_OPTIONS.length - 1
+                : (current + (event.key === 'ArrowDown' ? 1 : -1) + LANGUAGE_OPTIONS.length) % LANGUAGE_OPTIONS.length;
+              optionRefs.current[next]?.focus();
+            }
+          }}
+        >
+          <div className="language-switch__heading" aria-hidden="true">{t('语言')}</div>
+          {LANGUAGE_OPTIONS.map((option, index) => (
+            <button
+              key={option.value}
+              ref={(node) => { optionRefs.current[index] = node; }}
+              type="button"
+              role="menuitemradio"
+              aria-label={option.label}
+              aria-checked={option.value === language}
+              tabIndex={-1}
+              lang={option.value}
+              className="language-switch__option"
+              onClick={() => {
+                void i18n.changeLanguage(option.value);
+                closeMenu();
+              }}
+            >
+              <span className="language-switch__badge" aria-hidden="true">{option.badge}</span>
+              <span>{option.label}</span>
+              {option.value === language && <i className="ri-check-line language-switch__check" aria-hidden="true" />}
+            </button>
+          ))}
+        </div>, document.body,
+      )}
+    </div>
+  );
+}
+
 export function ThemeModeSwitch() {
+  const { t } = useTranslation();
   const themeMode = useStore((state) => state.themeMode);
   const compact = useMediaQuery('(max-width: 420px)');
   const active = THEME_OPTIONS.find((option) => option.value === themeMode) || THEME_OPTIONS[0];
@@ -26,9 +156,9 @@ export function ThemeModeSwitch() {
   }
 
   return (
-    <div className={`theme-mode-switch [display:inline-flex] [align-items:center] [gap:3px] [min-height:40px] [padding:3px] [border:1px_solid_var(--button-subtle-border)] [border-radius:999px] [background:var(--button-subtle-bg)] [box-shadow:inset_0_1px_0_rgba(255,_255,_255,_0.08),_0_8px_16px_rgba(15,_23,_42,_0.04)] [backdrop-filter:blur(18px)_saturate(145%)] max-[768px]:[max-width:100%] max-[768px]:[min-height:32px] max-[768px]:[padding:2px]${compact ? ' theme-mode-switch--compact' : ''}`} role="group" aria-label="主题模式">
+    <div className={`theme-mode-switch [display:inline-flex] [align-items:center] [gap:3px] [min-height:40px] [padding:3px] [border:1px_solid_var(--button-subtle-border)] [border-radius:999px] [background:var(--button-subtle-bg)] [box-shadow:inset_0_1px_0_rgba(255,_255,_255,_0.08),_0_8px_16px_rgba(15,_23,_42,_0.04)] [backdrop-filter:blur(18px)_saturate(145%)] max-[768px]:[max-width:100%] max-[768px]:[min-height:32px] max-[768px]:[padding:2px]${compact ? ' theme-mode-switch--compact' : ''}`} role="group" aria-label={t('主题模式')}>
       {compact ? (
-        <button type="button" className="switch-option [min-width:32px] [height:32px] [display:inline-flex] [align-items:center] [justify-content:center] [padding:0] [line-height:1] [border:1px_solid_transparent] [border-radius:999px] [background:transparent] [color:var(--text-secondary)] [font-size:12px] [font-weight:600] [cursor:pointer] [transition:background_var(--transition-fast),_color_var(--transition-fast),_box-shadow_var(--transition-fast),_border-color_var(--transition-fast),_transform_var(--transition-fast)] max-[768px]:[flex:0_0_auto] max-[768px]:[min-width:26px] max-[768px]:[height:26px] active" aria-label={`切换主题，当前：${active.label}`} onClick={cycleMode}>
+        <button type="button" className="switch-option [min-width:32px] [height:32px] [display:inline-flex] [align-items:center] [justify-content:center] [padding:0] [line-height:1] [border:1px_solid_transparent] [border-radius:999px] [background:transparent] [color:var(--text-secondary)] [font-size:12px] [font-weight:600] [cursor:pointer] [transition:background_var(--transition-fast),_color_var(--transition-fast),_box-shadow_var(--transition-fast),_border-color_var(--transition-fast),_transform_var(--transition-fast)] max-[768px]:[flex:0_0_auto] max-[768px]:[min-width:26px] max-[768px]:[height:26px] active" aria-label={t('切换主题，当前：{{theme}}', { theme: t(active.label) })} onClick={cycleMode}>
           <i className={active.icon} />
         </button>
       ) : THEME_OPTIONS.map((option) => (
@@ -37,9 +167,11 @@ export function ThemeModeSwitch() {
           type="button"
           className={`switch-option [min-width:32px] [height:32px] [display:inline-flex] [align-items:center] [justify-content:center] [padding:0] [line-height:1] [border:1px_solid_transparent] [border-radius:999px] [background:transparent] [color:var(--text-secondary)] [font-size:12px] [font-weight:600] [cursor:pointer] [transition:background_var(--transition-fast),_color_var(--transition-fast),_box-shadow_var(--transition-fast),_border-color_var(--transition-fast),_transform_var(--transition-fast)] max-[768px]:[flex:0_0_auto] max-[768px]:[min-width:26px] max-[768px]:[height:26px]${themeMode === option.value ? ' active' : ''}`}
           onClick={() => setMode(option.value)}
+          aria-pressed={themeMode === option.value}
+          title={t(option.label)}
         >
           <i className={option.icon} />
-          <span>{option.label}</span>
+          <span>{t(option.label)}</span>
         </button>
       ))}
     </div>
@@ -47,24 +179,26 @@ export function ThemeModeSwitch() {
 }
 
 export function DashboardButton() {
+  const { t } = useTranslation();
   const username = useStore((state) => state.profile?.username);
   if (config.aobobo.v1HideNezhaDashboardBtn === true) return null;
   return (
     <a
       href={config.aobobo.v1DashboardUrl || '/dashboard'}
       className="v1-dashboard-btn [display:inline-flex] [align-items:center] [justify-content:center] [gap:5px] [min-height:40px] [padding:0_14px] [border-radius:999px] [border:1px_solid_var(--button-subtle-border)] [background:var(--button-subtle-bg)] [color:var(--text-secondary)] [font-size:12px] [font-weight:600] [line-height:1] [text-decoration:none] [cursor:pointer] [transition:color_var(--transition-fast),_background_var(--transition-fast),_border-color_var(--transition-fast),_box-shadow_var(--transition-fast),_transform_var(--transition-fast)] max-[768px]:[min-height:32px] max-[768px]:[padding:0_10px] max-[420px]:[width:32px] max-[420px]:[height:32px] max-[420px]:[min-width:32px] max-[420px]:[padding:0]"
-      title={username ? '访问管理后台' : '登录管理后台'}
+      title={username ? t('访问管理后台') : t('登录管理后台')}
       target="_blank"
       rel="noopener noreferrer"
     >
       <i className={username ? 'ri-dashboard-3-line' : 'ri-user-line'} />
-      <span className="btn-text">{username ? '管理后台' : '登录'}</span>
+      <span className="btn-text">{username ? t('管理后台') : t('登录')}</span>
     </a>
   );
 }
 
 export function AppFooter({ className = '' }: { className?: string }) {
-  const poweredName = config.aobobo.poweredByName || '哪吒监控';
+  const { t } = useTranslation();
+  const poweredName = config.aobobo.poweredByName || t('哪吒监控');
   const poweredUrl = config.aobobo.poweredByUrl || 'https://nezha.wiki';
   const version = config.aobobo.aoboboVersion || packageJson.version;
   return (
@@ -84,6 +218,7 @@ export function AppFooter({ className = '' }: { className?: string }) {
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
 export function CurrentTime({ panelWidth }: { panelWidth?: number | string }) {
+  const { t } = useTranslation();
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
@@ -96,20 +231,20 @@ export function CurrentTime({ panelWidth }: { panelWidth?: number | string }) {
     ...(panelWidth ? { '--current-time-panel-width': typeof panelWidth === 'number' ? `${panelWidth}px` : panelWidth } : {}),
   };
   return (
-    <div className="current-time-widget [position:absolute] [top:18px] [left:18px] [z-index:10] [width:var(--current-time-panel-width,_236px)] [max-width:calc(100vw_-_36px)] [display:inline-flex] [align-items:stretch] [padding:0] [border-radius:22px] [border:1px_solid_var(--border-color)] [background:linear-gradient(145deg,_rgba(var(--accent-primary-rgb),_0.08),_transparent_42%),_var(--panel-floating-bg)] [backdrop-filter:blur(18px)_saturate(150%)] [box-shadow:var(--shadow-md),_inset_0_1px_0_var(--surface-highlight)] [color:var(--text-secondary)] [pointer-events:none] [user-select:none] [overflow:hidden] max-[1023px]:[top:66px] max-[1023px]:[left:14px] max-[1023px]:[width:min(var(--current-time-panel-width,_210px),_210px)] max-[1023px]:[max-width:calc(100vw_-_28px)] max-[1023px]:[border-radius:16px] max-[420px]:[top:62px] max-[420px]:[left:12px] max-[420px]:[width:min(var(--current-time-panel-width,_186px),_186px)] max-[420px]:[max-width:calc(100vw_-_24px)] max-[420px]:[border-radius:14px]" style={style} aria-label="当前时间">
+    <div className="current-time-widget [position:absolute] [top:18px] [left:18px] [z-index:10] [width:var(--current-time-panel-width,_236px)] [max-width:calc(100vw_-_36px)] [display:inline-flex] [align-items:stretch] [padding:0] [border-radius:22px] [border:1px_solid_var(--border-color)] [background:linear-gradient(145deg,_rgba(var(--accent-primary-rgb),_0.08),_transparent_42%),_var(--panel-floating-bg)] [backdrop-filter:blur(18px)_saturate(150%)] [box-shadow:var(--shadow-md),_inset_0_1px_0_var(--surface-highlight)] [color:var(--text-secondary)] [pointer-events:none] [user-select:none] [overflow:hidden] max-[1023px]:[top:66px] max-[1023px]:[left:14px] max-[1023px]:[width:min(var(--current-time-panel-width,_210px),_210px)] max-[1023px]:[max-width:calc(100vw_-_28px)] max-[1023px]:[border-radius:16px] max-[420px]:[top:62px] max-[420px]:[left:12px] max-[420px]:[width:min(var(--current-time-panel-width,_186px),_186px)] max-[420px]:[max-width:calc(100vw_-_24px)] max-[420px]:[border-radius:14px]" style={style} aria-label={t('当前时间')}>
       <div className="current-time-content [position:relative] [z-index:1] [display:flex] [flex-direction:column] [gap:12px] [width:100%] [padding:14px_15px_15px] [line-height:1.2] max-[1023px]:[gap:6px] max-[1023px]:[padding:8px_11px_9px] max-[420px]:[gap:5px] max-[420px]:[padding:6px_9px_7px]">
         <div className="current-time__header [display:flex] [align-items:center] [justify-content:space-between] [gap:12px] max-[420px]:[gap:6px]">
-          <div className="current-time__eyebrow [display:inline-flex] [align-items:center] [gap:8px] [min-width:0] [font-size:11px] [font-weight:700] [letter-spacing:0] [color:var(--text-secondary)]"><span className="current-time__indicator [width:16px] [height:16px] [display:grid] [flex:0_0_auto] [place-items:center] [border-radius:8px] [border:1px_solid_rgba(var(--accent-primary-rgb),_0.16)] [background:rgba(var(--accent-primary-rgb),_0.09)] max-[1023px]:[width:12px] max-[1023px]:[height:12px] max-[1023px]:[border-radius:6px]" aria-hidden="true"><span className="current-time__indicator-core [width:7px] [height:7px] [border-radius:50%] [background:var(--accent-primary)] [box-shadow:0_0_0_3px_rgba(var(--accent-primary-rgb),_0.14),_0_0_14px_rgba(var(--accent-primary-rgb),_0.38)] max-[1023px]:[width:5px] max-[1023px]:[height:5px]" /></span><span>当前时间</span></div>
+          <div className="current-time__eyebrow [display:inline-flex] [align-items:center] [gap:8px] [min-width:0] [font-size:11px] [font-weight:700] [letter-spacing:0] [color:var(--text-secondary)]"><span className="current-time__indicator [width:16px] [height:16px] [display:grid] [flex:0_0_auto] [place-items:center] [border-radius:8px] [border:1px_solid_rgba(var(--accent-primary-rgb),_0.16)] [background:rgba(var(--accent-primary-rgb),_0.09)] max-[1023px]:[width:12px] max-[1023px]:[height:12px] max-[1023px]:[border-radius:6px]" aria-hidden="true"><span className="current-time__indicator-core [width:7px] [height:7px] [border-radius:50%] [background:var(--accent-primary)] [box-shadow:0_0_0_3px_rgba(var(--accent-primary-rgb),_0.14),_0_0_14px_rgba(var(--accent-primary-rgb),_0.38)] max-[1023px]:[width:5px] max-[1023px]:[height:5px]" /></span><span>{t('当前时间')}</span></div>
           <span className="current-time__header-meta [white-space:nowrap] [padding-top:1px] max-[420px]:[display:none]">LOCAL</span>
         </div>
         <div className="current-time__main [display:flex] [align-items:center] [justify-content:space-between] [gap:14px]">
           <div className="current-time__clock [flex:1] [min-width:0] [display:flex] [align-items:baseline] [font-size:38px] [font-weight:760] [font-family:var(--font-mono)] [font-variant-numeric:tabular-nums] [color:var(--text-primary)] [line-height:0.88] [letter-spacing:0] max-[1023px]:[font-size:26px] max-[420px]:[font-size:22px]" aria-live="polite"><span>{pad(now.getHours())}</span><span className="current-time__colon [color:var(--accent-primary)] [margin:0_1px] [transform:translateY(-1px)]">:</span><span>{pad(now.getMinutes())}</span></div>
-          <div className="current-time__seconds-block [position:relative] [display:flex] [flex-direction:column] [align-items:center] [justify-content:center] [gap:3px] [width:58px] [min-width:58px] [aspect-ratio:1] [padding:7px] [overflow:hidden] [border-radius:18px] [border:1px_solid_rgba(var(--accent-primary-rgb),_0.17)] [background:linear-gradient(180deg,_rgba(255,_255,_255,_0.08),_transparent),_rgba(var(--accent-primary-rgb),_0.08)] [box-shadow:inset_0_1px_0_var(--surface-highlight),_0_10px_24px_rgba(var(--accent-primary-rgb),_0.12)] max-[1023px]:[width:40px] max-[1023px]:[min-width:40px] max-[1023px]:[padding:4px] max-[1023px]:[border-radius:12px] max-[1023px]:[gap:2px] max-[420px]:[width:34px] max-[420px]:[min-width:34px] max-[420px]:[gap:1px] max-[420px]:[padding:3px] max-[420px]:[border-radius:10px]" aria-label="当前秒数"><span className="current-time__seconds-label">SEC</span><span className="current-time__seconds-value [font-size:20px] [line-height:1] [font-weight:760] [font-family:var(--font-mono)] [font-variant-numeric:tabular-nums] [color:var(--accent-primary)] max-[1023px]:[font-size:15px] max-[420px]:[font-size:13px]">{pad(now.getSeconds())}</span></div>
+          <div className="current-time__seconds-block [position:relative] [display:flex] [flex-direction:column] [align-items:center] [justify-content:center] [gap:3px] [width:58px] [min-width:58px] [aspect-ratio:1] [padding:7px] [overflow:hidden] [border-radius:18px] [border:1px_solid_rgba(var(--accent-primary-rgb),_0.17)] [background:linear-gradient(180deg,_rgba(255,_255,_255,_0.08),_transparent),_rgba(var(--accent-primary-rgb),_0.08)] [box-shadow:inset_0_1px_0_var(--surface-highlight),_0_10px_24px_rgba(var(--accent-primary-rgb),_0.12)] max-[1023px]:[width:40px] max-[1023px]:[min-width:40px] max-[1023px]:[padding:4px] max-[1023px]:[border-radius:12px] max-[1023px]:[gap:2px] max-[420px]:[width:34px] max-[420px]:[min-width:34px] max-[420px]:[gap:1px] max-[420px]:[padding:3px] max-[420px]:[border-radius:10px]" aria-label={t('当前秒数')}><span className="current-time__seconds-label">SEC</span><span className="current-time__seconds-value [font-size:20px] [line-height:1] [font-weight:760] [font-family:var(--font-mono)] [font-variant-numeric:tabular-nums] [color:var(--accent-primary)] max-[1023px]:[font-size:15px] max-[420px]:[font-size:13px]">{pad(now.getSeconds())}</span></div>
         </div>
         <div className="current-time__second-track [height:4px] [overflow:hidden] [border-radius:999px] [background:rgba(154,_169,_191,_0.14)] max-[1023px]:[height:2px] max-[420px]:[height:2px]" aria-hidden="true"><span className="current-time__second-progress [display:block] [width:var(--current-time-second-progress)] [height:100%] [border-radius:inherit] [background:linear-gradient(90deg,_var(--accent-primary),_var(--accent-success),_var(--accent-warning))] [box-shadow:0_0_12px_rgba(var(--accent-primary-rgb),_0.24)] [transition:width_0.28s_ease]" /></div>
         <div className="current-time__meta [display:flex] [align-items:flex-end] [justify-content:space-between] [gap:14px] max-[420px]:[gap:5px]">
           <div className="current-time__meta-item [display:flex] [flex-direction:column] [gap:4px] [min-width:0] max-[1023px]:[gap:2px] max-[420px]:[gap:1px]"><span className="current-time__meta-label">DATE</span><span className="current-time__meta-value [font-size:13px] [font-weight:600] [font-family:var(--font-mono)] [font-variant-numeric:tabular-nums] [color:var(--text-secondary)] [white-space:nowrap] [overflow:hidden] [text-overflow:ellipsis] max-[1023px]:[font-size:10px] max-[420px]:[font-size:9px]">{`${now.getFullYear()}.${pad(now.getMonth() + 1)}.${pad(now.getDate())}`}</span></div>
-          <div className="current-time__meta-item [display:flex] [flex-direction:column] [gap:4px] [min-width:0] max-[1023px]:[gap:2px] max-[420px]:[gap:1px] current-time__meta-item--align-end [align-items:flex-end] [text-align:right]"><span className="current-time__meta-label">WEEK</span><span className="current-time__meta-value [font-size:13px] [font-weight:600] [font-family:var(--font-mono)] [font-variant-numeric:tabular-nums] [color:var(--text-secondary)] [white-space:nowrap] [overflow:hidden] [text-overflow:ellipsis] max-[1023px]:[font-size:10px] max-[420px]:[font-size:9px]">{WEEKDAYS[now.getDay()]}</span></div>
+          <div className="current-time__meta-item [display:flex] [flex-direction:column] [gap:4px] [min-width:0] max-[1023px]:[gap:2px] max-[420px]:[gap:1px] current-time__meta-item--align-end [align-items:flex-end] [text-align:right]"><span className="current-time__meta-label">WEEK</span><span className="current-time__meta-value [font-size:13px] [font-weight:600] [font-family:var(--font-mono)] [font-variant-numeric:tabular-nums] [color:var(--text-secondary)] [white-space:nowrap] [overflow:hidden] [text-overflow:ellipsis] max-[1023px]:[font-size:10px] max-[420px]:[font-size:9px]">{t(WEEKDAYS[now.getDay()])}</span></div>
         </div>
       </div>
     </div>
@@ -147,6 +282,7 @@ type ModalProps = {
 };
 
 export function Modal({ open, title, onClose, className = '', children }: ModalProps) {
+  const { t } = useTranslation();
   useEffect(() => {
     if (!open) return undefined;
     const onKeyDown = (event) => event.key === 'Escape' && onClose?.();
@@ -161,7 +297,7 @@ export function Modal({ open, title, onClose, className = '', children }: ModalP
   return (
     <div className="react-modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose?.()}>
       <section className={`react-modal ${className}`.trim()} role="dialog" aria-modal="true" aria-label={title}>
-        <header className="react-modal__header"><h2>{title}</h2><button type="button" className="react-modal__close" aria-label="关闭" onClick={onClose}><i className="ri-close-line" /></button></header>
+        <header className="react-modal__header"><h2>{title}</h2><button type="button" className="react-modal__close" aria-label={t('关闭')} onClick={onClose}><i className="ri-close-line" /></button></header>
         <div className="react-modal__body">{children}</div>
       </section>
     </div>

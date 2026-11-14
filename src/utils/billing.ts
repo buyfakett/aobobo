@@ -1,3 +1,5 @@
+import { t } from '@/i18n';
+
 function chineseNumberToArabic(str) {
   const map = {
     零: 0,
@@ -170,7 +172,7 @@ function getCycleLabel(cycle) {
     return '';
   }
   if (isOneTimeCycle(cycleStr)) {
-    return cycleStr;
+    return t(cycleStr);
   }
 
   const lower = cycleStr.toLowerCase();
@@ -180,22 +182,22 @@ function getCycleLabel(cycle) {
     case 'mo':
     case 'month':
     case 'monthly':
-      return '月';
+      return t('月');
     case '年':
     case 'y':
     case 'yr':
     case 'year':
     case 'annual':
-      return '年';
+      return t('年');
     case '季':
     case 'quarterly':
-      return '季';
+      return t('季');
     case '半':
     case '半年':
     case 'h':
     case 'half':
     case 'semi-annually':
-      return '半年';
+      return t('半年');
     default:
       break;
   }
@@ -204,13 +206,13 @@ function getCycleLabel(cycle) {
   if (String(cycleNum) === cycleStr && Number.isFinite(cycleNum) && cycleNum > 0) {
     switch (cycleNum) {
       case 1:
-        return '月';
+        return t('月');
       case 3:
-        return '季';
+        return t('季');
       case 6:
-        return '半年';
+        return t('半年');
       case 12:
-        return '年';
+        return t('年');
       default:
         return cycleStr;
     }
@@ -220,22 +222,22 @@ function getCycleLabel(cycle) {
     /^(\d+(?:\.\d+)?)\s*(?:年|y(?:r)?|year(?:s)?|annual)(?:付)?$/i.test(cycleStr)
     || /^(\d+(?:\.\d+)?)\s*年\s*半(?:付)?$/i.test(cycleStr)
   ) {
-    return '年';
+    return t('年');
   }
   if (/^(\d+(?:\.\d+)?)\s*(?:季|quarter(?:ly)?)(?:付)?$/i.test(cycleStr)) {
-    return '季';
+    return t('季');
   }
   if (/^(\d+(?:\.\d+)?)\s*(?:半年|half|semi-annually)(?:付)?$/i.test(cycleStr)) {
-    return '半年';
+    return t('半年');
   }
   if (/^(\d+(?:\.\d+)?)\s*(?:个?)(?:月|m(?:o)?|month(?:ly)?)(?:付)?$/i.test(cycleStr)) {
-    return '月';
+    return t('月');
   }
   if (/^([一二两三四五六七八九十百千万]+)\s*年(?:\s*半)?/.test(cycleStr)) {
-    return '年';
+    return t('年');
   }
   if (/^([一二两三四五六七八九十百千万]+)\s*(?:个?)月/.test(cycleStr)) {
-    return '月';
+    return t('月');
   }
 
   return cycleStr;

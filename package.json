@@ -5,7 +5,7 @@
   "type": "module",
   "packageManager": "pnpm@12.16.1",
   "engines": {
-    "node": "^20.19.0 || >=22.12.0"
+    "node": ">=24.0.0"
   },
   "scripts": {
     "dev": "rsbuild dev",
@@ -30,8 +30,10 @@
     "echarts-gl": "^2.1.0",
     "flag-icons": "^7.6.0",
     "font-logos": "^1.4.0",
+    "i18next": "^27.1.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "react-i18next": "^18.0.1",
     "react-router-dom": "^7.18.5",
     "remixicon": "^4.9.1"
   },

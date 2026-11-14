@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 /**
  * 服务器排序选项与处理逻辑
  * 参考 nazhua-front 实现
@@ -6,28 +7,28 @@
 import { getCPUInfo } from '@/utils/host';
 
 export const serverSortOptions = () => [
-  { label: '排序值', value: 'DisplayIndex' },
-  { label: '主机名称', value: 'Name' },
-  { label: '国家地区', value: 'Host.CountryCode' },
-  { label: '系统平台', value: 'Host.Platform' },
-  { label: '在线时长', value: 'Host.BootTime' },
-  { label: '入网速度', value: 'State.NetInSpeed' },
-  { label: '出网速度', value: 'State.NetOutSpeed' },
-  { label: '入网流量', value: 'State.NetInTransfer' },
-  { label: '出网流量', value: 'State.NetOutTransfer' },
-  { label: '合计流量', value: '$.TotalTransfer' },
-  { label: 'TCP连接', value: 'State.TcpConnCount' },
-  { label: 'UDP连接', value: 'State.UdpConnCount' },
-  { label: '总连接数', value: '$.TotalConnCount' },
-  { label: '1分钟负载', value: 'State.Load1' },
-  { label: 'CPU占用', value: 'State.CPU' },
-  { label: '核心数量', value: '$.CPU' },
-  { label: '内存占用', value: 'State.MemUsed' },
-  { label: '内存大小', value: 'Host.MemTotal' },
-  { label: '交换占用', value: 'State.SwapUsed' },
-  { label: '交换大小', value: 'Host.SwapTotal' },
-  { label: '硬盘占用', value: 'State.DiskUsed' },
-  { label: '硬盘大小', value: 'Host.DiskTotal' },
+  { label: t('排序值'), value: 'DisplayIndex' },
+  { label: t('主机名称'), value: 'Name' },
+  { label: t('国家地区'), value: 'Host.CountryCode' },
+  { label: t('系统平台'), value: 'Host.Platform' },
+  { label: t('在线时长'), value: 'Host.BootTime' },
+  { label: t('入网速度'), value: 'State.NetInSpeed' },
+  { label: t('出网速度'), value: 'State.NetOutSpeed' },
+  { label: t('入网流量'), value: 'State.NetInTransfer' },
+  { label: t('出网流量'), value: 'State.NetOutTransfer' },
+  { label: t('合计流量'), value: '$.TotalTransfer' },
+  { label: t('TCP连接'), value: 'State.TcpConnCount' },
+  { label: t('UDP连接'), value: 'State.UdpConnCount' },
+  { label: t('总连接数'), value: '$.TotalConnCount' },
+  { label: t('1分钟负载'), value: 'State.Load1' },
+  { label: t('CPU占用'), value: 'State.CPU' },
+  { label: t('核心数量'), value: '$.CPU' },
+  { label: t('内存占用'), value: 'State.MemUsed' },
+  { label: t('内存大小'), value: 'Host.MemTotal' },
+  { label: t('交换占用'), value: 'State.SwapUsed' },
+  { label: t('交换大小'), value: 'Host.SwapTotal' },
+  { label: t('硬盘占用'), value: 'State.DiskUsed' },
+  { label: t('硬盘大小'), value: 'Host.DiskTotal' },
 ];
 
 const sortCollator = new Intl.Collator(undefined, {
