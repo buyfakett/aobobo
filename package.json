@@ -22,8 +22,8 @@
     "test:ci": "rstest run --coverage"
   },
   "dependencies": {
-    "axios": "^1.21.0",
-    "d3-geo": "^3.1.1",
+    "axios": "^1.21.1",
+    "d3-geo": "^3.1.2",
     "dayjs": "^1.11.23",
     "echarts": "^6.1.0",
     "echarts-for-react": "^3.0.6",
@@ -40,11 +40,11 @@
     "url": "https://github.com/buyfakett/aobobo"
   },
   "devDependencies": {
-    "@rsbuild/core": "^2.3.1",
+    "@rsbuild/core": "^2.3.2",
     "@rsbuild/plugin-react": "^2.1.1",
     "@rsbuild/plugin-tailwindcss": "^2.0.3",
-    "@rsdoctor/core": "^2.0.1",
-    "@rslint/core": "^0.10.0",
+    "@rsdoctor/core": "^2.0.3",
+    "@rslint/core": "^0.10.1",
     "@rstest/core": "^0.12.6",
     "@rstest/coverage-v8": "^0.12.6",
     "@testing-library/react": "^16.3.3",
@@ -52,9 +52,9 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "cross-env": "^10.1.0",
-    "dotenv": "^18.0.9",
+    "dotenv": "^18.0.10",
     "happy-dom": "^20.14.6",
-    "tailwindcss": "^4.3.4",
+    "tailwindcss": "^4.3.5",
     "typescript": "^7.0.2"
   },
   "optionalDependencies": {
