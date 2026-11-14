@@ -6,6 +6,7 @@ import {
 } from 'react-router-dom';
 import store from '@/store';
 import wsInit from '@/ws';
+import '@/i18n';
 
 const Home = lazy(() => import('@/views/Home'));
 let bootPromise;

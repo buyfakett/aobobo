@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import config from '@/config';
 import store, { useStore } from '@/store';
@@ -128,6 +129,7 @@ function MetricCard({ title, summary, details = [], series, yAxis, tooltipValueF
 }
 
 export default function ResourceHistory({ info }) {
+  const { t } = useTranslation();
   useStore((state) => ({ setting: state.setting, profile: state.profile }));
   const canHistory = isTsdbEnabled(store);
   const canLong = hasTsdb(store) && Boolean(store.state.profile?.username);
@@ -204,37 +206,37 @@ export default function ResourceHistory({ info }) {
   // Current summary values change with each push; historical chart data does not.
   const chartSeries = useMemo(() => ({
     cpu: buildSeries(active, ['cpu', 'CPU']),
-    memory: buildSeries(active, ['memory', '内存'], ['swap', '交换']),
-    disk: buildSeries(active, ['disk', '磁盘']),
-    processes: buildSeries(active, ['process_count', '进程']),
-    network: buildSeries(active, ['net_in_speed', '上传'], ['net_out_speed', '下载']),
+    memory: buildSeries(active, ['memory', t('内存')], ['swap', t('交换')]),
+    disk: buildSeries(active, ['disk', t('磁盘')]),
+    processes: buildSeries(active, ['process_count', t('进程')]),
+    network: buildSeries(active, ['net_in_speed', t('上传')], ['net_out_speed', t('下载')]),
     connections: buildSeries(active, ['tcp_conn', 'TCP'], ['udp_conn', 'UDP']),
-  }), [active]);
+  }), [active, t]);
   const cards = useMemo(() => [
     { title: 'CPU', summary: formatNumber(info?.State?.CPU, '%'), series: chartSeries.cpu, yAxis: PERCENT_Y_AXIS },
-    { title: '内存 / 交换', details: [
-      { label: '内存', value: formatBytes(info?.State?.MemUsed), detail: `/ ${formatBytes(info?.Host?.MemTotal)}`, color: COLORS.memory },
-      { label: '交换', value: info?.Host?.SwapTotal ? formatBytes(info?.State?.SwapUsed) : 'no swap', detail: info?.Host?.SwapTotal ? `/ ${formatBytes(info?.Host?.SwapTotal)}` : '', color: COLORS.swap },
+    { title: t('内存 / 交换'), details: [
+      { label: t('内存'), value: formatBytes(info?.State?.MemUsed), detail: `/ ${formatBytes(info?.Host?.MemTotal)}`, color: COLORS.memory },
+      { label: t('交换'), value: info?.Host?.SwapTotal ? formatBytes(info?.State?.SwapUsed) : t('无交换分区'), detail: info?.Host?.SwapTotal ? `/ ${formatBytes(info?.Host?.SwapTotal)}` : '', color: COLORS.swap },
     ], series: chartSeries.memory, yAxis: PERCENT_Y_AXIS },
-    { title: '磁盘', summary: `${formatDiskSize(info?.State?.DiskUsed) || '-'} / ${formatDiskSize(info?.Host?.DiskTotal) || '-'}`, series: chartSeries.disk, yAxis: PERCENT_Y_AXIS },
-    { title: '进程数', summary: formatNumber(info?.State?.ProcessCount), series: chartSeries.processes },
-    { title: '上传 / 下载', details: [
-      { label: '上传', value: formatNetworkSpeed(info?.State?.NetInSpeed), color: COLORS.net_in_speed },
-      { label: '下载', value: formatNetworkSpeed(info?.State?.NetOutSpeed), color: COLORS.net_out_speed },
+    { title: t('磁盘'), summary: `${formatDiskSize(info?.State?.DiskUsed) || '-'} / ${formatDiskSize(info?.Host?.DiskTotal) || '-'}`, series: chartSeries.disk, yAxis: PERCENT_Y_AXIS },
+    { title: t('进程数'), summary: formatNumber(info?.State?.ProcessCount), series: chartSeries.processes },
+    { title: t('上传 / 下载'), details: [
+      { label: t('上传'), value: formatNetworkSpeed(info?.State?.NetInSpeed), color: COLORS.net_in_speed },
+      { label: t('下载'), value: formatNetworkSpeed(info?.State?.NetOutSpeed), color: COLORS.net_out_speed },
     ], series: chartSeries.network, yAxis: NETWORK_Y_AXIS, tooltipValueFormatter: formatNetworkSpeed },
     { title: 'TCP / UDP', details: [
       { label: 'TCP', value: formatNumber(info?.State?.TcpConnCount), color: COLORS.tcp_conn },
       { label: 'UDP', value: formatNumber(info?.State?.UdpConnCount), color: COLORS.udp_conn },
     ], series: chartSeries.connections },
-  ], [chartSeries, info]);
+  ], [chartSeries, info, t]);
 
   return (
     <DetailPanel className="server-detail-resource-history [padding:16px_18px_18px] max-[768px]:[padding:12px_14px]">
       <div className="module-head-group [display:flex] [flex-wrap:wrap] [align-items:center] [justify-content:space-between] [gap:12px] [margin-bottom:12px]">
-        <span className="module-title [min-height:28px] [font-size:15px]"><i className="ri-line-chart-line" />资源历史</span>
-        <div className="time-range-group [display:flex] [align-items:center] [gap:6px] [min-height:30px] [min-width:0] max-[768px]:[width:100%]"><span className="time-range-label">范围</span><div className="time-range-options">{ranges.map((item) => <button key={item.value} type="button" className={`time-range-item${range === item.value ? ' active' : ''}`} onClick={() => setRange(item.value)}>{item.label}</button>)}</div></div>
+        <span className="module-title [min-height:28px] [font-size:15px]"><i className="ri-line-chart-line" />{t('资源历史')}</span>
+        <div className="time-range-group [display:flex] [align-items:center] [gap:6px] [min-height:30px] [min-width:0] max-[768px]:[width:100%]"><span className="time-range-label">{t('范围')}</span><div className="time-range-options">{ranges.map((item) => <button key={item.value} type="button" className={`time-range-item${range === item.value ? ' active' : ''}`} onClick={() => setRange(item.value)}>{t(item.label)}</button>)}</div></div>
       </div>
-      <div className="history-grid [display:grid] [gap:12px] [grid-template-columns:repeat(2,_minmax(0,_1fr))] max-[768px]:[gap:8px] max-[768px]:[grid-template-columns:1fr]">{cards.map((card, index) => <div key={card.title} className="history-card-enter" style={{ '--resource-index': index }}><MetricCard {...card} loading={loading} emptyText={range === REALTIME ? '等待实时数据' : '暂无历史数据'} /></div>)}</div>
+      <div className="history-grid [display:grid] [gap:12px] [grid-template-columns:repeat(2,_minmax(0,_1fr))] max-[768px]:[gap:8px] max-[768px]:[grid-template-columns:1fr]">{cards.map((card, index) => <div key={card.title} className="history-card-enter" style={{ '--resource-index': index }}><MetricCard {...card} loading={loading} emptyText={range === REALTIME ? t('等待实时数据') : t('暂无历史数据')} /></div>)}</div>
     </DetailPanel>
   );
 }

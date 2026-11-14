@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import dayjs from 'dayjs';
 import config from '@/config';
 import validate from '@/utils/validate';
@@ -35,13 +36,13 @@ export function getBillAndPlanByServer(info) {
       let amountValue = billingDataMod.amount;
       let label;
       if (billingDataMod.amount.toString() === '-1') {
-        amountValue = '按量';
-        label = cycleLabel ? `每${cycleLabel}` : '';
+        amountValue = t('按量');
+        label = cycleLabel ? t('每{{cycle}}', { cycle: cycleLabel }) : '';
       } else if (billingDataMod.amount.toString() === '0') {
-        amountValue = config.aobobo.freeAmount || '免费';
+        amountValue = config.aobobo.freeAmount || t('免费');
         isFree = true;
       } else {
-        label = cycleLabel ? `${cycleLabel}付` : '';
+        label = cycleLabel ? t('{{cycle}}付', { cycle: cycleLabel }) : '';
       }
       obj.billing = {
         label,
@@ -61,8 +62,8 @@ export function getBillAndPlanByServer(info) {
       const endTime = dayjs(endDate).valueOf();
       if (billing.isInfinityEndDate(endDate)) {
         obj.remainingTime = {
-          label: '剩余',
-          value: config.aobobo.infinityCycle || '长期有效',
+          label: t('剩余'),
+          value: config.aobobo.infinityCycle || t('长期有效'),
           type: 'infinity',
         };
       } else if (billing.isAutoRenewalEnabled(autoRenewal)) {
@@ -71,8 +72,8 @@ export function getBillAndPlanByServer(info) {
         if (endTime > nowTime) {
           const diff = dayjs(endTime).diff(dayjs(), 'day') + 1;
           obj.remainingTime = {
-            label: '剩余',
-            value: `${diff}天`,
+            label: t('剩余'),
+            value: t('{{days}}天', { days: diff }),
             value2: diff,
             type: 'autoRenewal-endTime',
           };
@@ -81,8 +82,8 @@ export function getBillAndPlanByServer(info) {
           const nextTime = dateUtils.getNextCycleTime(endTime, months, nowTime);
           const diff = dayjs(nextTime).diff(dayjs(), 'day') + 1;
           obj.remainingTime = {
-            label: '剩余',
-            value: `${diff}天`,
+            label: t('剩余'),
+            value: t('{{days}}天', { days: diff }),
             value2: diff,
             type: 'autoRenewal-nextTime',
           };
@@ -90,15 +91,15 @@ export function getBillAndPlanByServer(info) {
       } else if (endTime > nowTime) {
         const diff = dayjs(endTime).diff(dayjs(), 'day') + 1;
         obj.remainingTime = {
-          label: '剩余',
-          value: `${diff}天`,
+          label: t('剩余'),
+          value: t('{{days}}天', { days: diff }),
           value2: diff,
           type: 'endTime',
         };
       } else {
         obj.remainingTime = {
-          label: '剩余',
-          value: '已过期',
+          label: t('剩余'),
+          value: t('已过期'),
           type: 'expired',
         };
       }
@@ -107,19 +108,19 @@ export function getBillAndPlanByServer(info) {
     if (planDataMod) {
       if (planDataMod.bandwidth) {
         obj.bandwidth = {
-          label: '带宽',
+          label: t('带宽'),
           value: planDataMod.bandwidth,
         };
       }
       if (planDataMod.trafficVol) {
-        let trafficTypeLabel = '双向';
+        let trafficTypeLabel = t('双向');
         if (planDataMod.trafficType === '1') {
-          trafficTypeLabel = '单向出';
+          trafficTypeLabel = t('单向出');
         } else if (planDataMod.trafficType === '3') {
-          trafficTypeLabel = '单向取最大';
+          trafficTypeLabel = t('单向取最大');
         }
         obj.traffic = {
-          label: `${trafficTypeLabel}流量`,
+          label: t('{{type}}流量', { type: trafficTypeLabel }),
           value: planDataMod.trafficVol,
         };
       }

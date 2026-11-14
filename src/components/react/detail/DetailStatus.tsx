@@ -1,3 +1,5 @@
+import { t } from '@/i18n';
+import { useTranslation } from 'react-i18next';
 import { calcBinary, calcTransfer, formatDiskSize, truncateDecimal } from '@/utils/host';
 import { duration, normalizeTimestamp } from '@/utils/date';
 import { useStore } from '@/store';
@@ -16,10 +18,10 @@ function resourceItems(info) {
   const cpuText = host.CPU?.[0] || '';
   const cores = cpuText.match(/(\d+)\s*(Virtual|Physical|Physics)\s*Core/i)?.[1];
   return [
-    { type: 'cpu', icon: 'ri-cpu-line', label: 'CPU', value: `${Number(state.CPU || 0).toFixed(1)}%`, detail: cores ? `${cores} 核` : '', used: Number(state.CPU || 0), color: '#4e90ff' },
-    { type: 'mem', icon: 'ri-server-line', label: '内存', value: format(state.MemUsed), detail: format(host.MemTotal), used: percent(state.MemUsed, host.MemTotal), color: '#27c975' },
-    host.SwapTotal > 0 && { type: 'swap', icon: 'ri-hard-drive-2-line', label: '交换', value: format(state.SwapUsed), detail: format(host.SwapTotal), used: percent(state.SwapUsed, host.SwapTotal), color: '#f59e0b' },
-    { type: 'disk', icon: 'ri-database-2-line', label: '磁盘', value: formatDiskSize(state.DiskUsed) || '-', detail: formatDiskSize(host.DiskTotal) || '-', used: percent(state.DiskUsed, host.DiskTotal), color: '#22d3ee' },
+    { type: 'cpu', icon: 'ri-cpu-line', label: 'CPU', value: `${Number(state.CPU || 0).toFixed(1)}%`, detail: cores ? t('{{count}} 核', { count: Number(cores) }) : '', used: Number(state.CPU || 0), color: '#4e90ff' },
+    { type: 'mem', icon: 'ri-server-line', label: t('内存'), value: format(state.MemUsed), detail: format(host.MemTotal), used: percent(state.MemUsed, host.MemTotal), color: '#27c975' },
+    host.SwapTotal > 0 && { type: 'swap', icon: 'ri-hard-drive-2-line', label: t('交换'), value: format(state.SwapUsed), detail: format(host.SwapTotal), used: percent(state.SwapUsed, host.SwapTotal), color: '#f59e0b' },
+    { type: 'disk', icon: 'ri-database-2-line', label: t('磁盘'), value: formatDiskSize(state.DiskUsed) || '-', detail: formatDiskSize(host.DiskTotal) || '-', used: percent(state.DiskUsed, host.DiskTotal), color: '#22d3ee' },
   ].filter(Boolean);
 }
 
@@ -35,6 +37,7 @@ function RealtimeItem({ icon, label, value, unit, className = '' }: {
 }
 
 export default function DetailStatus({ info }) {
+  const { t } = useTranslation();
   const showAvailability = useStore((state) => state.showAvailability);
   const serverTime = useStore((state) => state.serverTime);
   const items = resourceItems(info);
@@ -49,7 +52,7 @@ export default function DetailStatus({ info }) {
   return (
     <DetailPanel className="server-detail-status [display:flex] [flex-direction:column] [gap:14px] [padding:14px_18px] max-[768px]:[padding:10px_12px] max-[768px]:[gap:10px]">
       <div className="status-section">
-        <h3 className="section-title"><i className="ri-dashboard-3-line" />资源使用</h3>
+        <h3 className="section-title"><i className="ri-dashboard-3-line" />{t('资源使用')}</h3>
         <div className={`resource-grid resource-count--${items.length}`}>
           {items.map((item, index) => (
             <div key={item.type} className={`resource-card resource-card--${item.type}`} style={{ '--resource-index': index }}>
@@ -63,13 +66,13 @@ export default function DetailStatus({ info }) {
         </div>
       </div>
       <div className="status-section">
-        <h3 className="section-title"><i className="ri-speed-line" />实时数据</h3>
+        <h3 className="section-title"><i className="ri-speed-line" />{t('实时数据')}</h3>
         <div className="server-real-time">
-          {showAvailability && Number.isFinite(availability) && <RealtimeItem icon="ri-shield-check-line" label="可用性" value={truncateDecimal(availability, 2)} unit="%" />}
-          <RealtimeItem icon="ri-time-line" label="在线时长" value={uptime} />
-          <RealtimeItem icon="ri-arrow-up-down-line" label="双向流量" value={transfer.value} unit={transfer.unit} />
-          <RealtimeItem icon="ri-download-line" label="入网" value={incoming.value} unit={`${incoming.unit}/s`} />
-          <RealtimeItem icon="ri-upload-line" label="出网" value={outgoing.value} unit={`${outgoing.unit}/s`} />
+          {showAvailability && Number.isFinite(availability) && <RealtimeItem icon="ri-shield-check-line" label={t('可用性')} value={truncateDecimal(availability, 2)} unit="%" />}
+          <RealtimeItem icon="ri-time-line" label={t('在线时长')} value={uptime} />
+          <RealtimeItem icon="ri-arrow-up-down-line" label={t('双向流量')} value={transfer.value} unit={transfer.unit} />
+          <RealtimeItem icon="ri-download-line" label={t('入网')} value={incoming.value} unit={`${incoming.unit}/s`} />
+          <RealtimeItem icon="ri-upload-line" label={t('出网')} value={outgoing.value} unit={`${outgoing.unit}/s`} />
         </div>
       </div>
     </DetailPanel>

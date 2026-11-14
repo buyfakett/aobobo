@@ -20,20 +20,20 @@ describe('shared controls', () => {
   it('selects a theme and avoids dispatching an unchanged preference', () => {
     const dispatch = rs.spyOn(store, 'dispatch');
     render(<ThemeModeSwitch />);
-    fireEvent.click(screen.getByRole('button', { name: 'Auto' }));
+    fireEvent.click(screen.getByRole('button', { name: '自动' }));
     expect(dispatch).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Light' }));
+    fireEvent.click(screen.getByRole('button', { name: '浅色' }));
     expect(store.state.themeMode).toBe('light');
     expect(document.documentElement.dataset.theme).toBe('light');
     expect(window.localStorage.getItem('aobobo-theme-mode')).toBe('light');
-    fireEvent.click(screen.getByRole('button', { name: 'Dark' }));
+    fireEvent.click(screen.getByRole('button', { name: '深色' }));
     expect(store.state.themeMode).toBe('dark');
   });
 
   it('cycles all theme modes with the compact mobile control', () => {
     rs.stubGlobal('matchMedia', rs.fn(() => ({ matches: true, addEventListener: rs.fn(), removeEventListener: rs.fn() })));
     render(<ThemeModeSwitch />);
-    for (const [label, expected] of [['Auto', 'light'], ['Light', 'dark'], ['Dark', 'auto']]) {
+    for (const [label, expected] of [['自动', 'light'], ['浅色', 'dark'], ['深色', 'auto']]) {
       fireEvent.click(screen.getByRole('button', { name: `切换主题，当前：${label}` }));
       expect(store.state.themeMode).toBe(expected);
     }

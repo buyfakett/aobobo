@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import timezone from 'dayjs/plugin/timezone.js';
 import utc from 'dayjs/plugin/utc.js';
+import { t } from '@/i18n';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -48,12 +49,12 @@ export function formatDuration(seconds) {
   const hours = Math.floor((safeSeconds % DAY_SECONDS) / 3600);
   const minutes = Math.floor((safeSeconds % 3600) / 60);
   if (days > 0) {
-    return `${days}天 ${hours}小时 ${minutes}分钟`;
+    return t('{{days}}天 {{hours}}小时 {{minutes}}分钟', { days, hours, minutes });
   }
   if (hours > 0) {
-    return `${hours}小时 ${minutes}分钟`;
+    return t('{{hours}}小时 {{minutes}}分钟', { hours, minutes });
   }
-  return `${minutes}分钟`;
+  return t('{{minutes}}分钟', { minutes });
 }
 
 function wallClockPercent(value) {
