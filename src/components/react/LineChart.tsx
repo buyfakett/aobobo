@@ -15,6 +15,7 @@ type LineChartProps = {
   connectNulls?: boolean;
   yAxis?: Record<string, any>;
   tooltipFormatter?: AnyCallback;
+  tooltipValueFormatter?: AnyCallback;
   className?: string;
 };
 
@@ -24,6 +25,7 @@ const LineChart = memo(function LineChart({
   connectNulls = false,
   yAxis = EMPTY_Y_AXIS,
   tooltipFormatter,
+  tooltipValueFormatter,
   className = '',
 }: LineChartProps) {
   const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
@@ -77,6 +79,7 @@ const LineChart = memo(function LineChart({
       borderColor: 'var(--border-color)',
       textStyle: { color: 'var(--text-primary)', fontSize: 12 },
       formatter: tooltipFormatter,
+      valueFormatter: tooltipValueFormatter,
     },
     xAxis: {
       type: 'time',
@@ -96,9 +99,9 @@ const LineChart = memo(function LineChart({
       min: 0,
       axisLine: { show: false },
       axisTick: { show: false },
-      axisLabel: { color: 'var(--text-muted)', fontSize: 10, ...yAxis.axisLabel },
       splitLine: { show: false },
       ...yAxis,
+      axisLabel: { color: 'var(--text-muted)', fontSize: 10, ...yAxis.axisLabel },
     },
     series: series.map((item) => ({
       id: item.id || item.name,
@@ -112,7 +115,7 @@ const LineChart = memo(function LineChart({
       itemStyle: { color: item.color || item.itemStyle?.color },
       emphasis: { focus: 'series' },
     })),
-  }), [connectNulls, formatTime, isMultiDaySpan, isRealtimeSpan, reduceMotion, series, tooltipFormatter, yAxis]);
+  }), [connectNulls, formatTime, isMultiDaySpan, isRealtimeSpan, reduceMotion, series, tooltipFormatter, tooltipValueFormatter, yAxis]);
 
   return (
     <div className={`line-box w-full ${className}`.trim()} style={{ height }}>

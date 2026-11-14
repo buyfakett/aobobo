@@ -9,6 +9,7 @@ import LineChart from '@/components/react/LineChart';
 
 const REALTIME = 'realtime';
 const PERCENT_Y_AXIS = { max: 100 };
+const NETWORK_Y_AXIS = { axisLabel: { formatter: formatNetworkSpeed } };
 const METRICS = ['cpu', 'memory', 'swap', 'disk', 'process_count', 'net_in_speed', 'net_out_speed', 'tcp_conn', 'udp_conn'];
 const RANGES = [
   { label: '实时', value: REALTIME },
@@ -78,6 +79,14 @@ function formatBytes(value) {
   return `${result.value}${result.unit}`;
 }
 
+function formatNetworkSpeed(value) {
+  const bytes = finite(value);
+  if (bytes === null || bytes < 0) return '-';
+  const exponent = bytes >= 1024 ** 3 ? 3 : bytes >= 1024 ** 2 ? 2 : 1;
+  const unit = ['KB', 'MB', 'GB'][exponent - 1];
+  return `${Number((bytes / 1024 ** exponent).toFixed(2))}${unit}/s`;
+}
+
 function formatNumber(value, suffix = '') {
   return Number.isFinite(Number(value)) ? `${Number(Number(value).toFixed(1))}${suffix}` : '-';
 }
@@ -91,12 +100,13 @@ function buildSeries(history, ...definitions) {
   }));
 }
 
-function MetricCard({ title, summary, details = [], series, yAxis, loading, emptyText }: {
+function MetricCard({ title, summary, details = [], series, yAxis, tooltipValueFormatter, loading, emptyText }: {
   title: string;
   summary?: string;
   details?: Array<{ label: string; value: string; detail?: string; color: string }>;
   series: any[];
   yAxis?: Record<string, any>;
+  tooltipValueFormatter?: (_value: any) => string;
   loading: boolean;
   emptyText: string;
 }) {
@@ -110,7 +120,7 @@ function MetricCard({ title, summary, details = [], series, yAxis, loading, empt
         ) : <span key={summary} className="history-card__summary live-value-update [display:inline-flex] [align-items:center] [min-height:24px] [max-width:100%] [padding:0_9px] [border-radius:999px] [border:1px_solid_var(--panel-chip-border)] [background:var(--panel-chip-bg)] [box-shadow:inset_0_1px_0_var(--surface-highlight)] [color:var(--text-primary)] [font-family:var(--font-mono)] [font-size:12px] [font-weight:700] [font-variant-numeric:tabular-nums] [line-height:1] [white-space:nowrap] [overflow:hidden] [text-overflow:ellipsis] max-[768px]:[min-height:22px] max-[768px]:[padding:0_8px] max-[768px]:[font-size:11px]">{summary}</span>}
       </div>
       <div className="history-card__chart-shell [position:relative] [display:flex] [align-items:stretch] [height:180px] [min-height:0] [border-radius:12px] [border:1px_solid_var(--panel-stat-border)] [background:rgba(255,_255,_255,_0.016)] [overflow:hidden] max-[768px]:[height:140px] max-[768px]:[min-height:0]">
-        {hasData ? <LineChart series={series} height={170} yAxis={yAxis} /> : <div className="history-card__empty [flex:1] [display:flex] [align-items:center] [justify-content:center] [padding:12px] [color:var(--text-muted)] [font-size:12px] [text-align:center]">{emptyText}</div>}
+        {hasData ? <LineChart series={series} height={170} yAxis={yAxis} tooltipValueFormatter={tooltipValueFormatter} /> : <div className="history-card__empty [flex:1] [display:flex] [align-items:center] [justify-content:center] [padding:12px] [color:var(--text-muted)] [font-size:12px] [text-align:center]">{emptyText}</div>}
         {loading && <div className="history-card__loading [position:absolute] [inset:0] [display:flex] [align-items:center] [justify-content:center] [background:var(--resource-history-card-bg)] [z-index:2]"><i className="ri-loader-4-line spin history-card__loading-icon [font-size:24px] [color:var(--accent-primary)]" /></div>}
       </div>
     </article>
@@ -209,9 +219,9 @@ export default function ResourceHistory({ info }) {
     { title: '磁盘', summary: `${formatDiskSize(info?.State?.DiskUsed) || '-'} / ${formatDiskSize(info?.Host?.DiskTotal) || '-'}`, series: chartSeries.disk, yAxis: PERCENT_Y_AXIS },
     { title: '进程数', summary: formatNumber(info?.State?.ProcessCount), series: chartSeries.processes },
     { title: '上传 / 下载', details: [
-      { label: '上传', value: `${formatBytes(info?.State?.NetInSpeed)}/s`, color: COLORS.net_in_speed },
-      { label: '下载', value: `${formatBytes(info?.State?.NetOutSpeed)}/s`, color: COLORS.net_out_speed },
-    ], series: chartSeries.network },
+      { label: '上传', value: formatNetworkSpeed(info?.State?.NetInSpeed), color: COLORS.net_in_speed },
+      { label: '下载', value: formatNetworkSpeed(info?.State?.NetOutSpeed), color: COLORS.net_out_speed },
+    ], series: chartSeries.network, yAxis: NETWORK_Y_AXIS, tooltipValueFormatter: formatNetworkSpeed },
     { title: 'TCP / UDP', details: [
       { label: 'TCP', value: formatNumber(info?.State?.TcpConnCount), color: COLORS.tcp_conn },
       { label: 'UDP', value: formatNumber(info?.State?.UdpConnCount), color: COLORS.udp_conn },
