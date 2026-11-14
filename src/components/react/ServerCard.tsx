@@ -41,6 +41,31 @@ function formatTransfer(value) {
   return `${result.value}${result.unit}`;
 }
 
+function usagePercent(used, total) {
+  if (used == null || used === '' || total == null || total === '') return null;
+  const value = Number(used);
+  const capacity = Number(total);
+  if (!Number.isFinite(value) || !Number.isFinite(capacity) || capacity <= 0) return null;
+  return Math.max(0, Math.min((value / capacity) * 100, 100));
+}
+
+function resourceUsage(server) {
+  const state = server.online === 1 ? server.State || {} : {};
+  const host = server.Host || {};
+  return [
+    { key: 'cpu', label: 'CPU', used: state.CPU, total: 100, color: 'var(--accent-primary)' },
+    { key: 'mem', label: '内存', used: state.MemUsed, total: host.MemTotal, color: 'var(--accent-success)' },
+    { key: 'disk', label: '硬盘', used: state.DiskUsed, total: host.DiskTotal, color: '#22d3ee' },
+  ].map((item) => {
+    const percent = usagePercent(item.used, item.total);
+    const value = percent === null ? '—' : `${percent.toFixed(1)}%`;
+    const capacity = percent !== null && item.key !== 'cpu'
+      ? `${formatTransfer(Math.max(0, Number(item.used)))} / ${formatTransfer(item.total)}`
+      : '';
+    return { ...item, percent, value, capacity };
+  });
+}
+
 function traffic(server, cycleTransferMap, compact) {
   const summary = getCycleTransferSummaryByServer(cycleTransferMap, server);
   const incoming = server.State?.NetInTransfer || 0;
@@ -137,6 +162,7 @@ export default function ServerCard({
   const udp = server.State?.UdpConnCount || 0;
   const speedUp = server.State?.NetOutSpeed ? `${formatTransfer(server.State.NetOutSpeed)}/s` : '';
   const speedDown = server.State?.NetInSpeed ? `${formatTransfer(server.State.NetInSpeed)}/s` : '';
+  const resources = resourceUsage(server);
 
   return (
     <button
@@ -158,6 +184,29 @@ export default function ServerCard({
             {!compact && server.online !== 1 && <span className="meta-tag [display:inline-flex] [align-items:center] [flex:0_0_auto] [min-height:19px] [padding:0_7px] [border-radius:5px] [border:1px_solid_var(--list-tag-border)] [background:var(--list-tag-bg)] [color:var(--list-tag-text)] [font-size:10px] [font-weight:700] [line-height:1] [font-family:var(--font-sans)] [white-space:nowrap] meta-tag--status offline">离线</span>}
           </div>
           {serverSpec && <span className="server-list-item__head-spec [display:inline-flex] [align-items:center] [gap:5px] [flex:0_0_auto] [font-size:11px] [font-weight:600] [color:var(--text-secondary)] [white-space:nowrap] [font-family:var(--font-mono)] [font-variant-numeric:tabular-nums] max-[768px]:[font-size:10px]"><i className={getPlatformLogoIconClassName(server?.Host?.Platform)} /><span>{serverSpec}</span></span>}
+        </div>
+
+        <div className="server-list-item__usage [display:grid] [grid-template-columns:repeat(3,_minmax(0,_1fr))] [gap:12px] [padding:3px_0] max-[768px]:[gap:8px]">
+          {resources.map((item) => (
+            <div key={item.key} className="[min-width:0]" title={`${item.label}占用 ${item.value}${item.capacity ? `（${item.capacity}）` : ''}`}>
+              <div className="[display:flex] [align-items:center] [justify-content:space-between] [gap:4px] [font-size:11px] [line-height:1.4] [white-space:nowrap]">
+                <span className="[color:var(--text-secondary)]">{item.label}</span>
+                <span className="[font-family:var(--font-mono)] [font-variant-numeric:tabular-nums] [font-weight:600]">{item.value}</span>
+              </div>
+              <div
+                role="meter"
+                aria-label={`${item.label}占用`}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={item.percent ?? 0}
+                aria-valuetext={item.percent === null ? '暂无数据' : `${item.value}${item.capacity ? `，${item.capacity}` : ''}`}
+                className="[height:4px] [margin-top:5px] [overflow:hidden] [border-radius:999px] [background:var(--progress-track)]"
+              >
+                <div className="[height:100%] [border-radius:inherit]" style={{ width: `${item.percent ?? 0}%`, backgroundColor: item.color }} />
+              </div>
+              {!compact && item.capacity && <div className="[margin-top:4px] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap] [font-size:10px] [line-height:1.4] [color:var(--text-muted)] [font-family:var(--font-mono)] [font-variant-numeric:tabular-nums]">{item.capacity}</div>}
+            </div>
+          ))}
         </div>
 
         {compact ? (
